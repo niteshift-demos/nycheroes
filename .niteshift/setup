@@ -66,4 +66,4 @@ if [ ! -f .venv/.requirements-installed ] || [ tools/citygen/requirements.txt -n
 fi
 
 # Import the project and export the web build the preview serves.
-"$ROOT/.niteshift/files/build-web"
+"$ROOT/.niteshift/files/build-web" --if-needed

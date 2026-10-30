@@ -11,13 +11,34 @@ export GODOT_SILENCE_ROOT_WARNING=1
 mkdir -p build/web
 # Godot must not import what's in build/ (see tools/build_web.ps1).
 touch build/.gdignore
+# Cache by content rather than timestamps: cached checkouts can have fresh
+# mtimes even when their game sources are unchanged. Include untracked assets
+# and scripts so a local rebuild also sees newly created game content.
+fingerprint=$({
+  godot --version
+  git ls-files --cached --others --exclude-standard -z |
+    sort -zu | while IFS= read -r -d '' source; do
+      # Git still lists tracked files removed by an uncommitted edit.
+      if [ -f "$source" ]; then sha256sum "$source"; fi
+    done
+} | sha256sum | cut -d ' ' -f 1)
+stamp=build/web/.source-fingerprint
+if [ "${1:-}" = --if-needed ] && [ -f "$stamp" ] && \
+    [ "$(cat "$stamp")" = "$fingerprint" ] && \
+    [ -s build/web/index.html ] && [ -s build/web/index.js ] && \
+    [ -s build/web/index.wasm ] && [ -s build/web/index.pck ] && \
+    [ -s build/web/download.html ]; then
+  echo "Web build is current; skipping export"
+  exit 0
+fi
 # A fresh checkout has no .godot/ yet; import once so the export finds every
 # resource (exporting straight away can miss class_name scripts).
 if [ ! -d .godot/imported ]; then
-  godot --headless --path . --import >/dev/null 2>&1 || true
+  godot --headless --path . --import
 fi
 godot --headless --path . --export-release "Web" build/web/index.html
 # Native sample loops avoid gaps in 4.7.2's web audio (see the .ps1).
 node tools/web/fix_audio_loops.mjs build/web/index.js
 cp tools/web/download.html build/web/download.html
+printf '%s\n' "$fingerprint" > "$stamp"
 echo "Web build ready in build/web"
