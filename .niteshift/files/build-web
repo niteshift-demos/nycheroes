@@ -17,7 +17,10 @@ touch build/.gdignore
 fingerprint=$({
   godot --version
   git ls-files --cached --others --exclude-standard -z |
-    sort -zu | xargs -0 sha256sum
+    sort -zu | while IFS= read -r -d '' source; do
+      # Git still lists tracked files removed by an uncommitted edit.
+      if [ -f "$source" ]; then sha256sum "$source"; fi
+    done
 } | sha256sum | cut -d ' ' -f 1)
 stamp=build/web/.source-fingerprint
 if [ "${1:-}" = --if-needed ] && [ -f "$stamp" ] && \
