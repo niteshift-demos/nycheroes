@@ -16,9 +16,7 @@ touch build/.gdignore
 # and scripts so a local rebuild also sees newly created game content.
 fingerprint=$({
   godot --version
-  git ls-files --cached --others --exclude-standard -z -- \
-    assets scripts scenes shaders project.godot export_presets.cfg \
-    tools/web .niteshift/files/build-web |
+  git ls-files --cached --others --exclude-standard -z |
     sort -zu | xargs -0 sha256sum
 } | sha256sum | cut -d ' ' -f 1)
 stamp=build/web/.source-fingerprint
