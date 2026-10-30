@@ -2445,6 +2445,13 @@ deployed); in a computer's browser the co-op menu links to it.
 - Web build: `tools/build_web.ps1` (add `-Serve` to play at
   http://localhost:8060; it also runs the co-op signaling server on port
   8070, after `npm install` in `tools/signaling`).
+  In Niteshift, `.niteshift/setup` installs Godot 4.7.2 and its web templates,
+  signaling dependencies, Python 3.14 in `.venv`, and Wrangler. Setup reuses
+  the web export when its source fingerprint and required output files are
+  current; `.niteshift/files/build-web` forces a rebuild after edits.
+  The supervised `web` service on port 8060 proxies city tiles from the public
+  site and `/signal` to local signaling on 8070. No city downloads, credentials,
+  or resume script are needed. Use `.venv/bin/python` for citygen/audio tests.
 - Desktop builds: `tools/build_desktop.ps1` (`-Windows` or `-Mac` for one)
   makes `build/desktop/nyc-heroes-windows.zip` and `nyc-heroes-macos.zip`
   (see step 9); `tools/deploy_cloudflare.ps1 -Desktop` publishes them.
