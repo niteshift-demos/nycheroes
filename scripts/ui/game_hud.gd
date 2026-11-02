@@ -145,7 +145,7 @@ func _draw_coop_status() -> void:
 			at = Vector2(size.x - touch_controls.safe_insets.z - width - 16.0, touch_controls.safe_insets.y + 78.0)
 		_text(at, line, 16)
 	# Notices: centered, under the debug text in the top left.
-	var y := maxf(size.y * 0.2, 130.0)
+	var y := maxf(size.y * 0.2, 160.0 if touch_controls else 130.0)
 	for text in current_notices():
 		var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22).x
 		_text(Vector2((size.x - width) * 0.5, y), text, 22, NOTICE_COLOR)
@@ -235,7 +235,7 @@ func _text(at: Vector2, text: String, font_size: int, color := Color.WHITE) -> v
 func _draw_dash(health_bar: Rect2) -> void:
 	var at := health_bar.position + Vector2(0.0, -52.0)
 	if touch_controls:
-		at = health_bar.position + Vector2(0.0, 52.0)
+		at = health_bar.position + Vector2(0.0, 76.0)
 	var color := Color(0.25, 0.9, 1.0)
 	var state := "READY · jump first" if hero.grounded() else "READY"
 	if not hero.dash_available:
