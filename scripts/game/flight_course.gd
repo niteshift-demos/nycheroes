@@ -138,17 +138,25 @@ func _recolor() -> void:
 
 
 func _process(_delta: float) -> void:
-	var width := minf(420.0, get_viewport().get_visible_rect().size.x - 24.0)
-	_panel.offset_left = -width * 0.5
-	_panel.offset_right = width * 0.5
-	_panel.offset_top = -286.0 if Device.wants_touch_controls() else -186.0
-	_panel.offset_bottom = -166.0 if Device.wants_touch_controls() else -66.0
+	var screen_size := get_viewport().get_visible_rect().size
+	var touch := Device.wants_touch_controls()
+	# On short landscape screens, leave the middle clear for the hero and gates.
+	var side_card := touch and screen_size.x > screen_size.y
+	var width := minf(320.0 if side_card else 420.0, screen_size.x - 24.0)
+	_panel.anchor_left = 0.0 if side_card else 0.5
+	_panel.anchor_right = _panel.anchor_left
+	_panel.anchor_top = 0.0 if side_card else 1.0
+	_panel.anchor_bottom = _panel.anchor_top
+	_panel.offset_left = 14.0 if side_card else -width * 0.5
+	_panel.offset_right = 14.0 + width if side_card else width * 0.5
+	_panel.offset_top = 76.0 if side_card else (-286.0 if touch else -186.0)
+	_panel.offset_bottom = 216.0 if side_card else (-166.0 if touch else -66.0)
 	var controls := "Stick to fly / steer · SPEED boost · UP/DOWN height" if Device.wants_touch_controls() else "W fly · A/D steer · Shift boost · Space/C height"
 	var active := state == State.ARMED or state == State.RUNNING
 	# Menus and free camera retain exclusive keyboard and touch control.
 	_panel.visible = game.player_input.enabled and not is_instance_valid(game._loading) and not LaunchOptions.has("demo")
 	_marker.visible = _panel.visible and active
-	_title.text = "HUDSON SPRINT  /  FLIGHT TRIAL"
+	_title.text = "HUDSON SPRINT" if touch else "HUDSON SPRINT  /  FLIGHT TRIAL"
 	if state == State.IDLE:
 		_detail.text = "6 rings over the river · beat your best\nGold ≤4.5s  /  Silver ≤8s  /  Bronze ≤17s"
 	elif state == State.FINISHED:
