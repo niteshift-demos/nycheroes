@@ -170,6 +170,13 @@ func _notification(what: int) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	# Optional in-game HUDs claim their own fingers before movement/look.
+	# Mouse emulation is disabled, so ordinary Control buttons need this path.
+	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		for hud in get_tree().get_nodes_in_group("touch_hud"):
+			if hud.handle_hud_touch(event):
+				get_viewport().set_input_as_handled()
+				return
 	var touch := event as InputEventScreenTouch
 	if touch:
 		if touch.pressed:

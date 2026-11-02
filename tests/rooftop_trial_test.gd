@@ -36,6 +36,13 @@ func _ready() -> void:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	_check(_roof_hit(trial), "active rooftop blocks a real physics ray")
+	var finger := InputEventScreenTouch.new()
+	finger.index = 7
+	finger.position = trial._start_button.get_global_rect().get_center()
+	finger.pressed = true
+	_check(trial.handle_hud_touch(finger), "touch button claims finger before camera look")
+	finger.pressed = false
+	_check(trial.handle_hud_touch(finger) and trial._hud_touch == -1, "touch release is consumed and cleared")
 	var course_id := trial._course.get_instance_id()
 	_check(trial.phase == RooftopTrial.Phase.COUNTDOWN and game.hero.frozen, "start holds hero for countdown")
 	trial._physics_process(3.1)
@@ -56,6 +63,9 @@ func _ready() -> void:
 	_check(Settings.has_value(RooftopTrial.BEST_KEY), "finish records local best")
 	trial._unhandled_input(retry_key)
 	_check(trial.phase == RooftopTrial.Phase.COUNTDOWN, "J retries a completed run")
+	Input.action_press("attack")
+	trial._start_button.pressed.emit()
+	_check(not Input.is_action_pressed("attack"), "HUD retry consumes held attack action")
 	_check(trial.next_gate == 0 and trial.elapsed == 0.0, "retry resets gates and timer")
 	_check(trial._course.get_instance_id() == course_id, "retry reuses participating geometry")
 	trial._physics_process(3.1)
@@ -69,7 +79,9 @@ func _ready() -> void:
 	trial._physics_process(0.016)
 	_check(trial.phase == RooftopTrial.Phase.FAILED, "90 second limit ends run")
 	var removed_course := trial._course
-	trial.leave()
+	Input.action_press("attack")
+	trial._exit_button.pressed.emit()
+	_check(not Input.is_action_pressed("attack"), "HUD Leave consumes held attack action")
 	_check(not removed_course.is_inside_tree() and trial.get_child_count() == 0, "leave immediately removes rendering and physics bodies")
 	_check(trial.find_children("*", "StaticBody3D", true, false).is_empty(), "no hidden colliders remain after leave")
 	await get_tree().physics_frame

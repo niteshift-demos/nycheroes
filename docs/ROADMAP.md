@@ -2426,7 +2426,8 @@ deployed); in a computer's browser the co-op menu links to it.
   boundaries, ordered completion, retry, fall failure, local best, return
   position and a floating-origin shift with a real hero and synthetic course.
   It also checks absence of inactive meshes/collision, active roof bodies,
-  complete removal on Leave and actual physics rays before/during/after.
+  complete removal on Leave, actual physics rays before/during/after and
+  consuming the attack action for held HUD clicks.
 
 ## Constraints
 

@@ -38,10 +38,14 @@ var _start_button: Button
 var _exit_button: Button
 var _message := ""
 var _auto_start := false
+var _hud_touch := -1
 
 
 func _ready() -> void:
+	# Keep the HUD hidden when an options menu pauses the world.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("floating")
+	add_to_group("touch_hud")
 	global_position = WorldOrigin.to_local(START)
 	best = float(Settings.get_value(BEST_KEY, 0.0))
 	_build_hud()
@@ -108,6 +112,25 @@ func leave() -> void:
 	_gates.clear()
 
 
+## TouchControls calls this before assigning a finger to movement or look.
+func handle_hud_touch(event: InputEvent) -> bool:
+	if event is InputEventScreenDrag:
+		return event.index == _hud_touch
+	if not event is InputEventScreenTouch:
+		return false
+	if not event.pressed and event.index == _hud_touch:
+		_hud_touch = -1
+		return true
+	if not event.pressed or _hud_touch != -1 or not _panel.visible or not game.player_input.enabled:
+		return false
+	for button: Button in [_start_button, _exit_button]:
+		if button.is_visible_in_tree() and button.get_global_rect().has_point(event.position):
+			_hud_touch = event.index
+			button.pressed.emit()
+			return true
+	return false
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not game.player_input.enabled or is_instance_valid(game._loading):
 		return
@@ -118,6 +141,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if get_tree().paused:
+		return
 	if phase == Phase.COUNTDOWN:
 		# Game's tile-ready logic may unfreeze the hero, so hold our own start.
 		game.hero.frozen = true
@@ -234,7 +259,11 @@ func _button(parent: Node, callback: Callable) -> Button:
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.focus_mode = Control.FOCUS_NONE
 	button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
-	button.pressed.connect(callback)
+	button.pressed.connect(func() -> void:
+		# GUI handling alone does not clear PlayerInput's raw LMB action.
+		# Consume it for the entire held click, including after leaving.
+		Input.action_release("attack")
+		callback.call())
 	parent.add_child(button)
 	return button
 
