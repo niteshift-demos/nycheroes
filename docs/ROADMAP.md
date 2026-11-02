@@ -2401,8 +2401,8 @@ deployed); in a computer's browser the co-op menu links to it.
 ### Rooftop traversal trial — Skyline Sprint
 
 - A discoverable HUD button (J on keyboard) takes the local hero to six
-  purpose-built rooftops above Midtown. A three-second countdown starts a
-  90-second trial; mint numbered gates, floor chevrons and an on-screen
+  purpose-built practice rooftops above the Hudson. A three-second countdown
+  starts a 90-second trial; mint numbered gates, floor chevrons and an on-screen
   direction/distance marker guide the route. Passed gates turn gold.
 - Use the normal movement, jump, flight, boost and touch controls. All powers
   count equally: gold ≤5 seconds, silver ≤12, bronze ≤25, otherwise finisher.
@@ -2412,8 +2412,12 @@ deployed); in a computer's browser the co-op menu links to it.
   leaving the course, knockout or the time limit ends the run with retry advice.
 - Gates use swept world-space checks in sequence, so boost cannot tunnel
   through them and a distant/above-roof shortcut cannot claim the finish.
-  The static course shares one floating parent. Co-op keeps ordinary hero
-  position/mode synchronization; the stopwatch and best belong to each player.
+  The course is created only on joining a trial and completely detached on
+  Leave, so ordinary city play has no added towers or hidden colliders. Its
+  Hudson placement (x=-2200, the movement tests’ open-water location) keeps
+  it clear of city buildings and streets. The static course shares one
+  floating parent. Practice geometry and scores are local; co-op peers see
+  ordinary hero position/mode synchronization.
   The timer uses elapsed real time, including menus or background tabs.
 - No city data, downloads, custom shaders, or tile rebuilds are needed. The
   six simple towers are fictional training architecture, not realism assets.
@@ -2421,6 +2425,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `rooftop_trial_test.tscn` checks gate bounds, high-speed crossing, medal
   boundaries, ordered completion, retry, fall failure, local best, return
   position and a floating-origin shift with a real hero and synthetic course.
+  It also checks absence of inactive meshes/collision, active roof bodies,
+  complete removal on Leave and actual physics rays before/during/after.
 
 ## Constraints
 

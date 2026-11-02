@@ -4,7 +4,9 @@ extends Node3D
 ## hero motion and teleporting use the ordinary state already sent by PlayerSync.
 ## World-space gates and one floating parent keep retries valid after origin shifts.
 
-const START := Vector3(-220.0, 360.0, -20.0)
+## Over the Hudson (the movement tests use x=-2200 as open water), clear
+## of city buildings and streets. This is an optional practice course.
+const START := Vector3(-2200.0, 80.0, 0.0)
 const HEIGHTS := [0.0, 2.0, 0.0, 4.0, 2.0, 0.0]
 const LIMIT := 90.0
 const GOLD := 5.0
@@ -26,6 +28,7 @@ var _previous := Vector3.ZERO
 var _return_position := Vector3.ZERO
 var _return_facing := 0.0
 var _gates: Array[MeshInstance3D] = []
+var _course: Node3D
 var _panel: PanelContainer
 var _stats: Control
 var _title: Label
@@ -41,7 +44,6 @@ func _ready() -> void:
 	add_to_group("floating")
 	global_position = WorldOrigin.to_local(START)
 	best = float(Settings.get_value(BEST_KEY, 0.0))
-	_build_course()
 	_build_hud()
 	_stats = game.hud.get_node_or_null("DebugLabel") as Control
 	var game_hud := game.hud.get_node_or_null("GameHud") as GameHud
@@ -79,6 +81,8 @@ func start() -> void:
 	if phase == Phase.READY:
 		_return_position = game.hero.world_position()
 		_return_facing = game.hero.facing
+	if not is_instance_valid(_course):
+		_build_course()
 	game.place_hero(START + Vector3(0.0, 0.1, 8.0), 0.0)
 	# Course collision is ours: it doesn't depend on streamed tiles.
 	game.hero.frozen = true
@@ -95,7 +99,13 @@ func start() -> void:
 func leave() -> void:
 	game.place_hero(_return_position, _return_facing)
 	phase = Phase.READY
-	_refresh_gates()
+	# Detach immediately: no render instances or physics bodies remain in
+	# the world, including during the frame before queued deletion.
+	if is_instance_valid(_course):
+		remove_child(_course)
+		_course.queue_free()
+		_course = null
+	_gates.clear()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -162,7 +172,7 @@ func _process(_delta: float) -> void:
 	_detail.visible = active
 	if not active:
 		return
-	_title.text = "SKYLINE SPRINT  /  6 ROOFTOPS"
+	_title.text = "SKYLINE SPRINT  /  HUDSON PRACTICE"
 	match phase:
 		Phase.COUNTDOWN:
 			_status.text = "READY IN %d" % maxi(1, ceili(_countdown))
@@ -253,32 +263,35 @@ func _box(parent: Node3D, at: Vector3, dimensions: Vector3, material: Material) 
 
 
 func _build_course() -> void:
+	_course = Node3D.new()
+	_course.name = "PracticeCourse"
+	add_child(_course)
 	var roof := _material(Color(0.12, 0.18, 0.24))
 	var edge := _material(Color(0.32, 0.42, 0.5))
 	var stripe := _material(CYAN, true)
 	for i in HEIGHTS.size():
 		var at := Vector3(0.0, float(HEIGHTS[i]), -30.0 * i)
 		# Six slender towers give the route actual roofs, with 6m jump gaps.
-		_box(self, at - Vector3(0.0, 181.0, 0.0), Vector3(22.0, 360.0, 24.0), roof)
-		_box(self, at - Vector3(0.0, 0.6, 0.0), Vector3(23.0, 1.2, 24.0), edge)
-		var body := StaticBody3D.new()
 		var tower_height := START.y + float(HEIGHTS[i])
+		_box(_course, at - Vector3(0.0, tower_height * 0.5, 0.0), Vector3(22.0, tower_height, 24.0), roof)
+		_box(_course, at - Vector3(0.0, 0.6, 0.0), Vector3(23.0, 1.2, 24.0), edge)
+		var body := StaticBody3D.new()
 		body.position = at - Vector3(0.0, tower_height * 0.5, 0.0)
 		var collision := CollisionShape3D.new()
 		var shape := BoxShape3D.new()
 		shape.size = Vector3(23.0, tower_height, 24.0)
 		collision.shape = shape
 		body.add_child(collision)
-		add_child(body)
+		_course.add_child(body)
 		for side: float in [-1.0, 1.0]:
-			_box(self, at + Vector3(side * 11.0, 0.5, 0.0), Vector3(0.3, 1.0, 24.0), edge)
-			_box(self, at + Vector3(side * 9.0, 0.7, 5.0), Vector3(2.0, 1.4, 3.0), roof)
+			_box(_course, at + Vector3(side * 11.0, 0.5, 0.0), Vector3(0.3, 1.0, 24.0), edge)
+			_box(_course, at + Vector3(side * 9.0, 0.7, 5.0), Vector3(2.0, 1.4, 3.0), roof)
 			for z: float in [7.0, 2.0, -3.0, -8.0]:
-				var arrow := _box(self, at + Vector3(side * 0.65, 0.03, z), Vector3(0.25, 0.04, 2.0), stripe)
+				var arrow := _box(_course, at + Vector3(side * 0.65, 0.03, z), Vector3(0.25, 0.04, 2.0), stripe)
 				arrow.rotation.y = side * 0.65
 		var gate := MeshInstance3D.new()
 		gate.position = at
-		add_child(gate)
+		_course.add_child(gate)
 		_gates.append(gate)
 		for side: float in [-1.0, 1.0]:
 			_box(gate, Vector3(side * 6.0, 4.5, 0.0), Vector3(0.35, 9.0, 0.35), stripe)
