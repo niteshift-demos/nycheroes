@@ -2431,7 +2431,10 @@ deployed); in a computer's browser the co-op menu links to it.
   migrating across hosts; they spawn again normally. No hero state or
   movement protocol changed. Session counts are intentionally not saved.
 - `rescue_test.tscn` covers pause, range, altitude, movement, knockout,
-  menu state, floating origin, stale helpers and exactly-once completion.
+  menu state, floating origin, stale helpers, GUI attack consumption and
+  exactly-once completion. Rescue holds suppress the globally polled mouse
+  attack in PlayerInput; TouchControls routes the card’s captured finger
+  before stick/camera handling, with slide-out pause and focus-loss cleanup.
   `coop_rescue_test.tscn` runs two real processes through signaling + ENet
   on synthetic ground: a joined player rescues the owner's civilian and
   both see and score the same success. Neither needs city data.

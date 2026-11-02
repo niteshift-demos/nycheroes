@@ -353,6 +353,7 @@ func _add_touch_controls(started_by_touch: bool) -> void:
 	get_window().content_scale_factor = Device.touch_ui_scale()
 	_touch_controls = TouchControls.new()
 	_touch_controls.name = "TouchControls"
+	_touch_controls.rescues = get_node("Rescues") as RescueDirector
 	_touch_controls.hero = hero
 	_touch_controls.camera_rig = hero_camera
 	_touch_controls.coop_panel = coop_panel

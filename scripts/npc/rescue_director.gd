@@ -30,7 +30,12 @@ var _title: Label
 var _detail: Label
 var _bar: ProgressBar
 var _button: Button
-var _touching := false
+var _touching := false:
+	set(value):
+		_touching = value
+		if is_instance_valid(player_input):
+			player_input.ui_interaction_held = value
+var _rescue_finger := -1
 var _selected := 0
 var _notice := 0.0
 var _last_saved_variant := 0
@@ -57,6 +62,37 @@ func _ready() -> void:
 		calls.clear()
 		_helpers.clear()
 		_wait = 3.0)
+
+
+## TouchControls owns raw fingers (Godot mouse emulation is disabled). Route
+## the rescue card first so its hold cannot move the stick, camera, or attack.
+func touch_rescue(index: int, at: Vector2, pressed: bool) -> bool:
+	if not pressed and index == _rescue_finger:
+		release_touch()
+		return true
+	if pressed and _rescue_finger == -1 and _button.is_visible_in_tree() \
+			and player_input.enabled and _button.get_global_rect().has_point(at):
+		_rescue_finger = index
+		_touching = true
+		return true
+	return false
+
+
+func drag_rescue(index: int, at: Vector2) -> bool:
+	if index != _rescue_finger:
+		return false
+	_touching = _button.is_visible_in_tree() and _button.get_global_rect().has_point(at)
+	return true
+
+
+func release_touch() -> void:
+	_rescue_finger = -1
+	_touching = false
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+		release_touch()
 
 
 func _process(delta: float) -> void:
@@ -228,6 +264,8 @@ func _build_panel() -> void:
 	box.add_child(_title)
 	_detail = Label.new()
 	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# Keep the hold button under the same finger when instructions shorten.
+	_detail.custom_minimum_size.y = 44.0
 	_detail.add_theme_font_size_override("font_size", 15)
 	box.add_child(_detail)
 	_bar = ProgressBar.new()

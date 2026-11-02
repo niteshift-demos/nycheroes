@@ -122,6 +122,8 @@ var _pill_style_pressed: StyleBoxFlat
 var _pill_style_on: StyleBoxFlat
 ## The sound is off (the speaker button shows it crossed out).
 var _muted := false
+## The rescue card participates in the same finger routing as these controls.
+var rescues: RescueDirector
 ## The options menu's look speed, and -1 with up and down swapped.
 var _look_scale := 1.0
 var _look_y := 1.0
@@ -172,6 +174,9 @@ func _notification(what: int) -> void:
 func _input(event: InputEvent) -> void:
 	var touch := event as InputEventScreenTouch
 	if touch:
+		if rescues and rescues.touch_rescue(touch.index, touch.position, touch.pressed):
+			get_viewport().set_input_as_handled()
+			return
 		if touch.pressed:
 			_touch_down(touch.index, touch.position)
 		else:
@@ -180,6 +185,9 @@ func _input(event: InputEvent) -> void:
 		return
 	var drag := event as InputEventScreenDrag
 	if drag:
+		if rescues and rescues.drag_rescue(drag.index, drag.position):
+			get_viewport().set_input_as_handled()
+			return
 		_touch_drag(drag.index, drag.position, drag.relative)
 		get_viewport().set_input_as_handled()
 
@@ -340,6 +348,8 @@ func _set_toggle(button: TouchButton, on: bool) -> void:
 
 ## Lets go of everything (the co-op menu opened, or a button disappeared).
 func _release_all() -> void:
+	if rescues:
+		rescues.release_touch()
 	for button in _buttons:
 		if button.touch != -1:
 			_release(button)

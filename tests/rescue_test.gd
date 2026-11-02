@@ -37,6 +37,17 @@ func _ready() -> void:
 	rescue.set_process(false)
 	var binding := InputMap.action_get_events("rescue")[0] as InputEventKey
 	check(binding.physical_keycode == KEY_V, "Rescue uses V without consuming course retry R")
+	input.hero = hero
+	input.camera_rig = ThirdPersonCamera.new()
+	Input.action_press("attack")
+	rescue._button.button_down.emit()
+	input._physics_process(0.016)
+	check(not hero.input.attack_held, "holding Rescue button consumes pointer attack")
+	rescue._button.button_up.emit()
+	input._physics_process(0.016)
+	check(hero.input.attack_held, "normal attack remains available after the GUI hold")
+	Input.action_release("attack")
+	input.camera_rig.free()
 	rescue.calls[Net.local_id()] = [1, Vector3.ZERO, 0, 0.0, false]
 	Input.action_press("rescue")
 	rescue._process(1.0)
