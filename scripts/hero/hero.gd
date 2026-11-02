@@ -44,6 +44,8 @@ var counter_time := 0.0
 var counter_flash := 0.0
 var _dodge_start := Vector3.ZERO
 var _prev_dodge := false
+## A counter pressed during the step follows as soon as its movement ends.
+var _counter_queued := false
 
 var input := HeroInput.new()
 ## Yaw the hero faces, in radians (0 = north, which is -Z).
@@ -123,11 +125,17 @@ func _physics_process(delta: float) -> void:
 	var fall_speed := -velocity.y
 	var next: StringName = &""
 	if dodge_time > 0.0:
+		if attack_pressed and counter_time > 0.0:
+			_counter_queued = true
 		dodge_time = maxf(0.0, dodge_time - delta)
 		var speed := 10.0 * (0.35 + 0.65 * dodge_time / DODGE_DURATION)
 		velocity = dodge_direction * speed + Vector3.UP * (0.0 if is_on_floor() else velocity.y - GRAVITY * delta)
 		move_and_slide()
 	else:
+		if _counter_queued:
+			_counter_queued = false
+			if counter_time > 0.0:
+				set_mode(&"Melee")
 		next = mode.physics_update(delta)
 	input.fly_toggle_pressed = false
 	if next != &"" and next != mode.name:
@@ -218,6 +226,7 @@ func take_hit(damage: float, push: Vector3) -> void:
 	if not can_be_attacked() or mode.name == &"Dive":
 		return
 	counter_time = 0.0
+	_counter_queued = false
 	dodge_time = 0.0
 	health = maxf(health - damage, 0.0)
 	hurt_time = HURT_TIME
@@ -243,6 +252,7 @@ func try_dodge() -> bool:
 	_dodge_start = world_position()
 	dodge_time = DODGE_DURATION
 	dodge_cooldown = DODGE_COOLDOWN
+	_counter_queued = false
 	counter_time = 0.0
 	return true
 

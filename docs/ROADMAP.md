@@ -58,7 +58,8 @@ peer can drive one later. Nearby tiles get collision.
   Thug windups carry an amber ! that turns mint in their last 0.14 s.
   Evading in that final interval earns a 0.85 s counter window. Attack consumes
   it for the heavy combo finisher (100 damage and launch); letting it expire
-  leaves an ordinary jab. HUD text and a draining bar expose both windows.
+  leaves an ordinary jab. A counter pressed during the step queues until its
+  movement ends, so the prompt never asks for an input that would be lost. HUD text and a draining bar expose both windows.
   Defending hero owners resolve committed punches using world coordinates;
   PlayerSync carries dodge time, direction and counter time as plain state.
   No shader or city tile changes. Mixed-version peers can still display old

@@ -52,8 +52,9 @@ func _ready() -> void:
 	hero.resolve_punch(origin, Vector3.BACK)
 	check(hero.health == Hero.MAX_HEALTH, "evasion survives origin shift")
 	WorldOrigin.shift(Vector3(-500.0, 0.0, 0.0))
+	hero.input.attack_held = true
 	await get_tree().create_timer(0.36).timeout
-	hero.set_mode(&"Melee")
+	check(hero.mode.name == &"Melee", "counter pressed during dodge queues until recovery ends")
 	check((hero.mode as MeleeMode).step == 2 and hero.counter_time == 0.0, "counter becomes one heavy punch and is consumed")
 	hero.set_mode(&"OnFoot")
 	await get_tree().create_timer(0.9).timeout

@@ -251,6 +251,10 @@ func _draw_evasion() -> void:
 		label = "DODGE"
 	elif hero.dodge_cooldown > 0.0:
 		label = "DODGE recovering…"
+	elif not hero.grounded() or hero.mode.name in [&"Flight", &"Swing", &"Dive"]:
+		label = "DODGE: land first"
+	elif hero.is_in_water():
+		label = "DODGE: leave the water first"
 	_text(at, label, 18, color)
 	draw_rect(Rect2(at + Vector2(0.0, 9.0), Vector2(220.0, 4.0)), Color(0.1, 0.15, 0.2, 0.8))
 	draw_rect(Rect2(at + Vector2(0.0, 9.0), Vector2(220.0 * progress, 4.0)), color)

@@ -422,7 +422,7 @@ func _dodge_perfect_input(input: HeroInput, _t: float) -> void:
 
 func _dodge_counter_input(input: HeroInput, t: float) -> void:
 	_dodge_perfect_input(input, t)
-	if hero.counter_time > 0.0 and hero.dodge_time <= 0.0 and not _demo_countered:
+	if hero.counter_time > 0.0 and not _demo_countered:
 		input.attack_held = true
 		_demo_countered = true
 
