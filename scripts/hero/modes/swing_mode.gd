@@ -13,6 +13,12 @@ const HAND_HEIGHT := 1.4
 const GROUND_CLEARANCE := 6.0
 ## Shortest web worth swinging on.
 const MIN_ROPE := 8.0
+## A rising release near the bottom rewards timing without changing the Web control.
+const TIMING_ANGLE := 0.38
+const TIMING_BONUS := 9.0
+const TIMING_MIN_SPEED := 12.0
+const TIMING_GRACE := 0.12
+const RELEASE_SPEED_LIMIT := 72.0
 
 @export var max_web_length := 120.0
 ## Anchors must be at least this far above the hand.
@@ -32,6 +38,13 @@ const MIN_ROPE := 8.0
 var anchor := Vector3.ZERO
 var web_point := Vector3.ZERO
 var rope_length := 0.0
+## Local coaching only; the resulting velocity already travels through PlayerSync.
+var release_ready := false
+var arc_position := -1.0
+var last_release_msec := -10000
+var last_release_timed := false
+var _age := 0.0
+var _grace := 0.0
 
 
 func _ready() -> void:
@@ -95,6 +108,9 @@ func _swing_direction() -> Vector3:
 
 
 func enter(_previous: StringName) -> void:
+	_age = 0.0
+	_grace = 0.0
+	release_ready = false
 	hero.motion_mode = CharacterBody3D.MOTION_MODE_GROUNDED
 	if hero.is_on_floor():
 		hero.velocity.y = 12.0  # hop off the ground into the swing
@@ -102,6 +118,8 @@ func enter(_previous: StringName) -> void:
 
 func physics_update(delta: float) -> StringName:
 	var input := hero.input
+	_age += delta
+	_update_timing(delta)
 	if input.fly_toggle_pressed:
 		return &"Flight"
 	if hero.attack_pressed:
@@ -133,13 +151,32 @@ func physics_update(delta: float) -> StringName:
 		return &"OnFoot"
 	if hand.y > anchor.y - 1.0:
 		# Swung up level with the anchor; the web would go slack, so let go.
-		_release()
+		_release(false)
 		return &"OnFoot"
 	return &""
 
 
-func _release() -> void:
+## Relative geometry survives an origin shift; no extra ray casts per tick.
+func _update_timing(delta: float) -> void:
+	var radial := hero.global_position + Vector3.UP * HAND_HEIGHT - anchor
+	var travel := Vector3(hero.velocity.x, 0.0, hero.velocity.z)
+	arc_position = radial.dot(travel.normalized()) / maxf(radial.length(), 0.01)
+	var in_window := _age >= 0.35 and travel.length() >= TIMING_MIN_SPEED \
+		and radial.y < 0.0 and radial.length() >= rope_length * 0.9 \
+		and arc_position >= 0.0 and arc_position <= TIMING_ANGLE and hero.velocity.y >= -2.0
+	_grace = TIMING_GRACE if in_window else maxf(0.0, _grace - delta)
+	release_ready = _grace > 0.0
+
+
+func _release(manual := true) -> void:
 	var flat := Vector3(hero.velocity.x, 0.0, hero.velocity.z)
 	if flat.length() > 1.0:
 		hero.velocity += flat.normalized() * release_boost.x
 	hero.velocity.y += release_boost.y
+	last_release_timed = manual and release_ready
+	if last_release_timed:
+		hero.velocity += flat.normalized() * TIMING_BONUS
+		hero.velocity = hero.velocity.limit_length(RELEASE_SPEED_LIMIT)
+	last_release_msec = Time.get_ticks_msec()
+	release_ready = false
+	_grace = 0.0

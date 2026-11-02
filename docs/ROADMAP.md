@@ -32,7 +32,15 @@ and play co-op with browser players.
 ## 2. Hero with superpowers (done)
 
 Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
-150 m/s, web swinging, and swimming. Movement modes are separate scripts;
+150 m/s, web swinging, and swimming. Web swinging now coaches a rising
+release near the bottom of the arc: hold the existing Web control, then let go
+when RELEASE lights up for +9 m/s horizontal momentum (72 m/s total cap).
+A 120 ms grace window helps touch controls; a minimum 12 m/s travel speed,
+350 ms attachment age and taut rope prevent tap farming. Ordinary releases
+keep their launch; automatic slack releases receive no timing bonus. The HUD
+shows arc position, timing readiness and release feedback. Co-op uses the
+existing synced velocity, and the guide uses relative anchor geometry.
+`tests/swing_timing_test.tscn` checks timing, limits and origin shifts. Movement modes are separate scripts;
 the hero is driven by a plain input object per physics tick so a network
 peer can drive one later. Nearby tiles get collision.
 
@@ -2499,7 +2507,7 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/swing_timing_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so

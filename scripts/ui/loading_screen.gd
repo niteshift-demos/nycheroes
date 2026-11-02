@@ -17,7 +17,7 @@ const TIPS: Array[String] = [
 	"Shift: super speed. Run into thugs to bowl them over.",
 	"Hold Space to charge a super jump.",
 	"F to fly; Space and C go up and down.",
-	"E or right mouse shoots a web to swing from.",
+	"Hold Web to swing; release on the green cue for extra momentum.",
 	"Punch in the air for a dive attack.",
 	"M: play with everyone online, alone, or with friends.",
 	"T steps the time of day on.",

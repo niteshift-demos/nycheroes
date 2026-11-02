@@ -40,7 +40,9 @@ Windows and Mac versions are on the site's download page.
 | Hero and options | O or Esc | |
 | Time of day | T | |
 
-Phones and tablets get touch controls.
+Phones and tablets get touch controls. Hold Web to swing; release just after
+the bottom of the arc when the swing guide says **RELEASE!** for extra momentum.
+Early or late releases still give the usual launch.
 
 ## Running it locally
 

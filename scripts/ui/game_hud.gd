@@ -42,6 +42,7 @@ var touch_controls: TouchControls:
 		if _options_button:
 			_options_button.visible = value == null
 
+var _swing_box: StyleBoxFlat
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
@@ -50,6 +51,7 @@ var _options_button: Button
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_swing_box = _swing_panel()
 	_font = ThemeDB.fallback_font
 	Net.player_joined.connect(func(id: int) -> void:
 		if Net.is_public and Net.is_newcomer(id):  # (strangers: say who came)
@@ -97,6 +99,7 @@ func _draw() -> void:
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
+	_draw_swing_timing()
 	_draw_coop_status()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
@@ -228,3 +231,40 @@ func _add_options_button() -> void:
 func _text(at: Vector2, text: String, font_size: int, color := Color.WHITE) -> void:
 	draw_string_outline(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, 4, Color.BLACK)
 	draw_string(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, color)
+
+
+## A compact arc guide stays above the hero and clear of the touch buttons.
+func _draw_swing_timing() -> void:
+	var swing := hero.get_mode(&"Swing") as SwingMode
+	var swinging := hero.mode == swing
+	var recent := Time.get_ticks_msec() - swing.last_release_msec < 1300
+	if not swinging and not recent:
+		return
+	var center := Vector2(size.x * 0.5, size.y * 0.30)
+	var width := minf(280.0, size.x - 160.0)
+	var panel := Rect2(center - Vector2(width * 0.5 + 12.0, 30.0), Vector2(width + 24.0, 88.0))
+	draw_style_box(_swing_box, panel)
+	var ready := swinging and swing.release_ready
+	var color := Color(0.4, 1.0, 0.78) if ready or (recent and swing.last_release_timed and not swinging) else Color.WHITE
+	var title := "RELEASE!  + MOMENTUM" if ready else "SWING  ·  HOLD WEB"
+	var hint := "Release on green as you rise"
+	if not swinging:
+		title = "SWEET RELEASE!" if swing.last_release_timed else "WEB RELEASED"
+		hint = "Momentum bonus" if swing.last_release_timed else "Try releasing just after the bottom"
+	var text_width := _font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18).x
+	_text(center + Vector2(-text_width * 0.5, -7.0), title, 18, color)
+	var track := Rect2(center + Vector2(-width * 0.5, 5.0), Vector2(width, 8.0))
+	draw_rect(track, Color(0.25, 0.32, 0.4))
+	draw_rect(Rect2(track.position + Vector2(width * 0.5, 0.0), Vector2(width * SwingMode.TIMING_ANGLE * 0.5, 8.0)), Color(0.2, 0.7, 0.5))
+	if swinging:
+		var x := track.position.x + (clampf(swing.arc_position, -1.0, 1.0) + 1.0) * width * 0.5
+		draw_circle(Vector2(x, track.get_center().y), 6.0, color)
+	var hint_width := _font.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13).x
+	_text(center + Vector2(-hint_width * 0.5, 38.0), hint, 13)
+
+
+func _swing_panel() -> StyleBoxFlat:
+	var panel := StyleBoxFlat.new()
+	panel.bg_color = Color(0.02, 0.05, 0.10, 0.88)
+	panel.set_corner_radius_all(12)
+	return panel
