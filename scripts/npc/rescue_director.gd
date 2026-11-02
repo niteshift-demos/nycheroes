@@ -42,7 +42,7 @@ func _ready() -> void:
 	if not InputMap.has_action("rescue"):
 		InputMap.add_action("rescue")
 		var key := InputEventKey.new()
-		key.physical_keycode = KEY_R
+		key.physical_keycode = KEY_V
 		InputMap.action_add_event("rescue", key)
 		var pad := InputEventJoypadButton.new()
 		pad.button_index = JOY_BUTTON_DPAD_UP
@@ -240,7 +240,7 @@ func _build_panel() -> void:
 	_bar.add_theme_stylebox_override("fill", fill)
 	box.add_child(_bar)
 	_button = Button.new()
-	_button.text = "HOLD TO RESCUE  ·  R / D-pad Up"
+	_button.text = "HOLD TO RESCUE  ·  V / D-pad Up"
 	_button.custom_minimum_size.y = 44.0
 	_button.focus_mode = Control.FOCUS_NONE
 	_button.button_down.connect(func() -> void: _touching = true)

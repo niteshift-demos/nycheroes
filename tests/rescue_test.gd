@@ -35,6 +35,8 @@ func _ready() -> void:
 	rescue.city = CityStreamer.new()
 	add_child(rescue)
 	rescue.set_process(false)
+	var binding := InputMap.action_get_events("rescue")[0] as InputEventKey
+	check(binding.physical_keycode == KEY_V, "Rescue uses V without consuming course retry R")
 	rescue.calls[Net.local_id()] = [1, Vector3.ZERO, 0, 0.0, false]
 	Input.action_press("rescue")
 	rescue._process(1.0)

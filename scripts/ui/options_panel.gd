@@ -50,7 +50,7 @@ const KEYS: Array[Array] = [
 	["Shift", "super speed"],
 	["F", "fly; Space and C go up and down"],
 	["E, right mouse", "web swing (hold)"],
-	["R / D-pad up", "hold to rescue a civilian; stand still within 4 m"],
+	["V / D-pad up", "hold to rescue a civilian; stand still within 4 m"],
 	["M", "co-op"],
 	["O", "options (this menu)"],
 	["N", "sound off and on"],

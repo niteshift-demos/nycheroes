@@ -2402,7 +2402,7 @@ deployed); in a computer's browser the co-op menu links to it.
 
 - Gold world beacons, edge markers and a compact dispatch card reveal a
   civilian pinned beneath loose beams on a loaded sidewalk. Stand within
-  4 m, on foot and below walking speed; hold R, D-pad up, or the 44 px
+  4 m, on foot and below walking speed; hold V, D-pad up, or the 44 px
   on-screen Rescue button for four seconds. The beams visibly rise with
   progress. Release or step away to pause without losing work. Flight,
   knockout and menus cannot advance a rescue. Civilian stands up, thanks
