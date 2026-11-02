@@ -2398,6 +2398,44 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+## Civilian rescue encounters (2026-11-02)
+
+- Gold world beacons, edge markers and a compact dispatch card reveal a
+  civilian pinned beneath loose beams on a loaded sidewalk. Stand within
+  4 m, on foot and below walking speed; hold R, D-pad up, or the 44 px
+  on-screen Rescue button for four seconds. The beams visibly rise with
+  progress. Release or step away to pause without losing work. Flight,
+  knockout and menus cannot advance a rescue. Civilian stands up, thanks
+  the hero, and the card reports the session's rescue count.
+- One owned call per player, suppressed if another unfinished call is
+  already within 100 m. Three civilian identities and thanks rotate; after
+  success the scene remains for 18 seconds, then a new call prefers a
+  sidewalk further ahead. Unattended calls retire beyond 280 m. No timers
+  punish exploration and no civilian can be harmed. `?rescues=0` disables
+  encounters; existing scripted demo tours disable them too.
+- `scripts/npc/rescue_director.gd`: checks up to 24 candidate sidewalk
+  positions every two seconds, rejecting missing collision, large height
+  differences and occupied space. World coordinates are converted each
+  frame; an origin shift does not change range or progress. The shared
+  mannequin, three box meshes, ring and label need no new assets, shaders,
+  tile format or city rebuild. Only calls within 350 m instantiate visuals
+  or become navigation targets.
+- Co-op uses owner-authored snapshots at 4 Hz and expiring helper intent;
+  the owner validates helpers against PlayerSync's existing hero copies.
+  Up to two simultaneous helpers lift twice as fast. Intent expires after
+  450 ms, bounding a disconnected or released helper's contribution.
+  Serial numbers prevent delayed intent from applying to a subsequent
+  civilian. Late joiners receive current progress and never score historic
+  completions. Each nearby observer scores a completion once. Calls reset
+  on room transitions and retire when their owner leaves, rather than
+  migrating across hosts; they spawn again normally. No hero state or
+  movement protocol changed. Session counts are intentionally not saved.
+- `rescue_test.tscn` covers pause, range, altitude, movement, knockout,
+  menu state, floating origin, stale helpers and exactly-once completion.
+  `coop_rescue_test.tscn` runs two real processes through signaling + ENet
+  on synthetic ground: a joined player rescues the owner's civilian and
+  both see and score the same success. Neither needs city data.
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2499,7 +2537,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/rescue_test.tscn`,
+  `res://tests/coop_rescue_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
@@ -2526,7 +2565,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?rescues=0` (disable civilian rescues), `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

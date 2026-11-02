@@ -50,6 +50,7 @@ const KEYS: Array[Array] = [
 	["Shift", "super speed"],
 	["F", "fly; Space and C go up and down"],
 	["E, right mouse", "web swing (hold)"],
+	["R / D-pad up", "hold to rescue a civilian; stand still within 4 m"],
 	["M", "co-op"],
 	["O", "options (this menu)"],
 	["N", "sound off and on"],
@@ -69,6 +70,7 @@ const TOUCH_HELP: Array[Array] = [
 	["FLY", "fly; DOWN goes down"],
 	["SPEED", "super speed, on and off"],
 	["CO-OP", "play with friends"],
+	["RESCUE", "hold the gold card’s button beside a trapped civilian"],
 ]
 
 ## Set by Game.

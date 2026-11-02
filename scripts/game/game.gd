@@ -97,6 +97,13 @@ func _ready() -> void:
 	_add_options(quality)
 	_add_loading_screen()
 	_add_name_prompt()
+	var rescues := RescueDirector.new()
+	rescues.name = "Rescues"
+	rescues.hero = hero
+	rescues.city = city
+	rescues.player_input = player_input
+	add_child(rescues)
+	(hud.get_node("GameHud") as GameHud).rescues = rescues
 	if not Device.is_web() and bool(Settings.get_value("fullscreen", false)) and not LaunchOptions.has("screenshot"):
 		Device.set_fullscreen(true)
 	if Device.wants_touch_controls() and not LaunchOptions.has("demo"):
