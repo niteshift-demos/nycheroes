@@ -42,6 +42,12 @@ Windows and Mac versions are on the site's download page.
 
 Phones and tablets get touch controls.
 
+**Hero Rhythm:** build six points through successful attacks to rally: heal up to 15 HP and
+repel nearby thugs. Switching between punches, super-speed rams and slams
+adds two points instead of one. Keep hitting within seven seconds and avoid
+damage to keep the streak. The meter beside your health explains each reward
+and reset; no extra buttons are needed.
+
 ## Running it locally
 
 You need [Godot 4.7.2](https://godotengine.org/) (the project uses the

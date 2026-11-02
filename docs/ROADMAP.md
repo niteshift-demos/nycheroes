@@ -2398,6 +2398,31 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+## Hero Rhythm combat streak
+
+Successful punches, super-speed rams and landing/dive slams build the HUD's
+six-point Hero Rhythm meter. Each move earns one point regardless of target
+count; switching move families earns two. A 0.3 s award gap prevents a
+continuous ram from farming credit. Downed thugs, whiffs, recovery waves and
+remote hero copies cannot earn points. Seven seconds without a successful
+hit or any positive damage actually taken resets progress, with a HUD reason.
+Timers use simulation time and pause when the hero is frozen.
+
+At six points, a rally restores up to 15 health and sends a non-damaging 7 m
+knockback wave through the existing co-op combat RPCs. Progress cashes out;
+there is no stacking damage multiplier or new input. The HUD shows six pips,
+a shrinking deadline, variety feedback, the reward and reset rules. On touch
+it follows the health bar below the safe top inset. PlayerSync includes the
+owner's points, deadline and rally count; old 13-field snapshots remain readable.
+No positional cache, shader, city data or external asset was added.
+
+`combat_streak_test` checks accounting, payout/cap, damage and timeout resets,
+origin shifts, corpse exclusion and co-op state. `?demo=rhythm&solo=1` stages
+ordinary enemies and uses HeroInput to show repeated attacks, the rally and
+inactivity; `?demo=fight` also exercises mixed attacks. For recording, `?demo_wait=1` holds a loaded web tour until the page sets
+`window.nycDemoReady = true`. These tours disable
+manual input; omit `demo` to play normally with the standard controls.
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2499,7 +2524,7 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/combat_streak_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
@@ -2526,7 +2551,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` / `?demo=rhythm` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

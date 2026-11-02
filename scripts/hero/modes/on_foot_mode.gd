@@ -129,7 +129,8 @@ func _ram(horizontal: Vector3, delta: float) -> void:
 		return
 	var direction := horizontal / speed
 	var center := hero.global_position + direction * 0.8 + Vector3.UP
-	Combat.strike(center, ram_radius, 100.0, direction * speed * 0.7 + Vector3.UP * speed * 0.35, true)
+	var hits := Combat.strike(center, ram_radius, 100.0, direction * speed * 0.7 + Vector3.UP * speed * 0.35, true)
+	hero.record_combat_hit(&"ram", hits)
 	_scare_cooldown -= delta
 	if _scare_cooldown <= 0.0:
 		_scare_cooldown = 0.3

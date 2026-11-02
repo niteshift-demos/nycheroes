@@ -41,6 +41,7 @@ var _caption: Label
 var _flight := {}
 var _holding := false
 var _loaded_time := 0.0
+var _demo_released := false
 
 
 func _ready() -> void:
@@ -90,6 +91,18 @@ func _ready() -> void:
 					[21.5, 21.5]),
 			_shot("", 0.5),
 		]
+	elif LaunchOptions.get_string("demo") == "rhythm":
+		_yaw = _avenue_yaw
+		camera.yaw = _yaw
+		_shots = [
+			_shot("Hero Rhythm • successful hits build a rally", 1.5, Callable(), _fight_camera),
+			_shot("Attack repeatedly • six points heal & repel", 8.0, _rhythm_input, _fight_camera, _rhythm_start),
+			_shot("A fresh streak", 2.0, _punch_input, _fight_camera, _spawn_gang_ahead.bind(5.0, 1)),
+			_shot("Whiffs add nothing • seven seconds ends the streak", 9.0, Callable(), _fight_camera),
+			_shot("Build again", 2.0, _punch_input, _fight_camera, _spawn_gang_ahead.bind(5.0, 1)),
+			_shot("Taking a hit also breaks your streak", 7.0, Callable(), _fight_camera, _spawn_gang_ahead.bind(4.0, 1)),
+			_shot("", 0.5),
+		]
 	elif LaunchOptions.get_string("demo") == "fight":
 		_yaw = _avenue_yaw
 		camera.yaw = _yaw
@@ -117,11 +130,20 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if LaunchOptions.get_string("demo") == "rhythm":
+		var state := "%d/%d %s" % [hero.rhythm, hero.rallies, hero.rhythm_notice]
+		if state != _rhythm_last:
+			print("[rhythm] ", state)
+			_rhythm_last = state
 	hero.input.clear()
 	hero.input.aim = AVENUE
 	if _index < 0:
 		if hero.frozen or city.pending_count() > 0:
 			return
+		if Device.is_web() and LaunchOptions.has("demo_wait") and not _demo_released:
+			_demo_released = JavaScriptBridge.eval("window.nycDemoReady === true") == true
+			if not _demo_released:
+				return
 		_settle -= delta
 		if _settle <= 0.0:
 			print("[demo] start")
@@ -359,3 +381,20 @@ func _make_caption() -> void:
 	_caption.add_theme_constant_override("outline_size", 10)
 	_caption.modulate.a = 0.0
 	layer.add_child(_caption)
+
+
+# This tour seeds ordinary enemies, then uses the same HeroInput as a player.
+var _rhythm_wave := -1
+var _rhythm_last := ""
+
+func _rhythm_start() -> void:
+	hero.take_hit(85.0, Vector3.ZERO)
+	_rhythm_wave = -1
+
+
+func _rhythm_input(input: HeroInput, t: float) -> void:
+	var wave := mini(2, int(t / 2.0))
+	if wave > _rhythm_wave:
+		_rhythm_wave = wave
+		_spawn_gang_ahead(5.0, 1)
+	input.attack_held = t < 7.0 and fmod(t, 0.3) < 0.12

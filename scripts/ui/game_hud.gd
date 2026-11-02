@@ -42,6 +42,7 @@ var touch_controls: TouchControls:
 		if _options_button:
 			_options_button.visible = value == null
 
+var _rhythm_box: StyleBoxFlat
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
@@ -51,6 +52,7 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_font = ThemeDB.fallback_font
+	_rhythm_box = _rhythm_panel()
 	Net.player_joined.connect(func(id: int) -> void:
 		if Net.is_public and Net.is_newcomer(id):  # (strangers: say who came)
 			# Once their name has had a moment to arrive.
@@ -97,6 +99,7 @@ func _draw() -> void:
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
+	_draw_rhythm(bar)
 	_draw_coop_status()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
@@ -228,3 +231,31 @@ func _add_options_button() -> void:
 func _text(at: Vector2, text: String, font_size: int, color := Color.WHITE) -> void:
 	draw_string_outline(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, 4, Color.BLACK)
 	draw_string(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, color)
+
+
+## Compact panel follows the health bar on touch screens, above thumb controls.
+func _draw_rhythm(health_bar: Rect2) -> void:
+	var origin := health_bar.position + Vector2(0.0, -120.0)
+	if touch_controls:
+		origin = health_bar.position + Vector2(0.0, 58.0)
+	var width := minf(350.0, size.x - origin.x - 20.0)
+	var accent := Color(0.3, 0.9, 1.0) if hero.rhythm > 0 else Color(0.65, 0.74, 0.82)
+	if hero.rhythm_notice.begins_with("RALLY") and hero.rhythm_notice_time > 0.0:
+		accent = NOTICE_COLOR
+	draw_style_box(_rhythm_box, Rect2(origin + Vector2(-10.0, -24.0), Vector2(width + 10.0, 105.0)))
+	_text(origin, "HERO RHYTHM  %d / %d" % [hero.rhythm, Hero.RHYTHM_GOAL], 18, accent)
+	for k in Hero.RHYTHM_GOAL:
+		var rect := Rect2(origin + Vector2(k * (width / 6.0), 10.0), Vector2(width / 6.0 - 5.0, 9.0))
+		draw_rect(rect, accent if k < hero.rhythm else Color(0.2, 0.27, 0.32))
+	if hero.rhythm > 0:
+		draw_rect(Rect2(origin + Vector2(0.0, 23.0), Vector2(width * hero.rhythm_time / Hero.RHYTHM_WINDOW, 3.0)), accent)
+	var message := hero.rhythm_notice if hero.rhythm_notice_time > 0.0 else "6 points = heal 15 HP + repel nearby thugs"
+	_text(origin + Vector2(0.0, 45.0), message, 14, accent)
+	_text(origin + Vector2(0.0, 67.0), "Mix moves: +2 • Hit: +1 • Reset: hurt / 7s", 13)
+
+
+func _rhythm_panel() -> StyleBoxFlat:
+	var panel := StyleBoxFlat.new()
+	panel.bg_color = Color(0.025, 0.05, 0.08, 0.85)
+	panel.set_corner_radius_all(8)
+	return panel

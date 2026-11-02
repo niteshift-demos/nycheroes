@@ -39,6 +39,17 @@ var mode: HeroMode
 ## Physics waits until the ground under the spawn point has loaded.
 var frozen := true
 var health := MAX_HEALTH
+## Owner-driven combat progress, also sent by PlayerSync. One award per move,
+## regardless of how many enemies it hits; styles reward deliberate variety.
+const RHYTHM_GOAL := 6
+const RHYTHM_WINDOW := 7.0
+var rhythm := 0
+var rhythm_time := 0.0
+var rhythm_notice := "Land hits • mix punches, rams & slams"
+var rhythm_notice_time := 0.0
+var rallies := 0
+var _rhythm_style: StringName = &""
+var _rhythm_hit_gap := 0.0
 ## Seconds left of being staggered by a hit.
 var hurt_time := 0.0
 ## Set by a dive attack: the next landing slams, however slow it is.
@@ -88,6 +99,7 @@ func _physics_process(delta: float) -> void:
 	_step_offset = move_toward(_step_offset, 0.0, STEP_EASE_SPEED * delta)
 	if frozen or is_remote():
 		return
+	tick_rhythm(delta)
 	water_level = _find_water_level()
 	jump_pressed = input.jump_held and not _prev_jump
 	web_pressed = input.web_held and not _prev_web
@@ -190,6 +202,9 @@ func face_toward(direction: Vector3, max_step := INF) -> void:
 func take_hit(damage: float, push: Vector3) -> void:
 	if not can_be_attacked() or mode.name == &"Dive":
 		return
+	if damage <= 0.0:
+		return
+	reset_rhythm("STREAK BROKEN • took a hit")
 	health = maxf(health - damage, 0.0)
 	hurt_time = HURT_TIME
 	_regen_delay = REGEN_DELAY
@@ -210,8 +225,55 @@ func _find_water_level() -> float:
 ## A hard landing: the faster the fall, the wider the blast.
 func _slam(impact_speed: float) -> void:
 	var power := clampf(inverse_lerp(SLAM_SPEED, MAX_FALL_SPEED, impact_speed), 0.0, 1.0)
-	Combat.shockwave(global_position, lerpf(5.0, 11.0, power), 100.0, lerpf(14.0, 26.0, power))
+	var hits := Combat.shockwave(global_position, lerpf(5.0, 11.0, power), 100.0, lerpf(14.0, 26.0, power))
+	record_combat_hit(&"slam", hits)
 
 
 func _on_origin_shifted(delta: Vector3) -> void:
 	_prev_position -= delta
+
+
+## Simulation time pauses with the hero, including menus and loading.
+func tick_rhythm(delta: float) -> void:
+	_rhythm_hit_gap = maxf(0.0, _rhythm_hit_gap - delta)
+	rhythm_notice_time = maxf(0.0, rhythm_notice_time - delta)
+	if rhythm > 0:
+		rhythm_time = maxf(0.0, rhythm_time - delta)
+		if rhythm_time <= 0.0:
+			reset_rhythm("STREAK ENDED • 7 seconds without a hit")
+
+
+func reset_rhythm(reason: String) -> void:
+	if rhythm > 0:
+		rhythm_notice = reason
+		rhythm_notice_time = 3.0
+	rhythm = 0
+	rhythm_time = 0.0
+	_rhythm_style = &""
+
+
+## Same-frame/continuous rams cannot farm progress. Whiffs, corpses, remote
+## simulation and the rally pulse never count. Healing cannot exceed max health.
+func record_combat_hit(style: StringName, hits: int) -> void:
+	if hits <= 0 or is_remote() or frozen or health <= 0.0 or _rhythm_hit_gap > 0.0:
+		return
+	var varied := _rhythm_style != &"" and _rhythm_style != style
+	rhythm += 2 if varied else 1
+	_rhythm_style = style
+	_rhythm_hit_gap = 0.3
+	rhythm_time = RHYTHM_WINDOW
+	rhythm_notice = "%s +%d%s" % [String(style).to_upper(), 2 if varied else 1, " • VARIETY" if varied else ""]
+	rhythm_notice_time = 2.0
+	if rhythm < RHYTHM_GOAL:
+		return
+	rhythm = 0
+	rhythm_time = 0.0
+	_rhythm_style = &""
+	rallies += 1
+	var restored := minf(15.0, MAX_HEALTH - health)
+	health += restored
+	rhythm_notice = "RALLY! +%d HP • space to breathe" % int(restored)
+	rhythm_notice_time = 3.0
+	# Existing combat/world-space RPCs carry the payoff to nearby peers.
+	Combat.shockwave(global_position, 7.0, 0.0, 16.0)
+	GameAudio.play(&"punch_heavy", global_position)
