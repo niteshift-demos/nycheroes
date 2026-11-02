@@ -32,6 +32,19 @@ const HURT_TIME := 0.35
 ## instead of popping up in one tick.
 const STEP_EASE_SPEED := 2.5
 
+## A short ground step; only the first 0.20 s evade hits. Recovery prevents spam.
+const DODGE_DURATION := 0.34
+const DODGE_SAFE := 0.20
+const DODGE_COOLDOWN := 0.85
+const COUNTER_WINDOW := 0.85
+var dodge_time := 0.0
+var dodge_cooldown := 0.0
+var dodge_direction := Vector3.ZERO
+var counter_time := 0.0
+var counter_flash := 0.0
+var _dodge_start := Vector3.ZERO
+var _prev_dodge := false
+
 var input := HeroInput.new()
 ## Yaw the hero faces, in radians (0 = north, which is -Z).
 var facing := 0.0
@@ -96,12 +109,26 @@ func _physics_process(delta: float) -> void:
 	_prev_web = input.web_held
 	_prev_attack = input.attack_held
 	hurt_time = maxf(hurt_time - delta, 0.0)
+	dodge_cooldown = maxf(0.0, dodge_cooldown - delta)
+	counter_time = maxf(0.0, counter_time - delta)
+	counter_flash = maxf(0.0, counter_flash - delta)
+	var dodge_pressed := input.dodge_held and not _prev_dodge
+	_prev_dodge = input.dodge_held
+	if dodge_pressed:
+		try_dodge()
 	_regen_delay -= delta
 	if _regen_delay <= 0.0:
 		health = minf(health + REGEN_RATE * delta, MAX_HEALTH)
 
 	var fall_speed := -velocity.y
-	var next := mode.physics_update(delta)
+	var next: StringName = &""
+	if dodge_time > 0.0:
+		dodge_time = maxf(0.0, dodge_time - delta)
+		var speed := 10.0 * (0.35 + 0.65 * dodge_time / DODGE_DURATION)
+		velocity = dodge_direction * speed + Vector3.UP * (0.0 if is_on_floor() else velocity.y - GRAVITY * delta)
+		move_and_slide()
+	else:
+		next = mode.physics_update(delta)
 	input.fly_toggle_pressed = false
 	if next != &"" and next != mode.name:
 		set_mode(next)
@@ -190,6 +217,8 @@ func face_toward(direction: Vector3, max_step := INF) -> void:
 func take_hit(damage: float, push: Vector3) -> void:
 	if not can_be_attacked() or mode.name == &"Dive":
 		return
+	counter_time = 0.0
+	dodge_time = 0.0
 	health = maxf(health - damage, 0.0)
 	hurt_time = HURT_TIME
 	_regen_delay = REGEN_DELAY
@@ -197,6 +226,51 @@ func take_hit(damage: float, push: Vector3) -> void:
 	hurt.emit(damage)
 	if health <= 0.0:
 		set_mode(&"KnockedOut")
+
+
+## Dodge interrupts a punch, but never flight, water, a jump or a stagger.
+func try_dodge() -> bool:
+	if dodge_cooldown > 0.0 or hurt_time > 0.0 or not grounded() or is_in_water() \
+			or mode.name not in [&"OnFoot", &"Melee"]:
+		return false
+	set_mode(&"OnFoot")
+	var on_foot := mode as OnFootMode
+	on_foot.charging = false
+	on_foot.charge = 0.0
+	dodge_direction = Vector3(input.move.x, 0.0, input.move.z).normalized()
+	if dodge_direction.length_squared() < 0.01:
+		dodge_direction = -forward()
+	_dodge_start = world_position()
+	dodge_time = DODGE_DURATION
+	dodge_cooldown = DODGE_COOLDOWN
+	counter_time = 0.0
+	return true
+
+
+## The hero owner resolves a committed thug punch, including misses. World
+## coordinates survive origin shifts and let remote thugs use the same rules.
+func resolve_punch(origin: Vector3, direction: Vector3) -> void:
+	if not can_be_attacked():
+		return
+	var elapsed := DODGE_DURATION - dodge_time
+	var start_offset := _dodge_start - origin
+	var start_flat := Vector3(start_offset.x, 0.0, start_offset.z)
+	if dodge_time > 0.0 and elapsed <= DODGE_SAFE and absf(start_offset.y) < 2.5 \
+			and start_flat.length() <= Thug.ATTACK_RANGE + 0.4 \
+			and direction.dot(start_flat.normalized()) > 0.5:
+		# Only the final 0.14 s before impact earns the counter; an early
+		# dodge still avoids damage, but gives no offensive reward.
+		if elapsed <= 0.14:
+			counter_time = COUNTER_WINDOW
+		return
+	var offset := world_position() - origin
+	var flat := Vector3(offset.x, 0.0, offset.z)
+	if absf(offset.y) >= Thug.REACH_HEIGHT or flat.length() > Thug.ATTACK_RANGE + 0.4 \
+			or direction.dot(flat.normalized()) < 0.5:
+		return
+	take_hit(Thug.PUNCH_DAMAGE, direction * 5.0)
+	Combat.show_hero_blood(self, direction, 0.4)
+	Combat.raise_danger(world_position(), 25.0)
 
 
 ## The surface of a raised lake just above or below the hero, else sea level.

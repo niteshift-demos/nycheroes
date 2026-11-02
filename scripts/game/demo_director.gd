@@ -90,6 +90,18 @@ func _ready() -> void:
 					[21.5, 21.5]),
 			_shot("", 0.5),
 		]
+	elif LaunchOptions.get_string("demo") == "dodge":
+		_yaw = _avenue_yaw + 0.65
+		camera.yaw = _yaw
+		_pitch = -0.3
+		_shots = [
+			_shot("Q / B / DODGE + direction: a quick sidestep", 4.0, _dodge_step_input),
+			_shot("An early dodge escapes, but earns no counter", 5.0, _dodge_early_input, Callable(), _dodge_opponent),
+			_shot("Wait for the punch. Evade at the last moment.", 5.0, _dodge_perfect_input, Callable(), _dodge_opponent),
+			_shot("A perfect dodge opens a brief heavy counter", 5.0, _dodge_counter_input, Callable(), _dodge_opponent),
+			_shot("Miss the window? The next punch is ordinary.", 5.0, _dodge_expire_input, Callable(), _dodge_opponent),
+			_shot("Ground only: an airborne press cannot dodge.", 4.0, _dodge_limits_input),
+		]
 	elif LaunchOptions.get_string("demo") == "fight":
 		_yaw = _avenue_yaw
 		camera.yaw = _yaw
@@ -124,6 +136,8 @@ func _physics_process(delta: float) -> void:
 			return
 		_settle -= delta
 		if _settle <= 0.0:
+			if LaunchOptions.has("demo_wait") and not Input.is_action_just_pressed("jump"):
+				return
 			print("[demo] start")
 			_begin(0)
 		return
@@ -359,3 +373,71 @@ func _make_caption() -> void:
 	_caption.add_theme_constant_override("outline_size", 10)
 	_caption.modulate.a = 0.0
 	layer.add_child(_caption)
+
+
+# A reproducible tour drives ordinary HeroInput against real attacking thugs.
+# No combat outcomes are forced; the same timing and collision rules apply.
+var _dodge_thug: Thug
+var _demo_evaded := false
+var _demo_countered := false
+var _demo_delay := 0.0
+
+
+func _dodge_opponent() -> void:
+	for thug in Combat.thugs.duplicate():
+		thug.queue_free()
+	hero.velocity = Vector3.ZERO
+	_demo_evaded = false
+	_demo_countered = false
+	_demo_delay = 0.0
+	_spawn_gang_ahead(3.0, 1)
+	_dodge_thug = Combat.thugs.back()
+
+
+func _dodge_step_input(input: HeroInput, t: float) -> void:
+	var phase := fmod(t, 1.4)
+	var across := -AVENUE.rotated(Vector3.UP, PI * 0.5)
+	if int(t / 1.4) % 2 == 1:
+		across = -across
+	input.move = across if phase < 0.06 else Vector3.ZERO
+	input.dodge_held = phase < 0.65
+
+
+func _timed_evasion(input: HeroInput, threshold: float) -> void:
+	if not is_instance_valid(_dodge_thug):
+		return
+	if not _demo_evaded and _dodge_thug.state == Thug.State.PUNCH and _dodge_thug.punch_time_remaining() <= threshold:
+		input.move = -AVENUE
+		input.dodge_held = true
+		_demo_evaded = true
+
+
+func _dodge_early_input(input: HeroInput, _t: float) -> void:
+	_timed_evasion(input, 0.32)
+
+
+func _dodge_perfect_input(input: HeroInput, _t: float) -> void:
+	_timed_evasion(input, 0.10)
+
+
+func _dodge_counter_input(input: HeroInput, t: float) -> void:
+	_dodge_perfect_input(input, t)
+	if hero.counter_time > 0.0 and hero.dodge_time <= 0.0 and not _demo_countered:
+		input.attack_held = true
+		_demo_countered = true
+
+
+func _dodge_expire_input(input: HeroInput, t: float) -> void:
+	_dodge_perfect_input(input, t)
+	if hero.counter_time > 0.0:
+		_demo_delay = t + Hero.COUNTER_WINDOW + 0.2
+	if _demo_delay > 0.0 and t > _demo_delay and not _demo_countered:
+		input.attack_held = true
+		_demo_countered = true
+
+
+func _dodge_limits_input(input: HeroInput, t: float) -> void:
+	input.jump_held = t < 0.12
+	# Press in the air, hold through landing, then release and press on foot.
+	input.dodge_held = (t > 0.2 and t < 2.5) or t > 2.8
+	input.move = AVENUE.rotated(Vector3.UP, PI * 0.5) if t > 2.8 else Vector3.ZERO

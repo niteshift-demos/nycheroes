@@ -50,6 +50,26 @@ peer can drive one later. Nearby tiles get collision.
   character (instance uniforms would reserve 16 vec4s each in a uniform
   buffer of 1024 on some GPUs); same draw calls, 0.1-0.2 s to compile.
 - Gangs of thugs surround and attack the hero, at most two swinging at once.
+- Ground dodge: Q / gamepad B / touch DODGE, with movement for a sidestep
+  or a backstep when neutral. A crouched lean reads the 0.34 s step; its first
+  0.20 s evade committed thug punches, followed by recovery (0.85 s between
+  starts). Holding never repeats; it cannot start airborne, swimming, flying,
+  knocked out or staggered. It can interrupt a punch or jump charge.
+  Thug windups carry an amber ! that turns mint in their last 0.14 s.
+  Evading in that final interval earns a 0.85 s counter window. Attack consumes
+  it for the heavy combo finisher (100 damage and launch); letting it expire
+  leaves an ordinary jab. HUD text and a draining bar expose both windows.
+  Defending hero owners resolve committed punches using world coordinates;
+  PlayerSync carries dodge time, direction and counter time as plain state.
+  No shader or city tile changes. Mixed-version peers can still display old
+  hero snapshots, but all peers should run this version for punch resolution.
+  `res://tests/dodge_test.tscn` covers timing boundaries, consumption, input
+  hold, origin shifts, snapshot round trip and forbidden modes without tiles.
+  `res://tests/dodge_coop_test.tscn` checks dodge snapshots and evasion/damage
+  through the real combat RPC between two loopback ENet processes.
+  `?demo=dodge&solo=1` runs the input-driven real combat tour for recording;
+  `&demo_wait=1` waits for Space before starting; ordinary gameplay has no
+  timing assistance. Taking a hit cancels a saved counter.
 - Punch combos, dive attacks, landing slams and super speed rams; defeated
   thugs ragdoll, bleed, and stay on the street while you're nearby.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
@@ -2499,7 +2519,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/dodge_test.tscn`,
+  `res://tests/dodge_coop_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so

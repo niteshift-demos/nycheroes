@@ -46,6 +46,7 @@ const KEYS: Array[Array] = [
 	["W A S D", "move"],
 	["Mouse", "look around (click the game first)"],
 	["Left mouse", "punch; in the air, a dive attack (hold W to call it off)"],
+	["Q / gamepad B", "ground dodge; evade just before impact, then punch to counter"],
 	["Space", "jump; hold for a super jump"],
 	["Shift", "super speed"],
 	["F", "fly; Space and C go up and down"],

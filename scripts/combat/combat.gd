@@ -120,6 +120,22 @@ func hurt_hero(hero: Hero, damage: float, push: Vector3) -> void:
 	raise_danger(hero.world_position(), 25.0)
 
 
+## Always route a committed punch to the defending owner, even if our delayed
+## copy appears to have moved out of reach. Only that owner decides evasion.
+func resolve_punch(hero: Hero, origin: Vector3, direction: Vector3) -> void:
+	if hero.is_remote():
+		_resolve_punch.rpc_id(hero.remote_id, origin, direction)
+	else:
+		hero.resolve_punch(origin, direction)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _resolve_punch(origin: Vector3, direction: Vector3) -> void:
+	var hero := _hero_of(Net.local_id())
+	if hero:
+		hero.resolve_punch(origin, direction)
+
+
 func on_thug_down(thug: Thug, launch: Vector3) -> void:
 	defeated_count += 1
 	thug_defeated.emit(thug)

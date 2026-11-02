@@ -94,6 +94,10 @@ attack={
 "deadzone": 0.2,
 "events": [Object(InputEventMouseButton,"device":-1,"button_index":1), Object(InputEventJoypadButton,"device":-1,"button_index":2)]
 }
+dodge={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":81), Object(InputEventJoypadButton,"device":-1,"button_index":1)]
+}
 debug_free_camera={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"device":-1,"physical_keycode":4194332)]

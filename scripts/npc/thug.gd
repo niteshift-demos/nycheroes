@@ -71,6 +71,8 @@ var _bone_offsets: Array[Vector3] = []
 # plays out before they take over the animation again.
 var _snapshots: SnapshotBuffer
 var _shown_restarts := -1
+## Copies infer the visible windup from their synchronized punch animation.
+var _remote_punch_left := 0.0
 var _local_animation_until := 0
 var _detail_check := randf() * 0.5
 
@@ -317,12 +319,9 @@ func _surround_velocity(reachable: bool) -> Vector3:
 	return to_spot.normalized() * minf(RUN_SPEED, to_spot.length() * 4.0)
 
 
-func _land_punch(flat: Vector3, distance: float, reachable: bool) -> void:
+func _land_punch(_flat: Vector3, _distance: float, _reachable: bool) -> void:
 	var forward := Vector3(-sin(_facing), 0.0, -cos(_facing))
-	if not reachable or distance > ATTACK_RANGE + 0.4 or forward.dot(flat.normalized()) < 0.5:
-		return  # the hero got out of the way
-	# Push along the ground only: lifting the hero would cancel a super jump charge.
-	Combat.hurt_hero(hero, PUNCH_DAMAGE, forward * 5.0)
+	Combat.resolve_punch(hero, WorldOrigin.to_world(global_position), forward)
 
 
 ## A copy follows the running game's updates, drawn a little in the past so it
@@ -338,6 +337,9 @@ func _follow_updates(delta: float) -> void:
 	_facing = lerp_angle(older[1], newer[1], weight)
 	health = minf(health, newer[2])
 	var restarts: int = newer[5]
+	_remote_punch_left = maxf(0.0, _remote_punch_left - delta)
+	if restarts != _shown_restarts and int(newer[3]) in [3, 4]:
+		_remote_punch_left = PUNCH_HIT_TIME
 	if Time.get_ticks_msec() >= _local_animation_until:
 		var restart := _shown_restarts >= 0 and restarts != _shown_restarts
 		_play(ANIMATIONS[clampi(newer[3], 0, ANIMATIONS.size() - 1)], newer[4], 0.05 if restart else 0.2, restart)
@@ -406,3 +408,10 @@ func _on_origin_shifted(delta: Vector3) -> void:
 		var body := bones[i] as PhysicalBone3D
 		if (body.global_position - global_position).distance_to(_bone_offsets[i]) > delta.length() * 0.5:
 			body.global_position -= delta
+
+
+## Remaining windup time, for combat prompts and the input-driven tour.
+func punch_time_remaining() -> float:
+	if puppet:
+		return _remote_punch_left if _remote_punch_left > 0.0 else INF
+	return _timer if state == State.PUNCH else INF

@@ -76,6 +76,8 @@ func _process(delta: float) -> void:
 
 ## Which way the body's head should point.
 func _target_up() -> Vector3:
+	if hero.dodge_time > 0.0:
+		return Vector3.UP.lerp(hero.dodge_direction, 0.5).normalized()
 	match hero.mode.name:
 		&"Flight", &"Dive":
 			var speed := hero.velocity.length()
@@ -109,6 +111,8 @@ static func _tilt_to(up: Vector3) -> Basis:
 ## Returns [animation name, playback speed, restart from the beginning?].
 func _choose_animation() -> Array:
 	var speed := hero.horizontal_speed()
+	if hero.dodge_time > 0.0:
+		return [&"Crouch_Idle", 1.0]
 	match hero.mode.name:
 		&"Flight":
 			return [&"Jump", 0.6] if hero.velocity.length() > 8.0 else [&"Idle", 0.6]

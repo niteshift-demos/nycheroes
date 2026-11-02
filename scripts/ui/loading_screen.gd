@@ -19,6 +19,7 @@ const TIPS: Array[String] = [
 	"F to fly; Space and C go up and down.",
 	"E or right mouse shoots a web to swing from.",
 	"Punch in the air for a dive attack.",
+	"Q: dodge just before a punch lands, then attack to counter.",
 	"M: play with everyone online, alone, or with friends.",
 	"T steps the time of day on.",
 	"O opens the options: graphics, sound, controls.",

@@ -97,6 +97,7 @@ func _draw() -> void:
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
+	_draw_evasion()
 	_draw_coop_status()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
@@ -228,3 +229,40 @@ func _add_options_button() -> void:
 func _text(at: Vector2, text: String, font_size: int, color := Color.WHITE) -> void:
 	draw_string_outline(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, 4, Color.BLACK)
 	draw_string(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, color)
+
+
+## A stable combat prompt, with a draining window instead of a transient toast.
+func _draw_evasion() -> void:
+	var at := Vector2(24.0, size.y - 100.0)
+	if touch_controls:
+		at = Vector2(touch_controls.safe_insets.x + 20.0, touch_controls.safe_insets.y + 105.0)
+	var label := "Q / B: DODGE  ·  Move to sidestep"
+	if touch_controls:
+		label = "DODGE + stick to sidestep"
+	var color := Color(0.65, 0.87, 1.0)
+	var progress := 1.0 - hero.dodge_cooldown / Hero.DODGE_COOLDOWN
+	if hero.counter_time > 0.0:
+		label = "PERFECT DODGE!  PUNCH TO COUNTER"
+		color = Color(0.35, 1.0, 0.8)
+		progress = hero.counter_time / Hero.COUNTER_WINDOW
+	elif hero.counter_flash > 0.0:
+		label = "COUNTER!"
+	elif hero.dodge_time > 0.0:
+		label = "DODGE"
+	elif hero.dodge_cooldown > 0.0:
+		label = "DODGE recovering…"
+	_text(at, label, 18, color)
+	draw_rect(Rect2(at + Vector2(0.0, 9.0), Vector2(220.0, 4.0)), Color(0.1, 0.15, 0.2, 0.8))
+	draw_rect(Rect2(at + Vector2(0.0, 9.0), Vector2(220.0 * progress, 4.0)), color)
+	_text(at + Vector2(0.0, -26.0), "Evade just before impact: brief heavy counter", 14, color)
+	var camera := get_viewport().get_camera_3d()
+	if not camera:
+		return
+	for thug in Combat.thugs:
+		if is_inf(thug.punch_time_remaining()) or thug.global_position.distance_squared_to(hero.global_position) > 144.0:
+			continue
+		var point := thug.global_position + Vector3.UP * 2.5
+		if not camera.is_position_behind(point):
+			var screen := camera.unproject_position(point)
+			draw_circle(screen, 17.0, Color(0.2, 0.05, 0.02, 0.9))
+			_text(screen + Vector2(-5.0, 7.0), "!", 26, Color(0.35, 1.0, 0.8) if thug.punch_time_remaining() <= 0.14 else Color(1.0, 0.65, 0.2))

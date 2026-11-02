@@ -36,11 +36,14 @@ Windows and Mac versions are on the site's download page.
 | Toggle flight | F | Y |
 | Web | E or right mouse | Right trigger |
 | Attack | Left mouse | X |
+| Dodge (ground) | Q + direction | B + left stick |
 | Co-op menu | M | |
 | Hero and options | O or Esc | |
 | Time of day | T | |
 
-Phones and tablets get touch controls.
+Phones and tablets get touch controls, including DODGE. Dodge just before a
+thug’s punch lands to earn a brief heavy counter: press attack while the
+green counter bar remains. Dodge has a recovery period; holding it never repeats.
 
 ## Running it locally
 

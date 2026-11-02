@@ -35,7 +35,10 @@ var _target: Thug
 
 func enter(_previous: StringName) -> void:
 	hero.motion_mode = CharacterBody3D.MOTION_MODE_GROUNDED
-	step = 0
+	step = 2 if hero.counter_time > 0.0 else 0
+	if hero.counter_time > 0.0:
+		hero.counter_time = 0.0
+		hero.counter_flash = 0.55
 	_start_punch()
 
 

@@ -114,7 +114,8 @@ func _encode(source: Hero) -> Array:
 		| (CHARGING if on_foot.charging else 0) | (IN_WATER if source.is_in_water() else 0)
 	return [Time.get_ticks_msec(), source.world_position(), source.velocity, source.facing,
 		MODES.find(source.mode.name), flags, on_foot.charge, source.health, source.hurt_time,
-		melee.step, melee.punch_id, WorldOrigin.to_world(swing.anchor), WorldOrigin.to_world(swing.web_point)]
+		melee.step, melee.punch_id, WorldOrigin.to_world(swing.anchor), WorldOrigin.to_world(swing.web_point),
+		source.dodge_time, source.dodge_direction, source.counter_time]
 
 
 ## Moves a copy to where its player's hero was a moment ago.
@@ -139,6 +140,9 @@ func _follow(copy: Hero, snapshots: SnapshotBuffer) -> void:
 	var on_foot := copy.get_mode(&"OnFoot") as OnFootMode
 	on_foot.charging = flags & CHARGING != 0
 	on_foot.charge = latest[6]
+	copy.dodge_time = latest[13] if latest.size() >= 16 else 0.0
+	copy.dodge_direction = latest[14] if latest.size() >= 16 else Vector3.ZERO
+	copy.counter_time = latest[15] if latest.size() >= 16 else 0.0
 	copy.health = latest[7]
 	copy.hurt_time = latest[8]
 	var melee := copy.get_mode(&"Melee") as MeleeMode
@@ -154,7 +158,7 @@ func _follow(copy: Hero, snapshots: SnapshotBuffer) -> void:
 @rpc("any_peer", "call_remote", "unreliable_ordered")
 func _hero_state(state: Array) -> void:
 	var snapshots: SnapshotBuffer = _snapshots.get(multiplayer.get_remote_sender_id())
-	if snapshots and state.size() == 13:
+	if snapshots and state.size() in [13, 16]:
 		snapshots.push(float(state[0]), state)
 
 
