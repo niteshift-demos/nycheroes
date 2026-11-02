@@ -42,6 +42,7 @@ var _flight := {}
 var _holding := false
 var _loaded_time := 0.0
 var _demo_released := false
+var _browser_status_time := 0.0
 
 
 func _ready() -> void:
@@ -144,7 +145,7 @@ func _physics_process(delta: float) -> void:
 		if hero.frozen or city.pending_count() > 0:
 			return
 		if Device.is_web() and LaunchOptions.has("demo_wait") and not _demo_released:
-			_demo_released = JavaScriptBridge.eval("document.documentElement.dataset.demoReady === 'true'", true) == true
+			_demo_released = str(JavaScriptBridge.eval("document.documentElement.dataset.demoReady || ''", true)) == "true"
 			if not _demo_released:
 				return
 		_settle -= delta
@@ -171,6 +172,16 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	# Recording-only observability; the tour still drives real HeroInput.
+	if Device.is_web() and LaunchOptions.get_string("demo") == "rhythm":
+		_browser_status_time -= delta
+		if _browser_status_time <= 0.0:
+			_browser_status_time = 0.25
+			var status := JSON.stringify({"shot": _index, "time": _time, "points": hero.rhythm,
+				"rallies": hero.rallies, "notice": hero.rhythm_notice, "health": hero.health,
+				"frozen": hero.frozen, "pending": city.pending_count(), "released": _demo_released,
+				"settle": _settle, "physics": Engine.get_physics_frames()})
+			JavaScriptBridge.eval("document.documentElement.dataset.rhythmDemo = " + JSON.stringify(status), true)
 	var blend := 1.0 - exp(-3.0 * delta)
 	camera.yaw = lerp_angle(camera.yaw, _yaw, blend)
 	camera.pitch = lerpf(camera.pitch, _pitch, blend)
