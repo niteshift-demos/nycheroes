@@ -49,7 +49,8 @@ peer can drive one later. Nearby tiles get collision.
   Shift / sprint / SPEED plus movement, Space / A / JUMP to kick.
 - The HUD introduces the controls, shows remaining run time and prompts a
   kick. The camera opens from the free shoulder during a wall run so the
-  facade cannot swallow its starting point. Co-op reuses a spare state flag for the running pose without changing
+  facade cannot swallow its starting point. Co-op uses state flags 64/128 (leaving 16/32 for dash/dodge) for the
+  running pose without changing
   packet length or mode numbers. Probes use local physics and cache no
   positions, so floating-origin shifts need no extra offset bookkeeping.
 - `?wall_practice=1&solo=1` adds a synthetic rooftop training wall over

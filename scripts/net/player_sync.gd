@@ -37,8 +37,9 @@ const GROUNDED := 1
 const FROZEN := 2
 const CHARGING := 4
 const IN_WATER := 8
-const WALL_RUNNING := 16
-const WALL_RIGHT := 32
+## Bits 16 and 32 are reserved for dash and dodge traversal experiments.
+const WALL_RUNNING := 64
+const WALL_RIGHT := 128
 ## Joining players appear this far to the side of the host's hero (meters).
 const JOIN_SPACING := 3.0
 
