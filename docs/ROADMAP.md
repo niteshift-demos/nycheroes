@@ -2548,7 +2548,8 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` / `?demo=dodge`
+  scripted tours for videos (`?demo_wait=1` waits for Space before starting),
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server
