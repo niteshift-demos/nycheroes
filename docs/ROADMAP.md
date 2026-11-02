@@ -36,6 +36,22 @@ Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
 the hero is driven by a plain input object per physics tick so a network
 peer can drive one later. Nearby tiles get collision.
 
+- Timed landing rebound: a fresh Jump press during the last 0.18 s of a
+  moving fall springs back up, preserving horizontal momentum (capped at
+  85 m/s) and returning 65% of fall speed as lift (18–32 m/s). Requires
+  at least 6 m/s forward speed and 10 m/s falling speed. The landing cue
+  turns green in the timing window, followed by REBOUND feedback.
+  Keyboard Space, gamepad A and touch JUMP use the same HeroInput edge.
+  Holding early does not auto-bounce; stationary landings, swimming,
+  stagger and committed dives retain their existing behavior. Missing the
+  timing retains the ordinary landing / hard landing slam. Flight and webs
+  remain available after a rebound. No world positions are cached and
+  PlayerSync's existing velocity, position and grounded state show the hop.
+  `rebound_test` uses synthetic collision to cover success, expiry, stationary
+  rejection, slam priority, bounded lift and leaving the floor next tick.
+  `?demo=rebound` rehearses a timed return, early hold and committed dive
+  with real physics and HeroInput in the streamed city.
+
 ## 3. Street fights (done)
 
 - Pedestrians walk real sidewalk lanes (traced from street data), run from
@@ -2499,6 +2515,7 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+  `res://tests/rebound_test.tscn` (timed landing traversal),
   `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
@@ -2526,7 +2543,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` / `?demo=rebound` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

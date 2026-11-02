@@ -28,6 +28,13 @@ const REGEN_RATE := 15.0
 const SLAM_SPEED := 35.0
 ## How long a hit staggers the hero.
 const HURT_TIME := 0.35
+## A fresh airborne press must be this close to contact; holding never auto-bounces.
+const REBOUND_WINDOW := 0.18
+const REBOUND_MIN_FALL := 10.0
+const REBOUND_MIN_SPEED := 6.0
+## Bounded return energy: chaining rebounds cannot grow without limit.
+const REBOUND_MAX_RISE := 32.0
+const REBOUND_MAX_SPEED := 85.0
 ## Stepping up a curb eases the drawn hero (and camera) up at this speed (m/s)
 ## instead of popping up in one tick.
 const STEP_EASE_SPEED := 2.5
@@ -56,6 +63,12 @@ var water_level := 0.0
 var jump_pressed := false
 var web_pressed := false
 var attack_pressed := false
+
+## Local feedback only; the resulting position, velocity and mode use PlayerSync.
+var rebound_feedback := 0.0
+## Predicted seconds to the surface for the local timing cue (-1 when unavailable).
+var rebound_eta := -1.0
+var _rebound_buffer := 0.0
 
 var _modes := {}
 var _prev_jump := false
@@ -100,6 +113,15 @@ func _physics_process(delta: float) -> void:
 	if _regen_delay <= 0.0:
 		health = minf(health + REGEN_RATE * delta, MAX_HEALTH)
 
+	rebound_feedback = maxf(0.0, rebound_feedback - delta)
+	_rebound_buffer = maxf(0.0, _rebound_buffer - delta)
+	var eligible := can_rebound()
+	if not eligible:
+		_rebound_buffer = 0.0
+	elif jump_pressed:
+		_rebound_buffer = REBOUND_WINDOW
+	_update_rebound_cue(eligible)
+	var incoming_horizontal := Vector3(velocity.x, 0.0, velocity.z)
 	var fall_speed := -velocity.y
 	var next := mode.physics_update(delta)
 	input.fly_toggle_pressed = false
@@ -110,13 +132,46 @@ func _physics_process(delta: float) -> void:
 		velocity.y = minf(velocity.y, 0.0)
 
 	var on_floor := is_on_floor()
+	var rebounded := false
 	if on_floor and not _was_on_floor:
-		landed.emit(fall_speed)
-		if fall_speed >= SLAM_SPEED or slam_pending:
+		if _rebound_buffer > 0.0 and eligible and not slam_pending and mode.name == &"OnFoot" and not is_in_water():
+			# Retain the incoming tangent only on walkable floors. A wall collision
+			# must not restore speed into the wall.
+			var horizontal := Vector3(velocity.x, 0.0, velocity.z) if is_on_wall() else incoming_horizontal
+			var tangent := horizontal.slide(get_floor_normal()).limit_length(REBOUND_MAX_SPEED)
+			velocity = Vector3(tangent.x, clampf(fall_speed * 0.65, 18.0, REBOUND_MAX_RISE), tangent.z)
+			_rebound_buffer = 0.0
+			rebounded = true
+			rebound_feedback = 1.2
+			landed.emit(0.0)
+		else:
+			landed.emit(fall_speed)
+		if (fall_speed >= SLAM_SPEED or slam_pending) and not rebounded:
 			_slam(maxf(fall_speed, 60.0) if slam_pending else fall_speed)
 	if on_floor:
 		slam_pending = false
 	_was_on_floor = on_floor
+
+
+## Rebounds are a traversal choice, never a replacement for committed dives,
+## swimming, stagger recovery or a stationary landing.
+func can_rebound() -> bool:
+	return mode.name == &"OnFoot" and not is_on_floor() and not is_in_water() \
+		and not slam_pending and hurt_time <= 0.0 and -velocity.y >= REBOUND_MIN_FALL \
+		and horizontal_speed() >= REBOUND_MIN_SPEED
+
+
+func _update_rebound_cue(eligible: bool) -> void:
+	rebound_eta = -1.0
+	if not eligible:
+		return
+	var distance := -velocity.y * 0.65 + 0.5 * GRAVITY * 0.65 * 0.65
+	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.1,
+		global_position + Vector3.DOWN * distance, WORLD_LAYER, [get_rid()])
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit and hit.normal.y >= cos(floor_max_angle):
+		var height: float = maxf(0.0, global_position.y - hit.position.y)
+		rebound_eta = (sqrt(velocity.y * velocity.y + 2.0 * GRAVITY * height) + velocity.y) / GRAVITY
 
 
 ## Switches movement mode. Copies of other players' heroes skip the modes' own
@@ -160,7 +215,7 @@ func is_remote() -> bool:
 
 ## On the ground (works for copies of other players' heroes too).
 func grounded() -> bool:
-	return remote_grounded if is_remote() else is_on_floor()
+	return remote_grounded if is_remote() else is_on_floor() and velocity.y <= 0.0
 
 
 func horizontal_speed() -> float:

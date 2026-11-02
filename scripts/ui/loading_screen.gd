@@ -16,6 +16,7 @@ const ACCENT := Color(0.85, 0.12, 0.12)
 const TIPS: Array[String] = [
 	"Shift: super speed. Run into thugs to bowl them over.",
 	"Hold Space to charge a super jump.",
+	"Moving landing: tap Space just before contact to rebound.",
 	"F to fly; Space and C go up and down.",
 	"E or right mouse shoots a web to swing from.",
 	"Punch in the air for a dive attack.",
@@ -26,6 +27,7 @@ const TIPS: Array[String] = [
 const TOUCH_TIPS: Array[String] = [
 	"The right side of the screen looks around.",
 	"Hold jump to charge a super jump.",
+	"Tap JUMP just before a moving landing to rebound.",
 	"The co-op button: play with everyone online, alone, or with friends.",
 	"The gear opens the options: graphics, sound, controls.",
 ]

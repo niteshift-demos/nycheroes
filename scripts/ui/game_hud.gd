@@ -45,12 +45,14 @@ var touch_controls: TouchControls:
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
+var _rebound_panel: StyleBoxFlat
 
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_font = ThemeDB.fallback_font
+	_rebound_panel = _rebound_box()
 	Net.player_joined.connect(func(id: int) -> void:
 		if Net.is_public and Net.is_newcomer(id):  # (strangers: say who came)
 			# Once their name has had a moment to arrive.
@@ -97,6 +99,7 @@ func _draw() -> void:
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
+	_draw_rebound()
 	_draw_coop_status()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
@@ -118,6 +121,42 @@ func _draw() -> void:
 		var other: Hero = players.remote_heroes[id]
 		_draw_marker(other.global_position + Vector3.UP * 2.6, Net.player_name(id).to_upper(),
 			Net.player_color(id).lightened(0.35), PLAYER_NEAR_ENOUGH)
+
+
+func _draw_rebound() -> void:
+	var label := ""
+	var detail := ""
+	var color := Color(0.55, 0.85, 1.0)
+	if hero.rebound_feedback > 0.0:
+		label = "REBOUND"
+		detail = "Momentum kept · keep moving"
+		color = Color(0.45, 1.0, 0.75)
+	elif hero.rebound_eta >= 0.0:
+		label = "TAP JUMP NOW" if hero.rebound_eta <= Hero.REBOUND_WINDOW else "LANDING REBOUND"
+		detail = "Tap Jump just before landing · release between rebounds"
+		if hero.rebound_eta <= Hero.REBOUND_WINDOW:
+			color = Color(0.45, 1.0, 0.75)
+	if label.is_empty():
+		return
+	var center := Vector2(size.x * 0.5, size.y * 0.72)
+	var width := minf(470.0, size.x * 0.75)
+	draw_style_box(_rebound_panel, Rect2(center - Vector2(width * 0.5, 30.0), Vector2(width, 78.0)))
+	_text(center - Vector2(_font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 23).x * 0.5, 0.0), label, 23, color)
+	if touch_controls and hero.rebound_feedback <= 0.0:
+		detail = "Tap JUMP at landing · release to retry"
+	var font_size := 12 if touch_controls else 15
+	_text(center + Vector2(-_font.get_string_size(detail, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x * 0.5, 25.0), detail, font_size)
+	if hero.rebound_eta >= 0.0 and hero.rebound_feedback <= 0.0:
+		var track := Rect2(center + Vector2(-width * 0.5 + 12.0, 36.0), Vector2(width - 24.0, 3.0))
+		draw_rect(track, Color(1.0, 1.0, 1.0, 0.2))
+		draw_rect(Rect2(track.position, Vector2(track.size.x * clampf(1.0 - hero.rebound_eta / 0.65, 0.0, 1.0), 3.0)), color)
+
+
+func _rebound_box() -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.015, 0.035, 0.07, 0.85)
+	box.set_corner_radius_all(10)
+	return box
 
 
 func _draw_coop_status() -> void:

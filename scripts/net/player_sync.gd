@@ -110,7 +110,7 @@ func _encode(source: Hero) -> Array:
 	var on_foot := source.get_mode(&"OnFoot") as OnFootMode
 	var melee := source.get_mode(&"Melee") as MeleeMode
 	var swing := source.get_mode(&"Swing") as SwingMode
-	var flags := (GROUNDED if source.is_on_floor() else 0) | (FROZEN if source.frozen else 0) \
+	var flags := (GROUNDED if source.grounded() else 0) | (FROZEN if source.frozen else 0) \
 		| (CHARGING if on_foot.charging else 0) | (IN_WATER if source.is_in_water() else 0)
 	return [Time.get_ticks_msec(), source.world_position(), source.velocity, source.facing,
 		MODES.find(source.mode.name), flags, on_foot.charge, source.health, source.hurt_time,

@@ -67,7 +67,7 @@ func physics_update(delta: float) -> StringName:
 
 	if hero.is_in_water():
 		_swim(delta)
-	elif hero.is_on_floor():
+	elif hero.is_on_floor() and hero.velocity.y <= 0.0:
 		_run(delta)
 	else:
 		_fall(delta)

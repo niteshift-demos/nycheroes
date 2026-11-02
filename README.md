@@ -31,6 +31,7 @@ Windows and Mac versions are on the site's download page.
 | Move | WASD | Left stick |
 | Look | Mouse | Right stick |
 | Jump (hold to charge) | Space | A |
+| Landing rebound (moving, tap just before landing) | Space | A |
 | Descend | C | B |
 | Sprint / super speed | Shift | L3 or left bumper |
 | Toggle flight | F | Y |
@@ -40,7 +41,9 @@ Windows and Mac versions are on the site's download page.
 | Hero and options | O or Esc | |
 | Time of day | T | |
 
-Phones and tablets get touch controls.
+Phones and tablets get touch controls. Tap JUMP just before a moving landing to
+rebound with your momentum; release it between rebounds. Holding early lands
+normally. Attack in the air still commits to a dive slam.
 
 ## Running it locally
 

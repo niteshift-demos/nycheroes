@@ -90,6 +90,21 @@ func _ready() -> void:
 					[21.5, 21.5]),
 			_shot("", 0.5),
 		]
+	elif LaunchOptions.get_string("demo") == "rebound":
+		# This street-level rehearsal needs no distant skyline tiles.
+		city.load_distances = [150.0, 0.0, 0.0]
+		_yaw = _avenue_yaw
+		camera.yaw = _yaw
+		_pitch = -0.2
+		hero.landed.connect(func(impact: float) -> void:
+			print("[rebound tour] shot=%d impact=%.1f rise=%.1f speed=%.1f rebound=%s" % [
+				_index, impact, hero.velocity.y, hero.horizontal_speed(), hero.rebound_feedback > 0.0]))
+		_shots = [
+			_shot("Tap Jump just before contact: keep your momentum", 5.5, _rebound_input, Callable(), _rebound_start),
+			_shot("Holding Jump early: ordinary landing, no auto-bounce", 4.5, _early_rebound_input, Callable(), _rebound_start),
+			_shot("Attack still commits to a dive slam", 4.5, _rebound_dive_input, Callable(), _rebound_start),
+			_shot("", 0.5),
+		]
 	elif LaunchOptions.get_string("demo") == "fight":
 		_yaw = _avenue_yaw
 		camera.yaw = _yaw
@@ -143,6 +158,8 @@ func _physics_process(delta: float) -> void:
 		_begin(_index + 1)
 		if _index >= _shots.size():
 			print("[demo] finished")
+			if LaunchOptions.get_string("demo") == "rebound":
+				_begin(0)
 
 
 func _process(delta: float) -> void:
@@ -359,3 +376,30 @@ func _make_caption() -> void:
 	_caption.add_theme_constant_override("outline_size", 10)
 	_caption.modulate.a = 0.0
 	layer.add_child(_caption)
+
+
+# --- Landing rebound: reproducible real physics and ordinary HeroInput. ---
+func _rebound_start() -> void:
+	print("[rebound tour] begin shot=%d" % _index)
+	var ground := city.ground_height_at(START)
+	hero.global_position = WorldOrigin.to_local(Vector3(START.x, ground + 18.0, START.z))
+	hero.velocity = AVENUE * 22.0
+	hero.slam_pending = false
+	hero.rebound_feedback = 0.0
+	hero.set_mode(&"OnFoot")
+
+
+func _rebound_input(input: HeroInput, _t: float) -> void:
+	input.move = AVENUE
+	input.stick = Vector2(0.0, -1.0)
+	# A short single press through the same per-tick input as keyboard/touch.
+	input.jump_held = hero.rebound_eta >= 0.0 and hero.rebound_eta < 0.10 and hero.rebound_feedback <= 0.0
+
+
+func _early_rebound_input(input: HeroInput, t: float) -> void:
+	input.jump_held = t < 2.0
+
+
+func _rebound_dive_input(input: HeroInput, t: float) -> void:
+	input.attack_held = t < 0.08
+	input.jump_held = t > 0.15 and t < 1.5
