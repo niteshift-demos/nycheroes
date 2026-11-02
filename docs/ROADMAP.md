@@ -2421,7 +2421,8 @@ deployed); in a computer's browser the co-op menu links to it.
 - `?course=1` starts at the course (also `-- --course=1` on desktop).
   `tests/flight_course_test.tscn` checks swept misses, backward crossings,
   order, medal boundaries, origin shifts, completion, retry and timeout
-  without city downloads. No tile rebuild or new assets are needed.
+  without city downloads, including consuming mouse attack input when using
+  the trial buttons. No tile rebuild or new assets are needed.
 
 ## Constraints
 

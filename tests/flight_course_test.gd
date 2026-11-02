@@ -21,7 +21,9 @@ func _ready() -> void:
 	world.city.set_process(false)
 	var course := world.get_node("FlightCourse") as FlightCourse
 	course.set_physics_process(false)
+	Input.action_press("attack")
 	course.start()
+	_check(not Input.is_action_pressed("attack"), "starting consumes the button mouse attack")
 	_check(world.hero.mode.name == &"Flight" and course.state == FlightCourse.State.ARMED, "start places hero in flight")
 	world.hero.global_position = WorldOrigin.to_local(FlightCourse.ring_position(1))
 	course._physics_process(0.1)
@@ -43,7 +45,9 @@ func _ready() -> void:
 	course.elapsed = 59.99
 	course._physics_process(0.02)
 	_check(course.state == FlightCourse.State.FINISHED, "one minute limit ends run")
+	Input.action_press("attack")
 	course.leave()
+	_check(not Input.is_action_pressed("attack"), "leaving consumes the button mouse attack")
 	_check(course.state == FlightCourse.State.IDLE, "leave returns to free play")
 	print("Flight course: %d failures" % _failures)
 	get_tree().quit(1 if _failures else 0)

@@ -80,6 +80,7 @@ static func medal(seconds: float) -> String:
 
 ## Start in a hover, facing the first ring. The clock starts at its plane.
 func start() -> void:
+	_clear_button_attack()
 	state = State.ARMED
 	next_ring = 0
 	elapsed = 0.0
@@ -94,9 +95,17 @@ func start() -> void:
 
 
 func leave() -> void:
+	_clear_button_attack()
 	state = State.IDLE
 	_result = ""
 	_recolor()
+
+
+## Input actions see mouse presses even when a GUI button handled the event.
+## Consume that press before PlayerInput can turn a trial button into a dive.
+func _clear_button_attack() -> void:
+	Input.action_release("attack")
+	game.hero.input.attack_held = false
 
 
 func _physics_process(delta: float) -> void:
