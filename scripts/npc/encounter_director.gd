@@ -167,7 +167,7 @@ func _clear_far_gangs() -> void:
 	for target in Combat.heroes:
 		centers.append(target.world_position())
 	for gang: Array in _gangs.duplicate():
-		var members: Array = gang.filter(func(thug: Thug) -> bool: return is_instance_valid(thug))
+		var members: Array = gang.filter(func(thug: Variant) -> bool: return is_instance_valid(thug))
 		var far: bool = members.all(func(thug: Thug) -> bool:
 			var at := WorldOrigin.to_world(thug.global_position)
 			return centers.all(func(center: Vector3) -> bool: return at.distance_to(center) > despawn_distance))

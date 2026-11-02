@@ -112,5 +112,12 @@ func _ready() -> void:
 			hero.input.dodge_held = true
 			evaded = true
 	check(hero.counter_time > 0.0 and hero.health == Hero.MAX_HEALTH, "real thug windup and impact award timed evasion")
+	var director := EncounterDirector.new()
+	director._gangs.append([thug])
+	thug.queue_free()
+	await get_tree().process_frame
+	director._clear_far_gangs()
+	check(director._gangs.is_empty(), "encounter cleanup accepts already freed training opponents")
+	director.free()
 	print("Dodge checks: %d failures" % failures)
 	get_tree().quit(1 if failures else 0)
