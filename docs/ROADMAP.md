@@ -2398,6 +2398,29 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+## Hudson Sprint flight trial (2026-11-02)
+
+- A discoverable HUD card offers a personal six-ring, 500 m course over the
+  Hudson, 110 m above the water. R or Start flight trial places the hero in
+  a hover facing ring 1; ordinary flight controls apply (W, A/D, Space/C,
+  Shift boost, or the existing touch flight controls). The clock starts at
+  ring 1, with the next opening amber and numbered with distance guidance.
+  Rings make a shallow weave, encouraging steering while boosting.
+- Gold ≤4.5 s, silver ≤8 s, bronze ≤17 s; slower completions still finish.
+  Best times persist in Settings. Retry resets the hover and progress;
+  Leave trial returns to free flight where you are. Missing an opening
+  explains that you can turn back; crossing backward never scores. Runs
+  end after 60 s or an external teleport. Menus pause offline time normally.
+- Six shared low-poly torus meshes use unshaded stock materials, no lights,
+  shadows, collision bodies or custom shaders. Swept plane/opening checks
+  prevent boost tunneling. World-space checks and the floating group keep
+  gates stable through origin shifts. Each local hero owns its own timer;
+  existing PlayerSync carries its ordinary flight position and mode.
+- `?course=1` starts at the course (also `-- --course=1` on desktop).
+  `tests/flight_course_test.tscn` checks swept misses, backward crossings,
+  order, medal boundaries, origin shifts, completion, retry and timeout
+  without city downloads. No tile rebuild or new assets are needed.
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2498,7 +2521,8 @@ deployed); in a computer's browser the co-op menu links to it.
   3 s. Co-op relay: TURN key "nycheroes-coop" in the Worker secrets
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
-- Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+- Tests (headless): `godot --headless --path . res://tests/flight_course_test.tscn`
+  (the Hudson Sprint; no city data), `godot --headless --path . res://tests/hero_moves_test.tscn`,
   `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
@@ -2523,6 +2547,7 @@ deployed); in a computer's browser the co-op menu links to it.
   out onto the other track, alone on the terminal's track; it needs tiles
   with the trains surface around the 7, the 4 on Jerome Avenue and
   Woodlawn; `TRAINS_TERMINAL_ONLY=1` goes straight to Woodlawn).
+- Launch options: `?course=1` starts the Hudson Sprint in a hover.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,

@@ -70,6 +70,7 @@ var _arrival := Vector3.INF
 var _touch_controls: TouchControls
 var _options: OptionsPanel
 var _name_prompt: NamePrompt
+var _course: FlightCourse
 var _loading: LoadingScreen
 
 
@@ -97,6 +98,12 @@ func _ready() -> void:
 	_add_options(quality)
 	_add_loading_screen()
 	_add_name_prompt()
+	_course = FlightCourse.new()
+	_course.name = "FlightCourse"
+	_course.game = self
+	add_child(_course)
+	if LaunchOptions.has("course"):
+		_course.start()
 	if not Device.is_web() and bool(Settings.get_value("fullscreen", false)) and not LaunchOptions.has("screenshot"):
 		Device.set_fullscreen(true)
 	if Device.wants_touch_controls() and not LaunchOptions.has("demo"):
@@ -191,6 +198,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _name_prompt.is_typing() or is_instance_valid(_loading):
 		return  # (menus would open under the loading screen)
 	if _options.is_typing():
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_R and player_input.enabled:
+		_course.start()
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("options_menu") and not coop_panel.is_typing() and not LaunchOptions.has("demo"):
 		coop_panel.close()

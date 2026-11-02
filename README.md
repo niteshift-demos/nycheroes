@@ -34,6 +34,7 @@ Windows and Mac versions are on the site's download page.
 | Descend | C | B |
 | Sprint / super speed | Shift | L3 or left bumper |
 | Toggle flight | F | Y |
+| Start / retry Hudson flight trial | R or HUD button | HUD button |
 | Web | E or right mouse | Right trigger |
 | Attack | Left mouse | X |
 | Co-op menu | M | |
@@ -80,7 +81,7 @@ Add them to the URL (`?quality=low&time=21:00`) or, on desktop, after
 `--` on the command line (`-- --quality=low`). A few useful ones:
 `?quality=low|medium|high`, `?time=HH:MM`, `?spawn=x,y,z,yaw`,
 `?peds=N`, `?traffic=N`, `?gangs=N`, `?solo=1`, `?host`, `?join=CODE`,
-`?stats`. The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
+`?stats`, `?course=1` (start at the Hudson flight trial). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Tests
 
