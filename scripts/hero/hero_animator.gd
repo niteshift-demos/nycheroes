@@ -10,6 +10,8 @@ const PIVOT_HEIGHT := 0.9
 
 @export var hero: Hero
 
+var _dash_rings: Array[MeshInstance3D] = []
+
 var _player: AnimationPlayer
 var _hand: BoneAttachment3D
 var _yaw := 0.0
@@ -38,6 +40,7 @@ func _ready() -> void:
 		Settings.changed.connect(_appearance_changed)
 	SkinWarmup.add_to(self)
 	hero.landed.connect(_on_landed)
+	_make_dash_rings()
 	_yaw = hero.facing
 
 
@@ -59,6 +62,7 @@ func hand_position() -> Vector3:
 
 
 func _process(delta: float) -> void:
+	_update_dash_rings()
 	if outfit:
 		outfit.set_motion(hero.velocity.length())
 	_land_timer -= delta
@@ -76,6 +80,8 @@ func _process(delta: float) -> void:
 
 ## Which way the body's head should point.
 func _target_up() -> Vector3:
+	if hero.dash_remaining > 0.0:
+		return Vector3.UP.lerp(hero.velocity.normalized(), 0.85).normalized()
 	match hero.mode.name:
 		&"Flight", &"Dive":
 			var speed := hero.velocity.length()
@@ -156,3 +162,36 @@ func _on_landed(impact_speed: float) -> void:
 		return
 	_hard_landing = impact_speed >= HARD_LANDING_SPEED
 	_land_timer = 0.45 if _hard_landing else 0.25
+
+
+## Three tiny reused meshes: readable even at phone quality, with no particles,
+## textures, lights or world-space history to repair after an origin shift.
+func _make_dash_rings() -> void:
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.albedo_color = Color(0.2, 0.9, 1.0, 0.75)
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var mesh := TorusMesh.new()
+	mesh.inner_radius = 0.52
+	mesh.outer_radius = 0.59
+	mesh.rings = 16
+	mesh.ring_segments = 6
+	mesh.material = material
+	for i in 3:
+		var ring := MeshInstance3D.new()
+		ring.mesh = mesh
+		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		hero.add_child.call_deferred(ring)
+		_dash_rings.append(ring)
+
+
+func _update_dash_rings() -> void:
+	var direction := Vector3(hero.velocity.x, 0.0, hero.velocity.z).normalized()
+	for i in _dash_rings.size():
+		var ring := _dash_rings[i]
+		ring.visible = hero.dash_remaining > 0.0
+		if not ring.visible:
+			continue
+		ring.position = Vector3.UP - direction * (0.7 + i * 0.85)
+		ring.basis = Basis(Quaternion(Vector3.UP, direction if direction.length_squared() > 0.1 else Vector3.FORWARD))
+		ring.scale = Vector3.ONE * (1.0 + i * 0.4)

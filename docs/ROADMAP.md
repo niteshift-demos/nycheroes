@@ -31,6 +31,22 @@ and play co-op with browser players.
 
 ## 2. Hero with superpowers (done)
 
+- Midair directional dash: X / right bumper / touch DASH, steering with the
+  movement stick or using the camera's horizontal heading with no stick.
+  A 0.18 s burst at at least 42 m/s preserves faster entry momentum, then
+  restores entry horizontal speed (minimum running speed). It adds no height
+  and keeps gravity, collision sweeps, and vulnerability. Swinging releases
+  the rope without a release boost; flight also permits the correction.
+  One use per dry landing, with 0.8 s recovery and 0.12 s of stable footing;
+  flight toggles, swimming, and web reattachments cannot refill it. Dive,
+  melee, hurt, and knockout block activation. Cyan rings and the HUD show the
+  burst and spent charge. Co-op sends the effect in the existing state flags;
+  rings are local to the hero and survive origin shifts without trail history.
+  `air_dash_test.tscn` checks direction, duration, gravity, speed restoration,
+  landing refill, mode-switch abuse, walls, origin shifts and network flags.
+  `?demo=dash` runs a reproducible showcase using normal hero inputs.
+
+
 Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
 150 m/s, web swinging, and swimming. Movement modes are separate scripts;
 the hero is driven by a plain input object per physics tick so a network
@@ -2499,6 +2515,7 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+  `res://tests/air_dash_test.tscn` (synthetic dash physics; no tiles),
   `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
@@ -2526,7 +2543,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo=dash` dash showcase, `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

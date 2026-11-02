@@ -82,6 +82,10 @@ sprint={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"device":-1,"physical_keycode":4194325), Object(InputEventJoypadButton,"device":-1,"button_index":7), Object(InputEventJoypadButton,"device":-1,"button_index":9)]
 }
+dash={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"device":-1,"physical_keycode":88), Object(InputEventJoypadButton,"device":-1,"button_index":10)]
+}
 fly_toggle={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"device":-1,"physical_keycode":70), Object(InputEventJoypadButton,"device":-1,"button_index":3)]

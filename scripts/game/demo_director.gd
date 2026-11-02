@@ -40,6 +40,7 @@ var _caption: Label
 ## loaded while holding before it.
 var _flight := {}
 var _holding := false
+var _dash_ready := false
 var _loaded_time := 0.0
 
 
@@ -50,7 +51,18 @@ func _ready() -> void:
 	camera.yaw = _yaw
 	camera.pitch = _pitch
 	encounters.max_gangs = 0  # only gangs the tour places itself
-	if LaunchOptions.get_string("demo") == "city":
+	if LaunchOptions.get_string("demo") == "dash":
+		_yaw = _avenue_yaw
+		camera.yaw = _yaw
+		_shots = [
+			_shot("AIR DASH · X / right bumper / touch DASH", 3.0),
+			_shot("Jump, then burst toward your movement direction", 4.5, _dash_demo_input),
+			_shot("One burst per landing · extra presses cannot repeat it", 4.0, _dash_demo_input),
+			_shot("Land to refill · neutral stick follows the camera", 4.5, _dash_demo_input),
+			_shot("No extra height · gravity and walls still apply", 4.5, _dash_demo_input),
+			_shot("Ready to play · X in midair", 2.0),
+		]
+	elif LaunchOptions.get_string("demo") == "city":
 		_shots = [
 			_flight_shot("New York City at 1:1 scale", 7.0, [381, 6, -150, -29, 4], [440, 160, -255, -29, -15], true),
 			_flight_shot("Every building from the city's own data", 7.0,
@@ -124,6 +136,13 @@ func _physics_process(delta: float) -> void:
 			return
 		_settle -= delta
 		if _settle <= 0.0:
+			if LaunchOptions.get_string("demo") == "dash":
+				if not _dash_ready:
+					_dash_ready = true
+					_caption.text = "AIR DASH · press X to start the showcase"
+					print("[demo] dash ready")
+				if not Input.is_action_just_pressed("dash"):
+					return
 			print("[demo] start")
 			_begin(0)
 		return
@@ -154,7 +173,7 @@ func _process(delta: float) -> void:
 	if _index >= 0 and _index < _shots.size():
 		var seconds: float = _shots[_index].seconds
 		alpha = smoothstep(0.0, 0.4, _time) * (1.0 - smoothstep(seconds - 0.5, seconds, _time))
-	_caption.modulate.a = alpha
+	_caption.modulate.a = 1.0 if _dash_ready and _index < 0 else alpha
 
 
 func _begin(index: int) -> void:
@@ -359,3 +378,16 @@ func _make_caption() -> void:
 	_caption.add_theme_constant_override("outline_size", 10)
 	_caption.modulate.a = 0.0
 	layer.add_child(_caption)
+
+
+## Reproducible real gameplay for the dash showcase: ordinary charged jumps,
+## then several one-shot requests. Only the first airborne request can fire.
+func _dash_demo_input(input: HeroInput, t: float) -> void:
+	input.jump_held = t < 0.55
+	if t > 0.65 and t < 2.0:
+		input.move = AVENUE if _index != 2 else AVENUE.rotated(Vector3.UP, 0.35)
+		input.stick = Vector2(0.0, -1.0)
+	if _index == 3:
+		input.move = Vector3.ZERO
+		input.stick = Vector2.ZERO
+	input.dash_pressed = (t > 0.9 and t < 0.94) or (t > 1.4 and t < 1.44) or (t > 1.9 and t < 1.94)

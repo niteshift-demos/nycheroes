@@ -97,6 +97,7 @@ func _draw() -> void:
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
+	_draw_dash(bar)
 	_draw_coop_status()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
@@ -228,3 +229,26 @@ func _add_options_button() -> void:
 func _text(at: Vector2, text: String, font_size: int, color := Color.WHITE) -> void:
 	draw_string_outline(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, 4, Color.BLACK)
 	draw_string(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, color)
+
+
+## Always visible so a new player can discover the move and its landing refill.
+func _draw_dash(health_bar: Rect2) -> void:
+	var at := health_bar.position + Vector2(0.0, -52.0)
+	if touch_controls:
+		at = health_bar.position + Vector2(0.0, 52.0)
+	var color := Color(0.25, 0.9, 1.0)
+	var state := "READY · jump first" if hero.grounded() else "READY"
+	if not hero.dash_available:
+		state = "LAND TO REFILL"
+		color = Color(0.65, 0.7, 0.75)
+	elif hero.dash_recovery > 0.0:
+		state = "RECOVERING"
+	if hero.dash_remaining > 0.0:
+		state = "BURST!"
+		color = Color.WHITE
+	var key := "DASH" if touch_controls else "X / RB · AIR DASH"
+	_text(at, "%s  ·  %s" % [key, state], 16, color)
+	var meter := Rect2(at + Vector2(0.0, 8.0), Vector2(180.0, 4.0))
+	draw_rect(meter, Color(0.05, 0.12, 0.16, 0.8))
+	if hero.dash_available:
+		draw_rect(meter, color)

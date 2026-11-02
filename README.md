@@ -33,6 +33,7 @@ Windows and Mac versions are on the site's download page.
 | Jump (hold to charge) | Space | A |
 | Descend | C | B |
 | Sprint / super speed | Shift | L3 or left bumper |
+| Air dash (once per landing) | X + movement, or camera heading | Right bumper |
 | Toggle flight | F | Y |
 | Web | E or right mouse | Right trigger |
 | Attack | Left mouse | X |

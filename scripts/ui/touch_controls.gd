@@ -9,6 +9,7 @@ extends Control
 ##   JUMP   jump (hold for a super jump); while flying it's UP
 ##   DOWN   descend, while flying
 ##   WEB    web (hold to swing), not while flying
+##   DASH   one directional burst in midair; dry landing refills it
 ##   FLY    fly_toggle (lit while flying)
 ##   SPEED  super speed as a toggle (lit while on): it stays on until tapped
 ##          again or the stick has been let go for a moment
@@ -142,6 +143,7 @@ func _ready() -> void:
 	_add(&"jump", "JUMP", &"jump", false, true)
 	_add(&"down", "DOWN", &"descend")
 	_add(&"web", "WEB", &"web", false, true)
+	_add(&"dash", "DASH", &"dash")
 	_add(&"fly", "FLY", &"fly_toggle")
 	_add(&"speed", "SPEED", &"sprint", true)
 	_add(&"coop", "CO-OP", &"")
@@ -393,6 +395,10 @@ func _menu_open() -> bool:
 
 ## Labels and which buttons show follow what the hero is doing.
 func _update_hero_state(delta: float) -> void:
+	var dash: TouchButton = _by_id[&"dash"]
+	dash.on = hero.can_dash()
+	dash.label = "DASH" if hero.dash_available else "SPENT"
+	queue_redraw()
 	var mode: StringName = hero.mode.name if hero.mode else &""
 	_air_time = 0.0 if hero.is_on_floor() or hero.is_in_water() else _air_time + delta
 	var airborne := _air_time > AIR_LABEL_DELAY and mode != &"Melee"
@@ -443,6 +449,7 @@ func _layout() -> void:
 	_place(&"down", punch + Vector2(-190.0, 8.0), 32.0)
 	_place(&"web", punch + Vector2(6.0, -100.0), 36.0)
 	_place(&"speed", punch + Vector2(-88.0, -84.0), 31.0)
+	_place(&"dash", punch + Vector2(-164.0, -84.0), 31.0)
 	_place(&"fly", punch + Vector2(-14.0, -182.0), 31.0)
 	# The gear in the top right corner, co-op to its left, then full screen
 	# and the speaker.

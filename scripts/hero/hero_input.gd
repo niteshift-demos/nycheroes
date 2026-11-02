@@ -17,6 +17,8 @@ var web_held := false
 var attack_held := false
 ## One-shot: set by the input source, cleared by the hero after it's handled.
 var fly_toggle_pressed := false
+## One press spends the airborne dash; holding never repeats it.
+var dash_pressed := false
 
 
 func clear() -> void:
@@ -28,3 +30,4 @@ func clear() -> void:
 	web_held = false
 	attack_held = false
 	fly_toggle_pressed = false
+	dash_pressed = false

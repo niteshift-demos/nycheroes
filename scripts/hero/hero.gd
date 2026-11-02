@@ -13,6 +13,12 @@ signal mode_changed(mode_name: StringName)
 signal landed(impact_speed: float)
 signal hurt(damage: float)
 
+## A short correction, not sustained travel or an extra jump. Landing is the
+## only refill; flight toggles and web reattachments cannot recharge it.
+const DASH_DURATION := 0.18
+const DASH_SPEED := 42.0
+const DASH_RECOVERY := 0.8
+
 const GRAVITY := 30.0
 const MAX_FALL_SPEED := 95.0
 const WORLD_LAYER := 1
@@ -33,6 +39,13 @@ const HURT_TIME := 0.35
 const STEP_EASE_SPEED := 2.5
 
 var input := HeroInput.new()
+var dash_available := true
+## Plain state used by remote animation (PlayerSync's DASHING flag).
+var dash_remaining := 0.0
+var dash_recovery := 0.0
+var _dash_direction := Vector3.FORWARD
+var _dash_exit_speed := 0.0
+var _dash_ground_time := 0.0
 ## Yaw the hero faces, in radians (0 = north, which is -Z).
 var facing := 0.0
 var mode: HeroMode
@@ -100,8 +113,19 @@ func _physics_process(delta: float) -> void:
 	if _regen_delay <= 0.0:
 		health = minf(health + REGEN_RATE * delta, MAX_HEALTH)
 
+	dash_recovery = maxf(dash_recovery - delta, 0.0)
+	_dash_ground_time = _dash_ground_time + delta if is_on_floor() and not is_in_water() else 0.0
+	if _dash_ground_time >= 0.12 and dash_recovery <= 0.0:
+		dash_available = true
+	if input.dash_pressed and can_dash():
+		_start_dash()
+	input.dash_pressed = false
 	var fall_speed := -velocity.y
-	var next := mode.physics_update(delta)
+	var next: StringName = &""
+	if dash_remaining > 0.0:
+		_update_dash(delta)
+	else:
+		next = mode.physics_update(delta)
 	input.fly_toggle_pressed = false
 	if next != &"" and next != mode.name:
 		set_mode(next)
@@ -117,6 +141,44 @@ func _physics_process(delta: float) -> void:
 	if on_floor:
 		slam_pending = false
 	_was_on_floor = on_floor
+
+
+func can_dash() -> bool:
+	return dash_available and dash_recovery <= 0.0 and not frozen and not is_on_floor() \
+		and not is_in_water() and hurt_time <= 0.0 and mode.name in [&"OnFoot", &"Swing", &"Flight"]
+
+
+func _start_dash() -> void:
+	var direction := input.move
+	direction.y = 0.0
+	if direction.length_squared() < 0.01:
+		direction = Vector3(input.aim.x, 0.0, input.aim.z)
+	_dash_direction = direction.normalized() if direction.length_squared() > 0.01 else forward()
+	_dash_exit_speed = horizontal_speed()
+	if mode.name == &"Swing":
+		set_mode(&"OnFoot")  # Release the rope without adding a release jump.
+	dash_available = false
+	dash_remaining = DASH_DURATION
+	dash_recovery = DASH_RECOVERY
+	var speed := maxf(DASH_SPEED, _dash_exit_speed)
+	velocity.x = _dash_direction.x * speed
+	velocity.z = _dash_direction.z * speed
+	face_toward(_dash_direction)
+
+
+func _update_dash(delta: float) -> void:
+	# Never suspend gravity to gain height, and let CharacterBody sweep walls.
+	if mode.name != &"Flight":
+		velocity.y = maxf(velocity.y - GRAVITY * delta, -MAX_FALL_SPEED)
+	move_and_slide()
+	dash_remaining = maxf(dash_remaining - delta, 0.0)
+	if is_on_wall() or is_on_floor() or hurt_time > 0.0 or mode.name == &"KnockedOut":
+		dash_remaining = 0.0
+	if dash_remaining <= 0.0:
+		# Restore entry speed, so a dash cannot permanently accelerate a jump.
+		var horizontal := Vector3(velocity.x, 0.0, velocity.z).limit_length(maxf(_dash_exit_speed, 9.0))
+		velocity.x = horizontal.x
+		velocity.z = horizontal.z
 
 
 ## Switches movement mode. Copies of other players' heroes skip the modes' own
