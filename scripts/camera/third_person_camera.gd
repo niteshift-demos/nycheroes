@@ -98,10 +98,14 @@ func _process(delta: float) -> void:
 	distance += clampf(speed / 60.0, 0.0, 1.0) * 2.0
 	_distance = lerpf(_distance, distance, 1.0 - exp(-3.0 * delta))
 
+	# A shoulder inside the contacted facade makes the spring arm start inside
+	# collision. Open the view from the free side while the hero runs along it.
+	if target.wall_running:
+		yaw = lerp_angle(yaw, target.facing - target.wall_run_side * 0.3, 1.0 - exp(-8.0 * delta))
 	global_position = target.get_visual_position() + Vector3.UP * height
 	rotation = Vector3(pitch, yaw, 0.0)
 	spring_arm.spring_length = _distance
-	spring_arm.position = Vector3(shoulder_offset, 0.0, 0.0)
+	spring_arm.position = Vector3(-target.wall_run_side * 0.5 if target.wall_running else shoulder_offset, 0.0, 0.0)
 	var fov := lerpf(base_fov, max_fov, clampf((speed - 10.0) / 70.0, 0.0, 1.0))
 	camera.fov = lerpf(camera.fov, fov, 1.0 - exp(-4.0 * delta))
 

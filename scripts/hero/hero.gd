@@ -51,6 +51,10 @@ var remote_grounded := false
 var remote_in_water := false
 ## Height of the water surface around the hero: a raised lake's, or sea level (0).
 var water_level := 0.0
+## Plain visual state, also carried by PlayerSync for other players.
+var wall_running := false
+## Which shoulder is beside the wall (+1 right, -1 left), for the running lean.
+var wall_run_side := 1.0
 
 # Input edges for this tick, worked out from `input`.
 var jump_pressed := false

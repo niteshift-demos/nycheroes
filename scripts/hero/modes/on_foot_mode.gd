@@ -43,6 +43,12 @@ extends HeroMode
 var charging := false
 var charge := 0.0
 
+## One short run and kick per airtime; changing modes cannot refill them.
+const WALL_RUN_TIME := 1.1
+const WALL_SPEED := 13.0
+var wall_remaining := WALL_RUN_TIME
+var wall_kick_notice := 0.0
+var _wall_kicked := false
 var _hold_time := 0.0
 var _air_time := 0.0
 var _web_cooldown := 0.0
@@ -57,7 +63,16 @@ func enter(_previous: StringName) -> void:
 	_jump_handed_over = false
 
 
+func exit() -> void:
+	hero.wall_running = false
+
+
 func physics_update(delta: float) -> StringName:
+	hero.wall_running = false
+	wall_kick_notice = maxf(wall_kick_notice - delta, 0.0)
+	if hero.is_on_floor():
+		wall_remaining = WALL_RUN_TIME
+		_wall_kicked = false
 	if hero.input.fly_toggle_pressed:
 		return &"Flight"
 	if hero.attack_pressed and hero.hurt_time <= 0.0 and not hero.is_in_water():
@@ -70,7 +85,8 @@ func physics_update(delta: float) -> StringName:
 	elif hero.is_on_floor():
 		_run(delta)
 	else:
-		_fall(delta)
+		if not _wall_move(delta):
+			_fall(delta)
 	var intended := hero.velocity
 	hero.move_and_slide()
 	var before := hero.global_position.y
@@ -180,6 +196,53 @@ func _fall(delta: float) -> void:
 	hero.velocity.z = horizontal.z
 	hero.velocity.y = maxf(hero.velocity.y - Hero.GRAVITY * delta, -Hero.MAX_FALL_SPEED)
 	hero.face_toward(horizontal, 10.0 * delta)
+
+
+## Probe only while airborne and requesting traversal. Normals are directions,
+## never cached positions, so origin shifts need no special handling.
+func _wall_move(delta: float) -> bool:
+	if hero.hurt_time > 0.0 or _wall_kicked:
+		return false
+	if not hero.jump_pressed and (not hero.input.sprint_held or wall_remaining <= 0.0):
+		return false
+	var wish := hero.input.move.limit_length(1.0)
+	var direction := wish.normalized() if wish.length() > 0.1 else hero.forward()
+	var side := direction.cross(Vector3.UP)
+	var normal := Vector3.ZERO
+	var start := hero.global_position + Vector3.UP * 1.1
+	for probe: Vector3 in [direction, side, -side]:
+		var query := PhysicsRayQueryParameters3D.create(start, start + probe * 0.85, Hero.WORLD_LAYER)
+		var hit := hero.get_world_3d().direct_space_state.intersect_ray(query)
+		if hit and absf(hit.normal.y) < 0.15:
+			normal = hit.normal
+			break
+	if normal == Vector3.ZERO:
+		return false
+	if hero.jump_pressed:
+		# A new press is required: the launch jump never becomes an automatic kick.
+		var along := Vector3(hero.velocity.x, 0.0, hero.velocity.z).slide(normal).limit_length(WALL_SPEED)
+		hero.velocity = along * 0.65 + normal * 11.0 + Vector3.UP * 13.0
+		hero.face_toward(hero.velocity)
+		_wall_kicked = true
+		wall_remaining = 0.0
+		wall_kick_notice = 0.8
+		_air_time = coyote_time
+		return true
+	var tangent := wish.slide(normal)
+	# Head-on contact is not a wall run; the player chooses a direction along it.
+	if tangent.length() < 0.35 or wish.dot(normal) > 0.25:
+		return false
+	wall_remaining = maxf(wall_remaining - delta, 0.0)
+	hero.wall_running = true
+	charging = false
+	charge = 0.0
+	_air_time = coyote_time
+	var along := tangent.normalized() * WALL_SPEED
+	hero.velocity = along - normal * 2.0
+	hero.velocity.y = maxf(-2.0, minf(5.0, hero.velocity.y) - 7.0 * delta)
+	hero.face_toward(along, 12.0 * delta)
+	hero.wall_run_side = -signf(normal.dot(hero.forward().cross(Vector3.UP)))
+	return true
 
 
 func _swim(delta: float) -> void:

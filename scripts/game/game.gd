@@ -101,7 +101,9 @@ func _ready() -> void:
 		Device.set_fullscreen(true)
 	if Device.wants_touch_controls() and not LaunchOptions.has("demo"):
 		_add_touch_controls(false)
-	if LaunchOptions.has("demo"):
+	if LaunchOptions.has("wall_practice"):
+		call_deferred("_add_wall_practice")
+	elif LaunchOptions.has("demo"):
 		_start_demo()
 	elif LaunchOptions.has("host"):
 		Net.host()
@@ -220,6 +222,8 @@ func _unhandled_input(event: InputEvent) -> void:
 ## connect over WebRTC meet other players there (desktop builds without the
 ## extension don't); ?public=1 joins anyway (tests over ENet meet each other).
 func _plays_public() -> bool:
+	if LaunchOptions.has("wall_practice"):
+		return false
 	if LaunchOptions.has("solo") and LaunchOptions.get_string("solo") != "0":
 		return false
 	if LaunchOptions.has("public"):
@@ -230,6 +234,12 @@ func _plays_public() -> bool:
 		# (Headless Chrome, which the page checks use, doesn't set webdriver.)
 		return JavaScriptBridge.eval("navigator.webdriver === true || navigator.userAgent.includes('HeadlessChrome')") != true
 	return Net.uses_webrtc()
+
+
+func _add_wall_practice() -> void:
+	var practice := WallPractice.new()
+	practice.game = self
+	add_child(practice)
 
 
 func _start_demo() -> void:

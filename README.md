@@ -31,6 +31,7 @@ Windows and Mac versions are on the site's download page.
 | Move | WASD | Left stick |
 | Look | Mouse | Right stick |
 | Jump (hold to charge) | Space | A |
+| Wall run / kick | In air: Shift + move along wall; press Space again to kick | Sprint + move along wall; A to kick |
 | Descend | C | B |
 | Sprint / super speed | Shift | L3 or left bumper |
 | Toggle flight | F | Y |
@@ -40,7 +41,10 @@ Windows and Mac versions are on the site's download page.
 | Hero and options | O or Esc | |
 | Time of day | T | |
 
-Phones and tablets get touch controls.
+Phones and tablets get touch controls. Toggle SPEED, jump beside a wall and steer
+along it; press JUMP again to kick away. Each airtime allows a 1.1 second
+wall run and one kick. Land to recharge. Try `?wall_practice=1&solo=1` for a
+rooftop practice wall with Reset run and Play traversal demo buttons.
 
 ## Running it locally
 

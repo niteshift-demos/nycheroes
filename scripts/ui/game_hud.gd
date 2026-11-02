@@ -42,6 +42,7 @@ var touch_controls: TouchControls:
 		if _options_button:
 			_options_button.visible = value == null
 
+var _traversal_hint := 18.0
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
@@ -81,6 +82,8 @@ func current_notices() -> PackedStringArray:
 
 
 func _process(_delta: float) -> void:
+	if not hero.frozen:
+		_traversal_hint = maxf(_traversal_hint - _delta, 0.0)
 	queue_redraw()
 
 
@@ -97,6 +100,7 @@ func _draw() -> void:
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
+	_draw_traversal()
 	_draw_coop_status()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
@@ -118,6 +122,31 @@ func _draw() -> void:
 		var other: Hero = players.remote_heroes[id]
 		_draw_marker(other.global_position + Vector3.UP * 2.6, Net.player_name(id).to_upper(),
 			Net.player_color(id).lightened(0.35), PLAYER_NEAR_ENOUGH)
+
+
+func _draw_traversal() -> void:
+	var foot := hero.get_mode(&"OnFoot") as OnFootMode
+	var text := ""
+	var jump := "JUMP" if touch_controls or Input.get_connected_joypads().size() > 0 else "SPACE"
+	if hero.wall_running:
+		text = "WALL RUN  ·  press %s to kick" % jump
+	elif foot.wall_kick_notice > 0.0:
+		text = "WALL KICK"
+	elif _traversal_hint > 0.0:
+		text = "Jump beside a wall + sprint along it\nPress %s again to kick" % jump
+	if text.is_empty():
+		return
+	var font_size := 16 if touch_controls else 20
+	var at := Vector2(0.0, size.y * 0.77)
+	for line in text.split("\n"):
+		var width := _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
+		at.x = (size.x - width) * 0.5
+		_text(at, line, font_size, Color(0.55, 0.95, 1.0))
+		at.y += font_size + 4.0
+	if hero.wall_running:
+		var bar := Rect2(size.x * 0.5 - 75.0, at.y + 2.0, 150.0, 5.0)
+		draw_rect(bar, Color(0.0, 0.0, 0.0, 0.6))
+		draw_rect(Rect2(bar.position, Vector2(bar.size.x * foot.wall_remaining / OnFootMode.WALL_RUN_TIME, 5.0)), Color(0.55, 0.95, 1.0))
 
 
 func _draw_coop_status() -> void:

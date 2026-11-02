@@ -76,6 +76,9 @@ func _process(delta: float) -> void:
 
 ## Which way the body's head should point.
 func _target_up() -> Vector3:
+	if hero.wall_running:
+		var away := -hero.forward().cross(Vector3.UP) * hero.wall_run_side
+		return (Vector3.UP + away * 0.45 + hero.forward() * 0.25).normalized()
 	match hero.mode.name:
 		&"Flight", &"Dive":
 			var speed := hero.velocity.length()
@@ -127,6 +130,8 @@ func _choose_animation() -> Array:
 		return [&"Swim_Fwd", 1.0] if speed > 1.0 else [&"Swim_Idle", 1.0]
 	if hero.hurt_time > 0.0:
 		return [&"Hit_Chest", 1.0]
+	if hero.wall_running:
+		return [&"Sprint", 1.5]
 	if not hero.grounded():
 		return [&"Jump", 1.0]
 	if (on_foot.charging and on_foot.charge > 0.0) or (_land_timer > 0.0 and _hard_landing):

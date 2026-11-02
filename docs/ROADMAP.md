@@ -36,6 +36,31 @@ Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
 the hero is driven by a plain input object per physics tick so a network
 peer can drive one later. Nearby tiles get collision.
 
+### Directional wall traversal (2026-11-02)
+
+- Airborne heroes can hold sprint and steer along a nearby vertical wall to
+  run at 13 m/s for up to 1.1 seconds per airtime. Head-on pushing, swimming,
+  hurt reactions and grounded movement cannot engage it. Release sprint,
+  steer away, lose the wall or exhaust the timer to fall normally.
+- A fresh jump press near a wall kicks outward at 11 m/s and upward at
+  13 m/s, retaining some along-wall momentum. One kick per airtime prevents
+  climbing indefinitely; switching powers does not refill the budget.
+  Landing recharges both. Existing keyboard, gamepad and touch input works:
+  Shift / sprint / SPEED plus movement, Space / A / JUMP to kick.
+- The HUD introduces the controls, shows remaining run time and prompts a
+  kick. The camera opens from the free shoulder during a wall run so the
+  facade cannot swallow its starting point. Co-op reuses a spare state flag for the running pose without changing
+  packet length or mode numbers. Probes use local physics and cache no
+  positions, so floating-origin shifts need no extra offset bookkeeping.
+- `?wall_practice=1&solo=1` adds a synthetic rooftop training wall over
+  Midtown, with Reset run and Play traversal demo buttons. City drawing is
+  hidden only in this practice view to keep training inexpensive. The demo drives
+  ordinary HeroInput through a kick, timeout and release; the practice area
+  never auto-joins public co-op. It needs no city tile rebuild.
+- `tests/wall_run_test.tscn` checks real hero physics against synthetic
+  geometry: directional engagement, kick impulse, one kick per airtime,
+  timeout, head-on rejection, sprint release, origin shift and state flags.
+
 ## 3. Street fights (done)
 
 - Pedestrians walk real sidewalk lanes (traced from street data), run from
@@ -2398,6 +2423,7 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2499,6 +2525,7 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+  `res://tests/wall_run_test.tscn` (synthetic wall traversal, no tiles),
   `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
@@ -2524,7 +2551,8 @@ deployed); in a computer's browser the co-op menu links to it.
   with the trains surface around the 7, the 4 on Jerome Avenue and
   Woodlawn; `TRAINS_TERMINAL_ONLY=1` goes straight to Woodlawn).
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
-  free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
+  free camera, `?spawn=x,y,z,yaw` hero start, `?wall_practice=1` rooftop wall traversal practice (use `?solo=1`),
+  `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
