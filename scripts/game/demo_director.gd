@@ -147,6 +147,8 @@ func _physics_process(delta: float) -> void:
 			_begin(0)
 		return
 	if _index >= _shots.size():
+		if LaunchOptions.get_string("demo") == "dash" and Input.is_action_just_pressed("dash"):
+			_begin(0)
 		return
 	if _holding:
 		_hold(delta)
