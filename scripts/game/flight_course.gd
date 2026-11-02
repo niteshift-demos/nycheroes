@@ -141,6 +141,8 @@ func _process(_delta: float) -> void:
 	var width := minf(420.0, get_viewport().get_visible_rect().size.x - 24.0)
 	_panel.offset_left = -width * 0.5
 	_panel.offset_right = width * 0.5
+	_panel.offset_top = -286.0 if Device.wants_touch_controls() else -186.0
+	_panel.offset_bottom = -166.0 if Device.wants_touch_controls() else -66.0
 	var controls := "Stick to fly / steer · SPEED boost · UP/DOWN height" if Device.wants_touch_controls() else "W fly · A/D steer · Shift boost · Space/C height"
 	var active := state == State.ARMED or state == State.RUNNING
 	# Menus and free camera retain exclusive keyboard and touch control.
@@ -167,7 +169,10 @@ func _process(_delta: float) -> void:
 		var screen := get_viewport().get_visible_rect().size
 		if camera.is_position_behind(target):
 			point = Vector2(screen.x * 0.5, 100.0)
-		_marker.position = point.clamp(Vector2(80.0, 100.0), screen - Vector2(180.0, 220.0))
+		point = point.clamp(Vector2(80.0, 100.0), screen - Vector2(180.0, 220.0))
+		if _panel.get_rect().grow(24.0).has_point(point):
+			point.y = maxf(60.0, _panel.position.y - 30.0)
+		_marker.position = point
 		_marker.text = "NEXT %d  ·  %dm" % [next_ring + 1, game.hero.global_position.distance_to(target)]
 
 

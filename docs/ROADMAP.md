@@ -2405,7 +2405,9 @@ deployed); in a computer's browser the co-op menu links to it.
   a hover facing ring 1; ordinary flight controls apply (W, A/D, Space/C,
   Shift boost, or the existing touch flight controls). The clock starts at
   ring 1, with the next opening amber and numbered with distance guidance.
-  Rings make a shallow weave, encouraging steering while boosting.
+  Rings make a shallow weave, encouraging steering while boosting. On touch
+  screens the card sits above the thumb controls, with touch-specific hints
+  and 44 px retry and leave buttons.
 - Gold ≤4.5 s, silver ≤8 s, bronze ≤17 s; slower completions still finish.
   Best times persist in Settings. Retry resets the hover and progress;
   Leave trial returns to free flight where you are. Missing an opening
