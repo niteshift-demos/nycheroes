@@ -236,6 +236,8 @@ func _start_demo() -> void:
 	player_input.process_mode = Node.PROCESS_MODE_DISABLED
 	# Dash showcase demonstrates the charge meter and landing refill too.
 	hud.visible = LaunchOptions.get_string("demo") == "dash"
+	if hud.visible:
+		(hud.get_node("DebugLabel") as Control).hide()
 	var director := DemoDirector.new()
 	director.game = self
 	director.hero = hero

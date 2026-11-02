@@ -52,6 +52,7 @@ func _ready() -> void:
 	camera.pitch = _pitch
 	encounters.max_gangs = 0  # only gangs the tour places itself
 	if LaunchOptions.get_string("demo") == "dash":
+		_pitch = -0.65
 		_yaw = _avenue_yaw
 		camera.yaw = _yaw
 		_shots = [
