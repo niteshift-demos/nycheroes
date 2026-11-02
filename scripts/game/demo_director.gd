@@ -94,13 +94,16 @@ func _ready() -> void:
 	elif LaunchOptions.get_string("demo") == "rhythm":
 		_yaw = _avenue_yaw
 		camera.yaw = _yaw
+		_pitch = -0.85
+		camera.pitch = _pitch
+		game.hud.get_node("DebugLabel").visible = false
 		_shots = [
-			_shot("Hero Rhythm • successful hits build a rally", 1.5, Callable(), _fight_camera),
-			_shot("Attack repeatedly • six points heal & repel", 8.0, _rhythm_input, _fight_camera, _rhythm_start),
-			_shot("A fresh streak", 2.0, _punch_input, _fight_camera, _spawn_gang_ahead.bind(5.0, 1)),
-			_shot("Whiffs add nothing • seven seconds ends the streak", 9.0, Callable(), _fight_camera),
-			_shot("Build again", 2.0, _punch_input, _fight_camera, _spawn_gang_ahead.bind(5.0, 1)),
-			_shot("Taking a hit also breaks your streak", 7.0, Callable(), _fight_camera, _spawn_gang_ahead.bind(4.0, 1)),
+			_shot("Hero Rhythm • successful hits build a rally", 1.5, Callable(), _rhythm_camera),
+			_shot("Attack repeatedly • six points heal & repel", 8.0, _rhythm_input, _rhythm_camera, _rhythm_start),
+			_shot("A fresh streak", 2.0, _punch_input, _rhythm_camera, _spawn_gang_ahead.bind(5.0, 1)),
+			_shot("Whiffs add nothing • seven seconds ends the streak", 9.0, Callable(), _rhythm_camera),
+			_shot("Build again", 2.0, _punch_input, _rhythm_camera, _spawn_gang_ahead.bind(5.0, 1)),
+			_shot("Taking a hit also breaks your streak", 7.0, Callable(), _rhythm_camera, _spawn_gang_ahead.bind(4.0, 1)),
 			_shot("", 0.5),
 		]
 	elif LaunchOptions.get_string("demo") == "fight":
@@ -141,7 +144,7 @@ func _physics_process(delta: float) -> void:
 		if hero.frozen or city.pending_count() > 0:
 			return
 		if Device.is_web() and LaunchOptions.has("demo_wait") and not _demo_released:
-			_demo_released = JavaScriptBridge.eval("window.nycDemoReady === true") == true
+			_demo_released = JavaScriptBridge.eval("document.documentElement.dataset.demoReady === 'true'", true) == true
 			if not _demo_released:
 				return
 		_settle -= delta
@@ -398,3 +401,8 @@ func _rhythm_input(input: HeroInput, t: float) -> void:
 		_rhythm_wave = wave
 		_spawn_gang_ahead(5.0, 1)
 	input.attack_held = t < 7.0 and fmod(t, 0.3) < 0.12
+
+
+func _rhythm_camera(_t: float) -> void:
+	_yaw = _avenue_yaw
+	_pitch = -0.85

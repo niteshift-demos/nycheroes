@@ -2420,7 +2420,7 @@ No positional cache, shader, city data or external asset was added.
 origin shifts, corpse exclusion and co-op state. `?demo=rhythm&solo=1` stages
 ordinary enemies and uses HeroInput to show repeated attacks, the rally and
 inactivity; `?demo=fight` also exercises mixed attacks. For recording, `?demo_wait=1` holds a loaded web tour until the page sets
-`window.nycDemoReady = true`. These tours disable
+`document.documentElement.dataset.demoReady = "true"`. These tours disable
 manual input; omit `demo` to play normally with the standard controls.
 
 ## Constraints
