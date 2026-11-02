@@ -10,6 +10,8 @@ const PIVOT_HEIGHT := 0.9
 
 @export var hero: Hero
 
+var _charge_ring: MeshInstance3D
+var _charge_material: StandardMaterial3D
 var _player: AnimationPlayer
 var _hand: BoneAttachment3D
 var _yaw := 0.0
@@ -36,6 +38,19 @@ func _ready() -> void:
 	outfit.setup(skeleton, body, appearance)
 	if hero.remote_id == 0:
 		Settings.changed.connect(_appearance_changed)
+	_charge_ring = MeshInstance3D.new()
+	var ring := TorusMesh.new()
+	ring.inner_radius = 0.95
+	ring.outer_radius = 1.03
+	ring.rings = 24
+	ring.ring_segments = 6
+	_charge_ring.mesh = ring
+	_charge_material = StandardMaterial3D.new()
+	_charge_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_charge_ring.material_override = _charge_material
+	_charge_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_charge_ring)
+	_charge_ring.position.y = 0.08
 	SkinWarmup.add_to(self)
 	hero.landed.connect(_on_landed)
 	_yaw = hero.facing
@@ -59,6 +74,12 @@ func hand_position() -> Vector3:
 
 
 func _process(delta: float) -> void:
+	var melee := hero.get_mode(&"Melee") as MeleeMode
+	_charge_ring.visible = hero.mode == melee and melee.heavy_charging
+	if _charge_ring.visible:
+		var radius := 0.7 + melee.heavy_charge * 0.6
+		_charge_ring.scale = Vector3(radius, 1.0, radius)
+		_charge_material.albedo_color = Color(0.35, 1.0, 0.85) if melee.heavy_charge >= 0.99 else Color(1.0, 0.68, 0.22)
 	if outfit:
 		outfit.set_motion(hero.velocity.length())
 	_land_timer -= delta
@@ -118,6 +139,8 @@ func _choose_animation() -> Array:
 			return [&"Death01", 1.0]
 		&"Melee":
 			var melee := hero.mode as MeleeMode
+			if melee.heavy_charging:
+				return [&"Crouch_Idle", 0.6]
 			var punch := melee.current_punch()
 			var new_punch := melee.punch_id != _punch_id
 			_punch_id = melee.punch_id

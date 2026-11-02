@@ -234,7 +234,9 @@ func _plays_public() -> bool:
 
 func _start_demo() -> void:
 	player_input.process_mode = Node.PROCESS_MODE_DISABLED
-	hud.visible = false
+	hud.visible = LaunchOptions.get_string("demo") == "heavy"
+	if hud.visible:
+		get_node("HUD/DebugLabel").visible = false
 	var director := DemoDirector.new()
 	director.game = self
 	director.hero = hero

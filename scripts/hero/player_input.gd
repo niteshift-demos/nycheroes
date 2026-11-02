@@ -16,6 +16,9 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	var input := hero.input
 	if not enabled:
+		var melee := hero.get_mode(&"Melee") as MeleeMode
+		if hero.mode == melee and melee.heavy_charging:
+			hero.set_mode(&"OnFoot")
 		input.clear()
 		return
 	input.stick = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
@@ -26,5 +29,6 @@ func _physics_process(_delta: float) -> void:
 	input.sprint_held = Input.is_action_pressed("sprint")
 	input.web_held = Input.is_action_pressed("web")
 	input.attack_held = Input.is_action_pressed("attack")
+	input.heavy_held = Input.is_action_pressed("heavy_attack")
 	if Input.is_action_just_pressed("fly_toggle"):
 		input.fly_toggle_pressed = true

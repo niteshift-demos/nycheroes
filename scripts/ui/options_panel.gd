@@ -45,6 +45,7 @@ const VOLUME_NAMES := {"volume_master": "Master volume", "volume_effects": "Effe
 const KEYS: Array[Array] = [
 	["W A S D", "move"],
 	["Mouse", "look around (click the game first)"],
+	["G / left trigger", "hold to charge a heavy blow, release to strike; hits interrupt; jump cancels"],
 	["Left mouse", "punch; in the air, a dive attack (hold W to call it off)"],
 	["Space", "jump; hold for a super jump"],
 	["Shift", "super speed"],
@@ -63,6 +64,7 @@ const DESKTOP_KEYS: Array[Array] = [
 const TOUCH_HELP: Array[Array] = [
 	["Left side", "move: the stick follows your thumb"],
 	["Drag elsewhere", "look around"],
+	["HEAVY", "hold to charge, release to strike; exposed while charging and recovering"],
 	["PUNCH", "punch; DIVE in the air (push the stick up to call it off)"],
 	["JUMP", "hold for a super jump; UP while flying"],
 	["WEB", "hold to swing"],

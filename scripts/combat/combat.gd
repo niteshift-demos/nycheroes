@@ -74,11 +74,20 @@ func unregister_hero(hero: Hero) -> void:
 
 ## Our hero hits every standing thug within `radius` of `center`. `push` is the
 ## knockback velocity; with `launch`, thugs go flying as ragdolls whatever
-## their health. Returns how many thugs were hit.
-func strike(center: Vector3, radius: float, damage: float, push: Vector3, launch: bool) -> int:
+## their health. Optional facing restricts a heavy blow to enemies ahead and
+## checks world occlusion from the hero. Returns how many thugs were hit.
+func strike(center: Vector3, radius: float, damage: float, push: Vector3, launch: bool, facing := Vector3.ZERO) -> int:
 	var hits: Array = []
 	for thug: Thug in thugs:
 		if not thug.is_down() and thug.body_center().distance_to(center) <= radius:
+			if facing != Vector3.ZERO:
+				var offset := thug.body_center() - center
+				if offset.dot(facing) < -1.7:
+					continue
+				# Heavy blows cannot reach through a wall or parked world geometry.
+				var ray := PhysicsRayQueryParameters3D.create(center - facing * 1.8, thug.body_center(), WORLD_LAYER)
+				if not get_viewport().get_world_3d().direct_space_state.intersect_ray(ray).is_empty():
+					continue
 			hits.append([thug, damage, push, launch])
 	_hit_thugs(hits)
 	if not hits.is_empty():

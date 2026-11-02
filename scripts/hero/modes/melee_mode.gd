@@ -12,6 +12,18 @@ const COMBO := [
 	{animation = &"Punch_Cross", speed = 1.5, impact = 0.26, length = 0.55, damage = 100.0, push = 30.0, launch = true},
 ]
 
+## Full charge takes deliberate commitment. Damage never grants invulnerability.
+const HEAVY_CHARGE_TIME := 0.85
+const HEAVY_MIN_CHARGE := 0.25
+const HEAVY := {animation = &"Punch_Cross", speed = 1.2, impact = 0.22, length = 1.0,
+	damage = 100.0, push = 36.0, launch = true}
+## Plain state, also sent to co-op copies for pose and charge feedback.
+var heavy := false
+var heavy_charging := false
+var heavy_charge := 0.0
+## Remaining recovery fraction for the local HUD.
+var heavy_recovery := 0.0
+
 @export var lunge_range := 9.0
 @export var lunge_speed := 30.0
 ## The lunge stops this far from the target.
@@ -27,6 +39,7 @@ var step := 0
 ## Goes up by one with every punch, so the animator knows to restart.
 var punch_id := 0
 
+var _ground_grace := 0.0
 var _time := 0.0
 var _struck := false
 var _queued := false
@@ -36,14 +49,26 @@ var _target: Thug
 func enter(_previous: StringName) -> void:
 	hero.motion_mode = CharacterBody3D.MOTION_MODE_GROUNDED
 	step = 0
-	_start_punch()
+	heavy = hero.heavy_pressed
+	heavy_charging = heavy
+	heavy_charge = 0.0
+	heavy_recovery = 0.0
+	_ground_grace = 0.0
+	if heavy:
+		_time = 0.0
+		_struck = false
+		_target = null
+	else:
+		_start_punch()
 
 
 func current_punch() -> Dictionary:
-	return COMBO[step]
+	return HEAVY if heavy else COMBO[step]
 
 
 func physics_update(delta: float) -> StringName:
+	if heavy:
+		return _heavy_update(delta)
 	var punch: Dictionary = COMBO[step]
 	_time += delta
 	if hero.attack_pressed:
@@ -81,6 +106,61 @@ func physics_update(delta: float) -> StringName:
 			return &""
 		return &"OnFoot"
 	return &""
+
+
+func exit() -> void:
+	heavy = false
+	heavy_charging = false
+	heavy_charge = 0.0
+	heavy_recovery = 0.0
+
+
+func _heavy_update(delta: float) -> StringName:
+	# Moving colliders during an origin shift can lose floor contact for a tick.
+	_ground_grace = 0.0 if hero.is_on_floor() else _ground_grace + delta
+	# A hit cancels even a committed blow before impact; there is no armor.
+	if hero.hurt_time > 0.0 or hero.is_in_water() or _ground_grace > 0.12:
+		return &"OnFoot"
+	if heavy_charging:
+		if hero.input.fly_toggle_pressed:
+			return &"Flight"
+		if hero.jump_pressed:
+			(hero.get_mode(&"OnFoot") as OnFootMode).begin_jump()
+			return &"OnFoot"
+		heavy_charge = minf(heavy_charge + delta / HEAVY_CHARGE_TIME, 1.0)
+		var aim := hero.input.move if hero.input.move.length() > 0.2 else hero.input.aim
+		hero.face_toward(aim, 4.0 * delta)
+		var wish := hero.input.move.limit_length(1.0) * 1.8
+		var horizontal := Vector3(hero.velocity.x, 0.0, hero.velocity.z).move_toward(wish, 70.0 * delta).limit_length(1.8)
+		var vertical := -1.0 if hero.is_on_floor() else hero.velocity.y - Hero.GRAVITY * delta
+		hero.velocity = Vector3(horizontal.x, vertical, horizontal.z)
+		hero.move_and_slide()
+		if not hero.input.heavy_held:
+			if heavy_charge < HEAVY_MIN_CHARGE:
+				return &"OnFoot"
+			heavy_charging = false
+			_time = 0.0
+			punch_id += 1
+			heavy_recovery = 1.0
+		return &""
+
+	_time += delta
+	heavy_recovery = maxf(1.0 - _time / HEAVY.length, 0.0)
+	# No auto-target or long lunge: aim before releasing. Recovery is committed.
+	hero.velocity = Vector3(0.0, -1.0 if hero.is_on_floor() else hero.velocity.y - Hero.GRAVITY * delta, 0.0)
+	hero.move_and_slide()
+	if not _struck and _time >= HEAVY.impact:
+		_struck = true
+		var full := heavy_charge >= 0.99
+		var forward := hero.forward()
+		var power := lerpf(14.0, HEAVY.push, heavy_charge)
+		var radius := lerpf(1.8, 3.0, heavy_charge)
+		var center := hero.global_position + forward * 1.8 + Vector3.UP * 1.1
+		Combat.strike(center, radius, lerpf(50.0, HEAVY.damage, heavy_charge),
+			forward * power + Vector3.UP * power * 0.4, full, forward)
+		Combat.show_shockwave(WorldOrigin.to_world(hero.global_position + forward * 1.8), radius)
+		GameAudio.play(&"punch_heavy", center)
+	return &"OnFoot" if _time >= HEAVY.length else &""
 
 
 func _start_punch() -> void:

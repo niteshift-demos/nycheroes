@@ -60,6 +60,8 @@ func enter(_previous: StringName) -> void:
 func physics_update(delta: float) -> StringName:
 	if hero.input.fly_toggle_pressed:
 		return &"Flight"
+	if hero.heavy_pressed and hero.is_on_floor() and hero.hurt_time <= 0.0 and not hero.is_in_water():
+		return &"Melee"
 	if hero.attack_pressed and hero.hurt_time <= 0.0 and not hero.is_in_water():
 		return &"Melee" if hero.is_on_floor() else &"Dive"
 	if _wants_web(delta) and (hero.get_mode(&"Swing") as SwingMode).try_attach():

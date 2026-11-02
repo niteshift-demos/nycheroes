@@ -42,6 +42,7 @@ var touch_controls: TouchControls:
 		if _options_button:
 			_options_button.visible = value == null
 
+var _heavy_box := StyleBoxFlat.new()
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
@@ -50,6 +51,8 @@ var _options_button: Button
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_heavy_box.bg_color = Color(0.02, 0.03, 0.06, 0.8)
+	_heavy_box.set_corner_radius_all(8)
 	_font = ThemeDB.fallback_font
 	Net.player_joined.connect(func(id: int) -> void:
 		if Net.is_public and Net.is_newcomer(id):  # (strangers: say who came)
@@ -97,6 +100,7 @@ func _draw() -> void:
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
+	_draw_heavy()
 	_draw_coop_status()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
@@ -118,6 +122,34 @@ func _draw() -> void:
 		var other: Hero = players.remote_heroes[id]
 		_draw_marker(other.global_position + Vector3.UP * 2.6, Net.player_name(id).to_upper(),
 			Net.player_color(id).lightened(0.35), PLAYER_NEAR_ENOUGH)
+
+
+## A compact, persistent instruction makes the hold/release gesture discoverable.
+func _draw_heavy() -> void:
+	var melee := hero.get_mode(&"Melee") as MeleeMode
+	var active := hero.mode == melee and melee.heavy
+	var width := minf(340.0, size.x - 230.0) if touch_controls else 340.0
+	width = maxf(width, 210.0)
+	var at := Vector2((size.x - width) * 0.5, size.y - (155.0 if touch_controls else 110.0))
+	var color := Color(1.0, 0.68, 0.22)
+	var label := "Hold G / LT: HEAVY  ·  release to strike"
+	if touch_controls:
+		label = "Hold HEAVY, then release"
+	var amount := 0.0
+	if active:
+		amount = melee.heavy_charge if melee.heavy_charging else melee.heavy_recovery
+		if melee.heavy_charging:
+			label = "FULL POWER  ·  RELEASE!" if amount >= 0.99 else "CHARGING  ·  exposed to hits"
+			if amount >= 0.99:
+				color = Color(0.35, 1.0, 0.85)
+		else:
+			label = "HEAVY  ·  recovering"
+			color = Color(1.0, 0.4, 0.25)
+	draw_style_box(_heavy_box, Rect2(at - Vector2(12.0, 26.0), Vector2(width + 24.0, 58.0)))
+	_text(at, label, 16, color)
+	draw_rect(Rect2(at + Vector2(0.0, 12.0), Vector2(width, 5.0)), Color(1.0, 1.0, 1.0, 0.18))
+	if active:
+		draw_rect(Rect2(at + Vector2(0.0, 12.0), Vector2(width * amount, 5.0)), color)
 
 
 func _draw_coop_status() -> void:

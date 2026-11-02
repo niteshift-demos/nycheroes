@@ -139,6 +139,7 @@ func _ready() -> void:
 	_pill_style_on = _pill(FILL_ON)
 	_muted = GameAudio.is_muted()
 	_add(&"punch", "PUNCH", &"attack")
+	_add(&"heavy", "HEAVY", &"heavy_attack")
 	_add(&"jump", "JUMP", &"jump", false, true)
 	_add(&"down", "DOWN", &"descend")
 	_add(&"web", "WEB", &"web", false, true)
@@ -404,6 +405,7 @@ func _update_hero_state(delta: float) -> void:
 	(_by_id[&"punch"] as TouchButton).label = "DIVE" if airborne or flying else "PUNCH"
 	(_by_id[&"jump"] as TouchButton).label = "UP" if flying else "JUMP"
 	(_by_id[&"fly"] as TouchButton).on = flying
+	_show(&"heavy", not airborne and not flying and not hero.is_in_water())
 	_show(&"down", flying)
 	_show(&"web", not flying)
 	queue_redraw()
@@ -439,6 +441,7 @@ func _layout() -> void:
 	# A thumb's arc around PUNCH in the bottom right corner.
 	var punch := Vector2(right - 44.0, bottom - 44.0)
 	_place(&"punch", punch, 44.0)
+	_place(&"heavy", punch + Vector2(-100.0, -163.0), 33.0)
 	_place(&"jump", punch + Vector2(-104.0, 8.0), 36.0)
 	_place(&"down", punch + Vector2(-190.0, 8.0), 32.0)
 	_place(&"web", punch + Vector2(6.0, -100.0), 36.0)

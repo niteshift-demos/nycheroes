@@ -52,6 +52,20 @@ peer can drive one later. Nearby tiles get collision.
 - Gangs of thugs surround and attack the hero, at most two swinging at once.
 - Punch combos, dive attacks, landing slams and super speed rams; defeated
   thugs ragdoll, bleed, and stay on the street while you're nearby.
+- Charged heavy blow: hold G / left trigger / touch HEAVY, then release.
+  A crouched stance, expanding amber ring and HUD meter turn mint at full power
+  (0.85 s). Full release launches a group within 3 m of the impact in front;
+  partial releases deal 50–100 damage with knockback. Releasing before 25%
+  cancels. Charging limits walking to 1.8 m/s; hits interrupt with no armor.
+  Jump or flight cancels the windup; release commits to a 0.22 s strike and
+  recovery until 1 s, during which movement and other attacks cannot skip ahead.
+  Heavy blows respect world walls. Co-op snapshots include charge and pose;
+  combat events use the existing ownership and world-position paths.
+  `heavy_attack_test` covers release, cancellation, interruption, recovery,
+  group launch, origin shifts and the snapshot payload on synthetic ground.
+  `?demo=heavy` runs a reproducible gameplay tour with seeded street thugs
+  (nearby blocks only; add `&demo_wait` to wait for G before recording).
+  The heavy tour returns control to the player when it finishes.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
 
 ## 4. All five boroughs and bridges (done)
@@ -2499,7 +2513,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/heavy_attack_test.tscn` (synthetic arena, no tiles),
+  `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
@@ -2526,7 +2541,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=heavy` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

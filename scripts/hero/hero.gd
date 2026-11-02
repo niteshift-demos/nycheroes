@@ -56,11 +56,13 @@ var water_level := 0.0
 var jump_pressed := false
 var web_pressed := false
 var attack_pressed := false
+var heavy_pressed := false
 
 var _modes := {}
 var _prev_jump := false
 var _prev_web := false
 var _prev_attack := false
+var _prev_heavy := false
 var _prev_position := Vector3.ZERO
 var _was_on_floor := false
 var _regen_delay := 0.0
@@ -94,6 +96,8 @@ func _physics_process(delta: float) -> void:
 	attack_pressed = input.attack_held and not _prev_attack
 	_prev_jump = input.jump_held
 	_prev_web = input.web_held
+	heavy_pressed = input.heavy_held and not _prev_heavy
+	_prev_heavy = input.heavy_held
 	_prev_attack = input.attack_held
 	hurt_time = maxf(hurt_time - delta, 0.0)
 	_regen_delay -= delta

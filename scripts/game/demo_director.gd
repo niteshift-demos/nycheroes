@@ -31,6 +31,8 @@ var _shots: Array[Dictionary] = []
 var _index := -1
 var _time := 0.0
 var _settle := SETTLE_TIME
+var _ready_announced := false
+var _telemetry_time := 0.0
 var _avenue_yaw := atan2(-AVENUE.x, -AVENUE.z)
 var _yaw := 0.0
 var _pitch := -0.12
@@ -90,6 +92,24 @@ func _ready() -> void:
 					[21.5, 21.5]),
 			_shot("", 0.5),
 		]
+	elif LaunchOptions.get_string("demo") == "heavy":
+		# A street-fight tour needs nearby blocks, not distant boroughs.
+		city.load_distances = [200.0, 0.0, 0.0]
+		city.extra_focus_radius = 100.0
+		_yaw = _avenue_yaw + 0.65
+		camera.yaw = _yaw
+		_pitch = -0.85
+		camera.base_fov = 60.0
+		_shots = [
+			_shot("Heavy attack: hold G / LT / HEAVY, then release", 4.0, _heavy_intro_input),
+			_shot("A quick release cancels: commit to build power", 3.0, _heavy_tap_input),
+			_shot("Full charge launches a group. Recovery leaves you exposed.", 5.0,
+				_heavy_blow_input, Callable(), _spawn_gang_ahead.bind(9.0, 3)),
+			_shot("Incoming hits interrupt the charge: no armor.", 5.0,
+				_heavy_vulnerable_input, Callable(), _spawn_gang_ahead.bind(3.0, 2)),
+			_shot("Tap left mouse for quick punches; hold G for power", 3.0, _punch_input),
+			_shot("", 0.5),
+		]
 	elif LaunchOptions.get_string("demo") == "fight":
 		_yaw = _avenue_yaw
 		camera.yaw = _yaw
@@ -124,6 +144,13 @@ func _physics_process(delta: float) -> void:
 			return
 		_settle -= delta
 		if _settle <= 0.0:
+			if LaunchOptions.has("demo_wait"):
+				if not _ready_announced:
+					_ready_announced = true
+					print("[demo] ready: press heavy attack to begin")
+					_caption.text = "Press G to start the heavy attack tour"
+				if not Input.is_action_just_pressed("heavy_attack"):
+					return
 			print("[demo] start")
 			_begin(0)
 		return
@@ -143,9 +170,26 @@ func _physics_process(delta: float) -> void:
 		_begin(_index + 1)
 		if _index >= _shots.size():
 			print("[demo] finished")
+			if LaunchOptions.get_string("demo") == "heavy":
+				hero.input.clear()
+				game.player_input.process_mode = Node.PROCESS_MODE_INHERIT
+				set_physics_process(false)
 
 
 func _process(delta: float) -> void:
+	if LaunchOptions.get_string("demo") == "heavy" and OS.has_feature("web"):
+		_telemetry_time -= delta
+		if _telemetry_time <= 0.0:
+			_telemetry_time = 0.2
+			var melee := hero.get_mode(&"Melee") as MeleeMode
+			var state := {shot = _index, time = _time, ready = _ready_announced,
+				frozen = hero.frozen, pending = city.pending_count(), health = hero.health,
+				mode = str(hero.mode.name), charging = melee.heavy_charging,
+				charge = melee.heavy_charge, recovery = melee.heavy_recovery, defeated = Combat.defeated_count}
+			JavaScriptBridge.eval("window.nycHeavyDemo = " + JSON.stringify(state), true)
+	if _index >= _shots.size():
+		_caption.modulate.a = 0.0
+		return
 	var blend := 1.0 - exp(-3.0 * delta)
 	camera.yaw = lerp_angle(camera.yaw, _yaw, blend)
 	camera.pitch = lerpf(camera.pitch, _pitch, blend)
@@ -154,7 +198,7 @@ func _process(delta: float) -> void:
 	if _index >= 0 and _index < _shots.size():
 		var seconds: float = _shots[_index].seconds
 		alpha = smoothstep(0.0, 0.4, _time) * (1.0 - smoothstep(seconds - 0.5, seconds, _time))
-	_caption.modulate.a = alpha
+	_caption.modulate.a = 1.0 if _index < 0 and _ready_announced else alpha
 
 
 func _begin(index: int) -> void:
@@ -240,6 +284,22 @@ func _spawn_gang_ahead(distance: float, count: int) -> void:
 func _fight_camera(_t: float) -> void:
 	_yaw = _avenue_yaw
 	_pitch = -0.25
+
+
+func _heavy_intro_input(input: HeroInput, t: float) -> void:
+	input.heavy_held = t > 0.4 and t < 2.5
+
+
+func _heavy_tap_input(input: HeroInput, t: float) -> void:
+	input.heavy_held = t > 0.6 and t < 0.7
+
+
+func _heavy_blow_input(input: HeroInput, t: float) -> void:
+	input.heavy_held = t > 0.2 and t < 1.15
+
+
+func _heavy_vulnerable_input(input: HeroInput, t: float) -> void:
+	input.heavy_held = t < 3.0
 
 
 func _punch_input(input: HeroInput, t: float) -> void:
@@ -350,11 +410,16 @@ func _make_caption() -> void:
 	add_child(layer)
 	_caption = Label.new()
 	_caption.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	_caption.offset_top = -110.0
-	_caption.offset_bottom = -50.0
+	if LaunchOptions.get_string("demo") == "heavy":
+		_caption.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+		_caption.offset_top = 85.0
+		_caption.offset_bottom = 135.0
+	else:
+		_caption.offset_top = -110.0
+		_caption.offset_bottom = -50.0
 	_caption.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_caption.add_theme_font_size_override("font_size", 40)
+	_caption.add_theme_font_size_override("font_size", 26 if LaunchOptions.get_string("demo") == "heavy" else 40)
 	_caption.add_theme_color_override("font_outline_color", Color.BLACK)
 	_caption.add_theme_constant_override("outline_size", 10)
 	_caption.modulate.a = 0.0
