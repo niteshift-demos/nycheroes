@@ -71,6 +71,7 @@ var _touch_controls: TouchControls
 var _options: OptionsPanel
 var _name_prompt: NamePrompt
 var _loading: LoadingScreen
+var _trial: RooftopTrial
 
 
 func _enter_tree() -> void:
@@ -97,6 +98,10 @@ func _ready() -> void:
 	_add_options(quality)
 	_add_loading_screen()
 	_add_name_prompt()
+	_trial = RooftopTrial.new()
+	_trial.name = "RooftopTrial"
+	_trial.game = self
+	add_child(_trial)
 	if not Device.is_web() and bool(Settings.get_value("fullscreen", false)) and not LaunchOptions.has("screenshot"):
 		Device.set_fullscreen(true)
 	if Device.wants_touch_controls() and not LaunchOptions.has("demo"):
@@ -118,6 +123,8 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	if _trial and _trial.phase == RooftopTrial.Phase.COUNTDOWN:
+		return
 	if not hero.frozen or not city.has_collision_at(hero.world_position()):
 		return
 	if _arrival != Vector3.INF:

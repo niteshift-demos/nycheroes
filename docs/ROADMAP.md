@@ -2398,6 +2398,30 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+### Rooftop traversal trial — Skyline Sprint
+
+- A discoverable HUD button (J on keyboard) takes the local hero to six
+  purpose-built rooftops above Midtown. A three-second countdown starts a
+  90-second trial; mint numbered gates, floor chevrons and an on-screen
+  direction/distance marker guide the route. Passed gates turn gold.
+- Use the normal movement, jump, flight, boost and touch controls. All powers
+  count equally: gold ≤5 seconds, silver ≤12, bronze ≤25, otherwise finisher.
+  Results show time, medal, personal best and improvement/delta; the best is
+  saved locally through Settings. R / Retry resets the course and countdown;
+  Leave restores the pre-trial world position. Falling 18m below the roofs,
+  leaving the course, knockout or the time limit ends the run with retry advice.
+- Gates use swept world-space checks in sequence, so boost cannot tunnel
+  through them and a distant/above-roof shortcut cannot claim the finish.
+  The static course shares one floating parent. Co-op keeps ordinary hero
+  position/mode synchronization; the stopwatch and best belong to each player.
+  The timer uses elapsed real time, including menus or background tabs.
+- No city data, downloads, custom shaders, or tile rebuilds are needed. The
+  six simple towers are fictional training architecture, not realism assets.
+- `?trial=1` requests a start after city loading (normal name/menu gates apply).
+  `rooftop_trial_test.tscn` checks gate bounds, high-speed crossing, medal
+  boundaries, ordered completion, retry, fall failure, local best, return
+  position and a floating-origin shift with a real hero and synthetic course.
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2523,6 +2547,7 @@ deployed); in a computer's browser the co-op menu links to it.
   out onto the other track, alone on the terminal's track; it needs tiles
   with the trains surface around the 7, the 4 on Jerome Avenue and
   Woodlawn; `TRAINS_TERMINAL_ONLY=1` goes straight to Woodlawn).
+- Launch options: `?trial=1` starts the rooftop trial after loading.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,

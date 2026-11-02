@@ -22,6 +22,7 @@ const TIPS: Array[String] = [
 	"M: play with everyone online, alone, or with friends.",
 	"T steps the time of day on.",
 	"O opens the options: graphics, sound, controls.",
+	"J: race six rooftops in Skyline Sprint. All powers welcome.",
 ]
 const TOUCH_TIPS: Array[String] = [
 	"The right side of the screen looks around.",
