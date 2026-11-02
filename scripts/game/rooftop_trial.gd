@@ -273,7 +273,7 @@ func _build_course() -> void:
 		var at := Vector3(0.0, float(HEIGHTS[i]), -30.0 * i)
 		# Six slender towers give the route actual roofs, with 6m jump gaps.
 		var tower_height := START.y + float(HEIGHTS[i])
-		_box(_course, at - Vector3(0.0, tower_height * 0.5, 0.0), Vector3(22.0, tower_height, 24.0), roof)
+		_box(_course, at - Vector3(0.0, (tower_height + 1.2) * 0.5, 0.0), Vector3(22.0, tower_height - 1.2, 24.0), roof)
 		_box(_course, at - Vector3(0.0, 0.6, 0.0), Vector3(23.0, 1.2, 24.0), edge)
 		var body := StaticBody3D.new()
 		body.position = at - Vector3(0.0, tower_height * 0.5, 0.0)
