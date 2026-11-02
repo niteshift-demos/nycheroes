@@ -23,7 +23,7 @@ Windows and Mac versions are on the site's download page.
   customizable look and outfit.
 - **Rooftop trial:** click **Rooftop Trial** (or J) for Skyline Sprint: six
   numbered rooftop gates, a live timer, medals and a saved personal best.
-  All powers are welcome. R retries; Leave returns you to where you started.
+  All powers are welcome. J retries; Leave returns you to where you started.
 - **Co-op:** one big public game by default, or a private game with a code.
   Peers connect over WebRTC (relayed through TURN when they must).
 

@@ -2407,7 +2407,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Use the normal movement, jump, flight, boost and touch controls. All powers
   count equally: gold ≤5 seconds, silver ≤12, bronze ≤25, otherwise finisher.
   Results show time, medal, personal best and improvement/delta; the best is
-  saved locally through Settings. R / Retry resets the course and countdown;
+  saved locally through Settings. J / Retry resets the course and countdown;
   Leave restores the pre-trial world position. Falling 18m below the roofs,
   leaving the course, knockout or the time limit ends the run with retry advice.
 - Gates use swept world-space checks in sequence, so boost cannot tunnel

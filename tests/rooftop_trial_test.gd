@@ -27,7 +27,10 @@ func _ready() -> void:
 	_check(trial.get_child_count() == 0, "inactive trial has no meshes or collision bodies")
 	_check(not _roof_hit(trial), "inactive course does not block a physics ray")
 	var original := game.hero.world_position()
-	trial.start()
+	var retry_key := InputEventKey.new()
+	retry_key.keycode = KEY_J
+	retry_key.pressed = true
+	trial._unhandled_input(retry_key)
 	_check(trial._course.is_inside_tree() and trial._course.visible, "active course is rendered")
 	_check(trial.find_children("*", "StaticBody3D", true, false).size() == 6, "active course has six solid rooftops")
 	await get_tree().physics_frame
@@ -51,7 +54,8 @@ func _ready() -> void:
 	_check(trial.phase == RooftopTrial.Phase.FINISHED and trial.next_gate == 6, "six ordered gates finish after origin shift")
 	_check(trial._course.is_inside_tree() and trial._course.visible, "finished run retains course until Leave")
 	_check(Settings.has_value(RooftopTrial.BEST_KEY), "finish records local best")
-	trial.start()
+	trial._unhandled_input(retry_key)
+	_check(trial.phase == RooftopTrial.Phase.COUNTDOWN, "J retries a completed run")
 	_check(trial.next_gate == 0 and trial.elapsed == 0.0, "retry resets gates and timer")
 	_check(trial._course.get_instance_id() == course_id, "retry reuses participating geometry")
 	trial._physics_process(3.1)

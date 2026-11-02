@@ -112,10 +112,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not game.player_input.enabled or is_instance_valid(game._loading):
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_R and phase != Phase.READY:
-			start()
-			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_J and phase == Phase.READY:
+		if event.keycode == KEY_J:
 			start()
 			get_viewport().set_input_as_handled()
 
@@ -165,7 +162,7 @@ func _process(_delta: float) -> void:
 	_panel.offset_left = -width * 0.5
 	_panel.offset_right = width * 0.5
 	var active := phase != Phase.READY
-	_start_button.text = "RETRY  ·  R" if active else "ROOFTOP TRIAL  ·  J"
+	_start_button.text = "RETRY  ·  J" if active else "ROOFTOP TRIAL  ·  J"
 	_exit_button.visible = active
 	_title.visible = active
 	_status.visible = active
