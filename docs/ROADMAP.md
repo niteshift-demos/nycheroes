@@ -2411,7 +2411,8 @@ Timers use simulation time and pause when the hero is frozen.
 At six points, a rally restores up to 15 health and sends a non-damaging 7 m
 knockback wave through the existing co-op combat RPCs. Progress cashes out;
 there is no stacking damage multiplier or new input. The HUD shows six pips,
-a shrinking deadline, variety feedback, the reward and reset rules. On touch
+a shrinking deadline, variety feedback, the reward and reset rules. Rally feedback stays visible for three seconds
+even as the next streak builds. On touch
 it follows the health bar below the safe top inset. PlayerSync includes the
 owner's points, deadline and rally count; old 13-field snapshots remain readable.
 No positional cache, shader, city data or external asset was added.

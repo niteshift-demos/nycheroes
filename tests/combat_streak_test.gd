@@ -39,6 +39,7 @@ func _ready() -> void:
 	check(hero.rhythm == 0 and hero.rallies == 1 and hero.health == 65.0, "six points cash out once and heal 15")
 	hero.tick_rhythm(0.4)
 	hero.record_combat_hit(&"punch", 1)
+	check(hero.rhythm == 1 and hero.rhythm_notice.begins_with("RALLY"), "rally message survives the next successful hit")
 	hero.tick_rhythm(7.01)
 	check(hero.rhythm == 0 and hero.rhythm_notice.contains("7 seconds"), "inactivity resets with explanation")
 	hero.record_combat_hit(&"punch", 1)

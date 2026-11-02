@@ -46,7 +46,7 @@ const RHYTHM_WINDOW := 7.0
 var rhythm := 0
 var rhythm_time := 0.0
 var rhythm_notice := "Land hits • mix punches, rams & slams"
-var rhythm_notice_time := 0.0
+var rhythm_notice_time := 6.0
 var rallies := 0
 var _rhythm_style: StringName = &""
 var _rhythm_hit_gap := 0.0
@@ -262,8 +262,10 @@ func record_combat_hit(style: StringName, hits: int) -> void:
 	_rhythm_style = style
 	_rhythm_hit_gap = 0.3
 	rhythm_time = RHYTHM_WINDOW
-	rhythm_notice = "%s +%d%s" % [String(style).to_upper(), 2 if varied else 1, " • VARIETY" if varied else ""]
-	rhythm_notice_time = 2.0
+	# Keep the payoff readable while the player immediately starts a new streak.
+	if not (rhythm_notice.begins_with("RALLY") and rhythm_notice_time > 0.0):
+		rhythm_notice = "%s +%d%s" % [String(style).to_upper(), 2 if varied else 1, " • VARIETY" if varied else ""]
+		rhythm_notice_time = 2.0
 	if rhythm < RHYTHM_GOAL:
 		return
 	rhythm = 0
