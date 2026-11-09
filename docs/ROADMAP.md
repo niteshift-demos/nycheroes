@@ -36,6 +36,18 @@ Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
 the hero is driven by a plain input object per physics tick so a network
 peer can drive one later. Nearby tiles get collision.
 
+- **Buffered landing jumps (2026-11-09):** a jump pressed in the air up to
+  0.15 s before touching down (`OnFootMode.jump_buffer_time`) is no longer
+  lost: the hero jumps on the tick after landing, so hops chain without
+  frame-perfect timing. A buffered press already let go is a normal jump; one
+  still held carries on as a super jump's charge (its time in the air counts
+  toward the 0.18 s tap limit, which is why the buffer is shorter than that).
+  Earlier presses are dropped, as before; coyote time (0.12 s off a ledge)
+  is unchanged and wins over the buffer; landing in water clears it. It
+  works from the plain `HeroInput` each tick, so co-op needs nothing new.
+  `tests/jump_buffer_test.tscn` checks it; `tests/jump_buffer_capture.tscn`
+  records it with Movie Maker (see its header).
+
 ## 3. Street fights (done)
 
 - Pedestrians walk real sidewalk lanes (traced from street data), run from
@@ -2499,6 +2511,9 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+  `res://tests/jump_buffer_test.tscn` (a jump pressed 0.08 s before landing
+  jumps on touching down, one 0.35 s before doesn't, one held through
+  landing charges a super jump; exits non-zero on failure),
   `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and

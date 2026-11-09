@@ -26,6 +26,11 @@ extends HeroMode
 @export var air_acceleration := 18.0
 ## Grace period for jumping just after running off a ledge.
 @export var coyote_time := 0.12
+## A jump pressed this long or less before landing still counts: the hero
+## jumps (or, if jump is still held, starts charging a super jump) on touching
+## down, instead of the press being lost in the air. Kept shorter than
+## tap_time so a buffered press can't turn into a super jump by itself.
+@export var jump_buffer_time := 0.15
 
 @export_group("Super speed ram")
 ## Running faster than this bowls over any thug in the way.
@@ -48,6 +53,11 @@ var _air_time := 0.0
 var _web_cooldown := 0.0
 var _scare_cooldown := 0.0
 var _jump_handed_over := false
+## Seconds a jump pressed in the air stays buffered for the landing (0: none).
+var _jump_buffer := 0.0
+## How long that buffered press has been held so far: it counts toward
+## tap_time on landing, as if it had been pressed on the ground.
+var _buffered_hold := 0.0
 
 
 func enter(_previous: StringName) -> void:
@@ -55,6 +65,7 @@ func enter(_previous: StringName) -> void:
 	charging = _jump_handed_over
 	charge = 0.0
 	_jump_handed_over = false
+	_jump_buffer = 0.0
 
 
 func physics_update(delta: float) -> StringName:
@@ -118,6 +129,7 @@ func _run(delta: float) -> void:
 		horizontal = horizontal.move_toward(Vector3.ZERO, braking * delta)
 
 	hero.velocity = Vector3(horizontal.x, 0.0, horizontal.z)
+	_take_buffered_jump()
 	_update_jump(delta)
 	_ram(horizontal, delta)
 
@@ -145,6 +157,19 @@ func begin_jump() -> void:
 	_jump_handed_over = true
 
 
+## Landed with a jump pressed just before: start it now, as a press on the
+## ground would. Released already, _update_jump makes it a normal jump this
+## tick; still held, it goes on charging toward a super jump.
+func _take_buffered_jump() -> void:
+	if _jump_buffer <= 0.0:
+		return
+	_jump_buffer = 0.0
+	if hero.jump_pressed:
+		return  # pressed again on this very tick: _update_jump starts it afresh
+	charging = true
+	_hold_time = _buffered_hold
+
+
 func _update_jump(delta: float) -> void:
 	if hero.jump_pressed:
 		charging = true
@@ -169,8 +194,17 @@ func _fall(delta: float) -> void:
 	_air_time += delta
 	charging = false
 	charge = 0.0
-	if hero.jump_pressed and _air_time < coyote_time:
-		hero.velocity.y = jump_speed
+	if hero.jump_pressed:
+		if _air_time < coyote_time:
+			hero.velocity.y = jump_speed
+			_jump_buffer = 0.0
+		else:
+			_jump_buffer = jump_buffer_time
+			_buffered_hold = 0.0
+	elif _jump_buffer > 0.0:
+		_jump_buffer = maxf(_jump_buffer - delta, 0.0)
+		if hero.input.jump_held:
+			_buffered_hold += delta
 
 	# Steer a little, but never slow a fast jump down below its own speed.
 	var horizontal := Vector3(hero.velocity.x, 0.0, hero.velocity.z)
@@ -185,6 +219,7 @@ func _fall(delta: float) -> void:
 func _swim(delta: float) -> void:
 	charging = false
 	charge = 0.0
+	_jump_buffer = 0.0  # landing in water isn't a landing to jump off
 	var input := hero.input
 	var wish := input.move.limit_length(1.0)
 	var top_speed := swim_super_speed if input.sprint_held else swim_speed
