@@ -4,7 +4,10 @@ extends Control
 ## thug, and in co-op a marker for each other player (markers sit at the
 ## screen edge when what they point at is off screen), the game's status and
 ## short notices ("Player 2 is now the host"), plus the aerial photos' credit
-## while any are shown. An Options button in the top right corner opens the
+## while any are shown. With a waypoint set (Waypoint), a compass line at the
+## top middle: an arrow turning to point at it from where the camera faces,
+## what it marks, how far it is across the ground and how far up or down, and
+## a marker over the spot itself (at the screen's edge when off screen). An Options button in the top right corner opens the
 ## options menu with a click (touch screens have TouchControls' gear instead).
 
 ## The Options button was clicked.
@@ -20,11 +23,16 @@ const EDGE_MARGIN := 48.0
 ## On touch screens, markers keep this far from the right edge, off the buttons.
 const TOUCH_BUTTONS_WIDTH := 100.0
 const MARKER_COLOR := Color(1.0, 0.35, 0.25)
-## Co-op notices show for this long (seconds).
+## Notices show for this long (seconds of frames drawn, not the wall clock:
+## a long hitch, or Movie Maker's slower-than-real-time frames, doesn't make
+## them vanish unseen).
 const NOTICE_TIME := 6.0
 ## "Player joined" waits this long for their name (seconds).
 const NAME_WAIT := 1.0
 const NOTICE_COLOR := Color(1.0, 0.9, 0.45)
+const WAYPOINT_COLOR := Color(0.35, 0.9, 1.0)
+## The waypoint's height difference shows only past this (m).
+const WAYPOINT_HEIGHT_SHOWN := 8.0
 ## The license (CC BY 4.0) asks for this whenever the photos are shown.
 const AERIAL_CREDIT := "Aerial imagery: NYC OTI / NYS Orthoimagery Program 2024 (CC BY 4.0)"
 
@@ -42,8 +50,24 @@ var touch_controls: TouchControls:
 		if _options_button:
 			_options_button.visible = value == null
 
+## Set by Game: the player's waypoint, which the compass line points at.
+var waypoint: Waypoint:
+	set(value):
+		waypoint = value
+		if value:
+			value.mark_failed.connect(notify)
+			value.reached.connect(func(what: String) -> void: notify("Reached %s" % what))
+			value.changed.connect(func() -> void:
+				if value.is_set():
+					notify("Waypoint set: %s away" % distance_text(value.ground_distance())))
+			value.cleared.connect(func(arrived: bool) -> void:
+				if not arrived:  # (else "Reached" says it)
+					notify("Waypoint cleared"))
+
 var _font: Font
-var _notices: Array = []  # [text, msec when it goes]
+var _notices: Array = []  # [text, _clock when it goes]
+## Seconds of _process so far (see NOTICE_TIME).
+var _clock := 0.0
 var _options_button: Button
 
 
@@ -70,17 +94,17 @@ func _ready() -> void:
 
 ## Shows a line near the top of the screen for a few seconds.
 func notify(text: String) -> void:
-	_notices.append([text, Time.get_ticks_msec() + int(NOTICE_TIME * 1000.0)])
+	_notices.append([text, _clock + NOTICE_TIME])
 
 
 ## The notices showing now.
 func current_notices() -> PackedStringArray:
-	var now := Time.get_ticks_msec()
-	_notices = _notices.filter(func(notice: Array) -> bool: return notice[1] > now)
+	_notices = _notices.filter(func(notice: Array) -> bool: return notice[1] > _clock)
 	return PackedStringArray(_notices.map(func(notice: Array) -> String: return notice[0]))
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_clock += delta
 	queue_redraw()
 
 
@@ -104,6 +128,7 @@ func _draw() -> void:
 		if touch_controls:  # bottom middle, between the thumbs
 			at = Vector2((size.x - width) * 0.5, size.y - touch_controls.safe_insets.w - 8.0)
 		_text(at, AERIAL_CREDIT, 12, Color(1.0, 1.0, 1.0, 0.8))
+	_draw_waypoint()
 	var thug := encounters.nearest_thug(hero.world_position())
 	if thug:
 		_draw_marker(thug.global_position + Vector3.UP * 2.2, "THUGS", MARKER_COLOR, NEAR_ENOUGH)
@@ -186,7 +211,37 @@ func _draw_marker(target: Vector3, label: String, color: Color, near_enough: flo
 	var side := Vector2(-direction.y, direction.x)
 	var tip := point + direction * 14.0
 	draw_colored_polygon(PackedVector2Array([tip, point - direction * 6.0 + side * 10.0, point - direction * 6.0 - side * 10.0]), color)
-	_text(point + Vector2(-34.0, 30.0) - direction * 10.0, "%s %d m" % [label, distance], 15, color)
+	_text(point + Vector2(-34.0, 30.0) - direction * 10.0, "%s %s" % [label, distance_text(distance)], 15, color)
+
+
+## "850 m", or "1.4 km" past a kilometer.
+static func distance_text(meters: float) -> String:
+	return "%d m" % roundi(meters) if meters < 999.5 else "%.1f km" % (meters / 1000.0)
+
+
+## The waypoint's compass line (see the top) and its marker.
+func _draw_waypoint() -> void:
+	if waypoint == null or not waypoint.is_set():
+		return
+	var top := 34.0
+	if touch_controls:
+		top += touch_controls.safe_insets.y
+	var center := Vector2(size.x * 0.5, top + 14.0)
+	var bearing := waypoint.bearing_from_view()
+	var direction := Vector2(sin(bearing), -cos(bearing))  # (up the screen is ahead)
+	var side := Vector2(-direction.y, direction.x)
+	draw_circle(center, 17.0, Color(0.0, 0.0, 0.0, 0.5))
+	draw_arc(center, 17.0, 0.0, TAU, 32, WAYPOINT_COLOR, 2.0, true)
+	var tip := center + direction * 13.0
+	var back := center - direction * 9.0
+	draw_colored_polygon(PackedVector2Array([tip, back + side * 8.0, center - direction * 4.0, back - side * 8.0]), WAYPOINT_COLOR)
+	var line := "%s  %s" % [waypoint.label.to_upper(), distance_text(waypoint.ground_distance())]
+	var rise := waypoint.height_above_hero()
+	if absf(rise) > WAYPOINT_HEIGHT_SHOWN:
+		line += "  ·  %s %s" % [distance_text(absf(rise)), "up" if rise > 0.0 else "down"]
+	var width := _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18).x
+	_text(Vector2(center.x - width * 0.5, center.y + 40.0), line, 18, WAYPOINT_COLOR)
+	_draw_marker(WorldOrigin.to_local(waypoint.world_position) + Vector3.UP * 1.5, "WAYPOINT", WAYPOINT_COLOR, 0.0)
 
 
 ## A small button in the top right corner: "OPTIONS  O". It never takes the

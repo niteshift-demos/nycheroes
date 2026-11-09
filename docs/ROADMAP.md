@@ -2338,7 +2338,10 @@ deployed); in a computer's browser the co-op menu links to it.
   the way the tiles are built (`scripts/util/geo.gd`), closes the menu and
   holds the hero 60 m over it while the streets load, then sets it on the
   nearest sidewalk facing the address (Game.travel_to); somewhere off the
-  map keeps the menu open and says so. Then graphics quality (Auto, Low, Medium, High; a note says
+  map keeps the menu open and says so. Mark, beside Go, looks it up the
+  same way but puts the player's waypoint there instead of going (see
+  "Personal waypoint" below), and a Waypoint row says what's marked and how
+  far, with a Clear button. Then graphics quality (Auto, Low, Medium, High; a note says
   what Auto is on this device), time of day (dawn, day, dusk, night, as T
   steps through them; at once while paused), full screen (desktop, and
   browsers that can: not iPhones), "Show FPS and stats" (the debug text: on
@@ -2397,6 +2400,56 @@ deployed); in a computer's browser the co-op menu links to it.
   after a change; `?quality=low` winning for one visit; the old mute switch
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
+
+## Personal waypoint (done; added 2026-11-09)
+
+- **What:** one spot of the player's own to head for. G (a gamepad's D-pad
+  up) marks the first street, roof or wall the camera looks at within
+  1.2 km (`Waypoint.MARK_RANGE`); G again clears it. The options menu's Go
+  to box has Mark beside Go: an address, place, ZIP code or latitude and
+  longitude becomes the waypoint (at its ground or roof height if that has
+  loaded, else street level) and nobody travels; its Waypoint row shows
+  what's marked and how far, and Clear. `scripts/game/waypoint.gd` (made by
+  Game, which passes G on only while the hero is being played: no menu, no
+  free camera, not in `?demo`).
+- **HUD** (`GameHud`): a compass at the top middle, an arrow that turns to
+  point at the waypoint from where the camera faces (straight up is
+  ahead), with what it marks, the distance across the ground ("850 m",
+  "1.4 km") and, past 8 m, how far up or down it is; plus a marker over the
+  spot itself, at the screen's edge when it's off screen (like the thugs'
+  and other players' markers, which now also say km past a kilometer).
+  Notices say "Waypoint set: 210 m away", "Waypoint cleared" and "Reached
+  ...". The HUD's notices (co-op's too) now last 6 s of frames drawn rather
+  than of the wall clock, so a long hitch, or Movie Maker's slower than real
+  time frames, no longer swallows them.
+- **Getting there:** within 25 m across the ground (`ARRIVE_RADIUS`; in the
+  air above it counts) it clears itself and the HUD says "Reached". Nothing
+  closer than that can be marked.
+- **Boundaries:** G at the sky, at buildings past 1.2 km, or at anything
+  whose collision hasn't loaded yet (the city has collision only within
+  about a kilometer of the hero) marks nothing, and the HUD says why; so
+  does G at the water ("Can't mark the water") and at the street right
+  underfoot. Go to's Mark keeps the menu open for places off the map, and
+  needs the address searches online, as Go does. There's one waypoint, no
+  route along the streets: the arrow points straight at it.
+- **Kept:** in world meters (WorldOrigin), so floating origin shifts don't
+  move it, and in Settings (`waypoint`: x, y, z, label), so a reload keeps
+  it. It's personal: co-op players don't see each other's, and it isn't
+  hero state (the hero doesn't act on it), so PlayerSync doesn't carry it.
+- **Tested:** `tests/waypoint_test.tscn` (24 checks at Times Square): G at
+  the sky and at the street underfoot marks nothing and says why; G up
+  Broadway marks a spot ~80 m off; the compass bearing (ahead, then a
+  quarter turn); saved and read back; a floating origin shift; G ignored
+  with the menu open; G clears and marks again; walking up Broadway with W
+  reaches it and it clears itself; Mark on the Empire State Building's
+  latitude and longitude sets it without travelling, Mark off the map
+  doesn't, and Clear. `tests/waypoint_movie.tscn` isn't a test: it plays
+  the real game through the ordinary controls (keys and the look actions)
+  for a Movie Maker recording:
+  `xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver
+  opengl3 --resolution 1280x720 --write-movie OUT.png --fixed-fps 30
+  res://tests/waypoint_movie.tscn -- --solo=1
+  --tiles_url=https://nycheroes.party/tiles/`.
 
 ## Constraints
 
@@ -2512,7 +2565,9 @@ deployed); in a computer's browser the co-op menu links to it.
   options menu and the settings, with a settings file of its own),
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
-  sidewalk facing it; `--online` tries the real searches too) and
+  sidewalk facing it; `--online` tries the real searches too),
+  `res://tests/waypoint_test.tscn` (the personal waypoint: G, the compass,
+  Mark and Clear, arriving; see "Personal waypoint") and
   `res://tests/traffic_test.tscn` (75 s of
   midtown traffic: no red light run, no overlaps, cars stop for the hero,
   and leave with their tiles) and `res://tests/trains_test.tscn` (the 7 at

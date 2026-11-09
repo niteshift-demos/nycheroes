@@ -26,7 +26,9 @@ extends Node3D
 ## O opens the options menu (OptionsPanel; Esc too in the desktop builds), as
 ## do the HUD's Options button and the touch gear; one menu shows at a time.
 ## Its Go to box takes the hero to an address (travel_to): onto the sidewalk
-## nearest it, facing it.
+## nearest it, facing it; or, with Mark, puts the player's waypoint there.
+## G marks a waypoint where the camera looks, or clears it (Waypoint; the HUD
+## points the way to it).
 ##
 ## Phones and tablets: touch screens get on-screen controls (TouchControls;
 ## ?touch=1 or ?touch=0 forces them on or off, see Device), and a graphics
@@ -71,6 +73,7 @@ var _touch_controls: TouchControls
 var _options: OptionsPanel
 var _name_prompt: NamePrompt
 var _loading: LoadingScreen
+var _waypoint: Waypoint
 
 
 func _enter_tree() -> void:
@@ -94,6 +97,7 @@ func _ready() -> void:
 	add_child(quality)
 	quality.apply(time_of_day.sun, get_world_3d().environment, city, get_node("Crowd") as CrowdManager, encounters,
 		get_node_or_null("Traffic") as Traffic, get_node_or_null("Trains") as Trains, time_of_day)
+	_add_waypoint()
 	_add_options(quality)
 	_add_loading_screen()
 	_add_name_prompt()
@@ -199,6 +203,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("coop_menu") and not coop_panel.is_typing():
 		_options.close(false, false)
 		coop_panel.toggle()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("waypoint") and not event.is_echo() and player_input.enabled \
+			and not LaunchOptions.has("demo"):
+		_waypoint.toggle_from_view()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("time_of_day") and not coop_panel.is_typing():
 		time_of_day.step_forward()
@@ -330,6 +338,7 @@ func _add_options(quality: Quality) -> void:
 	_options.time_of_day = time_of_day
 	_options.city = city
 	_options.debug_label = hud.get_node_or_null("DebugLabel") as Control
+	_options.waypoint = _waypoint
 	hud.add_child(_options)
 	_options.toggled.connect(func(_open: bool) -> void: _update_controls())
 	_options.place_chosen.connect(travel_to)
@@ -338,6 +347,18 @@ func _add_options(quality: Quality) -> void:
 		game_hud.options_requested.connect(func() -> void:
 			coop_panel.close()
 			_options.open())
+
+
+## The player's waypoint (G, or the options menu's Mark), which the HUD shows.
+func _add_waypoint() -> void:
+	_waypoint = Waypoint.new()
+	_waypoint.name = "Waypoint"
+	_waypoint.hero = hero
+	_waypoint.camera_rig = hero_camera
+	add_child(_waypoint)
+	var game_hud := hud.get_node_or_null("GameHud") as GameHud
+	if game_hud:
+		game_hud.waypoint = _waypoint
 
 
 ## On-screen controls for touch screens. The UI is then measured in CSS

@@ -4,7 +4,8 @@ extends Control
 ## a gamepad's Start), and so do the gear button on touch screens and the
 ## HUD's Options button. Four pages:
 ##   Hero      saved costume, hair, headgear and colors with a live preview
-##   Game      going to an address, graphics quality (Auto, Low, Medium,
+##   Game      going to an address or marking it as the waypoint, the
+##             waypoint (cleared here too), graphics quality (Auto, Low, Medium,
 ##             High), time of day, full screen, FPS and stats, joining the
 ##             public game automatically
 ##   Sound     Master, Effects and Ambience volumes, and the sound switch (N)
@@ -54,6 +55,7 @@ const KEYS: Array[Array] = [
 	["O", "options (this menu)"],
 	["N", "sound off and on"],
 	["T", "time of day"],
+	["G", "waypoint where you look; again, clear it"],
 	["F1", "free camera (wheel: its speed)"],
 ]
 const DESKTOP_KEYS: Array[Array] = [
@@ -77,6 +79,8 @@ var quality: Quality
 var time_of_day: TimeOfDay
 ## For the Go to box: whether a place found is on the map.
 var city: CityStreamer
+## The player's waypoint: the Go to box's Mark sets it, Clear clears it.
+var waypoint: Waypoint
 ## The ?stats text (DebugHud): "Show FPS and stats" shows and hides it.
 var debug_label: Control
 
@@ -99,6 +103,11 @@ var _invert: Button
 var _address: LineEdit
 var _address_go: Button
 var _address_note: Label
+var _address_mark: Button
+## The Go to box's lookup is for Mark, not Go.
+var _marking := false
+var _waypoint_note: Label
+var _waypoint_clear: Button
 var _search: AddressSearch
 var _sliders := {}  # setting key -> HSlider
 var _resume: Button
@@ -285,6 +294,7 @@ func _refresh() -> void:
 			LEVEL_NAMES[Quality.level()], Quality.level_name(), device]
 	else:
 		_quality_note.text = "Auto is %s. Changes apply at once; trees' shadows and far woods catch up as new streets load." % device
+	_refresh_waypoint()
 	if time_of_day:
 		var phase := ["dawn", "day", "dusk", "night"].find(time_of_day.phase_name())
 		for i in _time_buttons.size():
@@ -448,18 +458,42 @@ func _game_page() -> VBoxContainer:
 	_address_go.custom_minimum_size.x = 64.0
 	_address_go.pressed.connect(_go_to_address)
 	go_to.add_child(_address_go)
+	_address_mark = Button.new()
+	_address_mark.text = "Mark"
+	_address_mark.tooltip_text = "Put your waypoint there instead of going"
+	_address_mark.custom_minimum_size.x = 64.0
+	_address_mark.pressed.connect(_go_to_address.bind(true))
+	go_to.add_child(_address_mark)
 	if _touch:
 		_address.custom_minimum_size.y = 44.0
 		_address_go.custom_minimum_size.y = 44.0
+		_address_mark.custom_minimum_size.y = 44.0
 		if Device.is_web():
 			var field := WebTextField.new()
 			field.line_edit = _address
 			field.capitals = false
 			go_to.add_child(field)
 	_row(page, "Go to", go_to)
-	_address_note = _note("A street address in the five boroughs, like 350 5th Ave, Manhattan.")
+	_address_note = _note("A street address in the five boroughs, like 350 5th Ave, Manhattan. Mark puts your waypoint there.")
 	_address_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	page.add_child(_address_note)
+	var marked := HBoxContainer.new()
+	marked.add_theme_constant_override("separation", 8)
+	_waypoint_note = _note("")
+	_waypoint_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_waypoint_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	marked.add_child(_waypoint_note)
+	_waypoint_clear = Button.new()
+	_waypoint_clear.text = "Clear"
+	_waypoint_clear.custom_minimum_size.x = 64.0
+	if _touch:
+		_waypoint_clear.custom_minimum_size.y = 44.0
+	_waypoint_clear.pressed.connect(func() -> void:
+		if waypoint:
+			waypoint.clear()
+		_refresh_waypoint())
+	marked.add_child(_waypoint_clear)
+	_row(page, "Waypoint", marked)
 	var levels := HBoxContainer.new()
 	levels.add_theme_constant_override("separation", 6)
 	var group := ButtonGroup.new()
@@ -501,16 +535,29 @@ func _game_page() -> VBoxContainer:
 	return page
 
 
-func _go_to_address() -> void:
+## Looks up the Go to box's text, then goes there, or with `mark` puts the
+## waypoint there.
+func _go_to_address(mark := false) -> void:
+	_marking = mark and waypoint != null
 	_show_address_note("Looking it up...")
 	_address_go.disabled = true
+	_address_mark.disabled = true
 	_search.search(_address.text)
 
 
 func _on_place_found(world_position: Vector3, label: String) -> void:
 	_address_go.disabled = false
+	_address_mark.disabled = false
 	if city and not city.covers(world_position):
 		_show_address_note("%s isn't on the city's map." % label)
+		return
+	if _marking:
+		# On the ground (or the roof) there if it has loaded; else street level.
+		var ground := city.ground_height_at(world_position) if city else NAN
+		waypoint.set_at(Vector3(world_position.x, 0.0 if is_nan(ground) else ground, world_position.z), label)
+		_show_address_note("Marked %s as your waypoint." % label)
+		_refresh_waypoint()
+		close()
 		return
 	_show_address_note("Went to %s." % label)
 	close()
@@ -519,7 +566,22 @@ func _on_place_found(world_position: Vector3, label: String) -> void:
 
 func _show_address_note(text: String) -> void:
 	_address_go.disabled = false
+	_address_mark.disabled = false
 	_address_note.text = text
+
+
+## The Waypoint row: what's marked and how far, or how to mark one.
+func _refresh_waypoint() -> void:
+	if _waypoint_note == null:
+		return
+	var marked := waypoint != null and waypoint.is_set()
+	_waypoint_clear.disabled = not marked
+	if marked:
+		_waypoint_note.text = "%s, %s away." % [waypoint.label, GameHud.distance_text(waypoint.ground_distance())]
+	elif _touch:
+		_waypoint_note.text = "None. Mark an address above to set one."
+	else:
+		_waypoint_note.text = "None. G marks where you look (G again clears it), or Mark an address above."
 
 
 func _sound_page() -> VBoxContainer:
