@@ -2428,7 +2428,8 @@ GameHud.
   rooftops); off screen, at the edge where it lies (the bottom edge when
   behind the camera) as an arrow with a diamond and "WAYPOINT 850 m". Unlike
   the other markers it shows however near it is, until it's reached. A
-  compass line at the top middle names it, gives the distance (m, then km)
+  compass line at the bottom middle (top middle on touch screens, clear of
+  the thumbs) names it, gives the distance (m, then km)
   and the compass point it lies in (N, NE, ...; from the hero, north is -Z),
   beside an arrow that turns with the camera (up: straight ahead). Set,
   cleared and reached show as notices.

@@ -9,8 +9,8 @@ extends Control
 ## The player's waypoint (Waypoint) gets a marker of its own, unlike the
 ## others: a cyan diamond on a beam standing up from the spot (at the screen's
 ## edge when off screen, always shown until it's reached), and a compass line
-## at the top middle: an arrow turning with the camera, the distance and the
-## compass point it lies in.
+## at the bottom middle (top middle on touch screens): an arrow turning with
+## the camera, the distance and the compass point it lies in.
 
 ## The Options button was clicked.
 signal options_requested
@@ -257,7 +257,11 @@ func _draw_waypoint() -> void:
 		name = name.left(32) + "..."
 	var line := "%s  ·  %s  ·  %s" % [name, distance_text, Waypoint.compass_point(waypoint.bearing())]
 	var width := _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 17).x
-	var y := 34.0 + (touch_controls.safe_insets.y if touch_controls else 0.0)
+	# Bottom middle, clear of the stats text and the co-op line at the top
+	# (touch screens: top middle, clear of the thumbs).
+	var y := size.y - 70.0  # (above the health bar and "Thugs down")
+	if touch_controls:
+		y = touch_controls.safe_insets.y + 34.0
 	var arrow_at := Vector2(size.x * 0.5 - width * 0.5 - 4.0, y - 6.0)
 	var up := Vector2.UP.rotated(-turn)
 	var across := Vector2(-up.y, up.x)
