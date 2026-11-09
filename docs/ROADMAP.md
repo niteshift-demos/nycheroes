@@ -2398,6 +2398,35 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+## Neighborhood patrol goals
+
+The bottom-center HUD offers **Start patrol** (keyboard **P**, or click/tap).
+Clear two **full** gangs spawned by your local encounter director within a
+300 m horizontal circle centered on your start. The HUD shows distance from
+that fixed world position and asks you to return when outside; clears made
+outside are discarded. Follow the existing THUGS markers. Gangs with a
+member defeated before you started,
+individual thugs, distance despawns and remote-owned gangs do not count.
+Progress has no timer and is personal/session-only, including in co-op;
+there is no reward or saved leaderboard. After completion, **Replay patrol**
+(or P) resets progress and starts a fresh circle at your current position.
+Normal gang spawning is unchanged: without nearby streets or with `gangs=0`,
+there may be nothing eligible to fight. Leaving and returning preserves
+progress, but does not turn partially cleared or removed encounters into
+fresh ones. Existing gangs with every member still standing are eligible.
+
+`res://tests/patrol_test.tscn` checks eligibility, exact horizontal radius,
+despawn rejection, duplicate rejection, completion and replay. Run it headless
+alongside `combat_test.tscn` for changes to the encounter lifecycle.
+`res://tests/patrol_playthrough.tscn` is a real-game QA input driver, not a
+pass/fail test: it uses ordinary movement, attacks and flight, then requests
+replay after a completed goal. It does not place enemies, teleport the hero,
+or change health, physics or game time. Run with `-- --solo=1 --quality=low
+--name=Patrol --peds=0 --traffic=0 --spawn=420,22,-220,331`; native Movie Maker
+uses `--write-movie /absolute/path/patrol.avi --fixed-fps 30 --resolution
+1280x720`. Capture logs disclose actual clears; randomized city encounters
+and obstacles can prevent the driver from completing within 35 seconds.
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;

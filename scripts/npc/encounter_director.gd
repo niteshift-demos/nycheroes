@@ -27,6 +27,16 @@ extends Node3D
 ## newcomer given a departed player's number doesn't use theirs again) and
 ## above every number it has seen.
 
+## Personal patrol goals observe only complete encounters run by this peer.
+signal encounter_started(id: int, world_center: Vector3)
+signal encounter_cleared(id: int)
+signal encounter_removed(id: int)
+
+## Living members are tracked independently of body cleanup: freeing a corpse
+## must never hide a survivor or turn a despawn into a completed encounter.
+var _encounter_living: Dictionary[int, Array] = {}
+var _encounter_initial: Dictionary[int, Dictionary] = {}
+
 const THUG_SCENE := preload("res://scenes/npc/thug.tscn")
 const UPDATE_INTERVAL := 0.5
 const MAX_SPAWN_ALTITUDE := 150.0
@@ -156,6 +166,9 @@ func spawn_gang(world_center: Vector3, count: int, direction: Vector3, target: H
 		thug.setup(target if target else hero, _gang_count, TAU * k / count + randf() * 0.5)
 		gang.append(thug)
 	_gangs.append(gang)
+	_encounter_living[_gang_count] = gang.duplicate()
+	_encounter_initial[_gang_count] = {"center": world_center, "count": count}
+	encounter_started.emit(_gang_count, world_center)
 	_gang_count += 1
 	return gang
 
@@ -167,13 +180,17 @@ func _clear_far_gangs() -> void:
 	for target in Combat.heroes:
 		centers.append(target.world_position())
 	for gang: Array in _gangs.duplicate():
-		var members: Array = gang.filter(func(thug: Thug) -> bool: return is_instance_valid(thug))
+		var members: Array = gang.filter(func(thug: Variant) -> bool: return is_instance_valid(thug))
 		var far: bool = members.all(func(thug: Thug) -> bool:
 			var at := WorldOrigin.to_world(thug.global_position)
 			return centers.all(func(center: Vector3) -> bool: return at.distance_to(center) > despawn_distance))
 		if members.is_empty() or far:
 			for thug: Thug in members:
 				thug.queue_free()
+			if not members.is_empty():
+				_encounter_living.erase((members[0] as Thug).gang)
+				_encounter_initial.erase((members[0] as Thug).gang)
+				encounter_removed.emit((members[0] as Thug).gang)
 			_gangs.erase(gang)
 
 
@@ -500,8 +517,27 @@ func _hand_over(thugs: Array) -> void:
 func _on_thug_defeated(thug: Thug) -> void:
 	if thug.puppet:
 		return  # the game running it clears bodies away
+	if _encounter_living.has(thug.gang):
+		var living: Array = _encounter_living[thug.gang]
+		living.erase(thug)
+		if living.is_empty():
+			_encounter_living.erase(thug.gang)
+			_encounter_initial.erase(thug.gang)
+			encounter_cleared.emit(thug.gang)
 	_bodies.append(thug)
 	while _bodies.size() > max_bodies:
 		var oldest: Thug = _bodies.pop_front()
 		if is_instance_valid(oldest):
 			oldest.queue_free()
+
+
+## A patrol may include existing encounters only when no member was defeated
+## before it began. Adopted remote encounters have no birth record here.
+func patrol_candidates() -> Dictionary[int, Vector3]:
+	var result: Dictionary[int, Vector3] = {}
+	for id: int in _encounter_initial:
+		var initial: Dictionary = _encounter_initial[id]
+		var living: Array = _encounter_living.get(id, [])
+		if living.size() == int(initial.count) and living.all(func(t: Thug) -> bool: return is_instance_valid(t) and not t.is_down()):
+			result[id] = initial.center
+	return result

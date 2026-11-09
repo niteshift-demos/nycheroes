@@ -42,6 +42,8 @@ var touch_controls: TouchControls:
 		if _options_button:
 			_options_button.visible = value == null
 
+var patrol_hud: PatrolHud
+
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
@@ -66,6 +68,11 @@ func _ready() -> void:
 		if Net.is_online() and not Net.is_public:
 			notify("You're the host now" if id == Net.local_id() else "%s is now the host" % Net.player_name(id)))
 	_add_options_button()
+	patrol_hud = PatrolHud.new()
+	patrol_hud.hero = hero
+	patrol_hud.encounters = encounters
+	patrol_hud.notice.connect(notify)
+	add_child(patrol_hud)
 
 
 ## Shows a line near the top of the screen for a few seconds.
