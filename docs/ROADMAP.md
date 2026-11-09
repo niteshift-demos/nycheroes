@@ -2505,7 +2505,12 @@ deployed); in a computer's browser the co-op menu links to it.
     http://localhost:8060/` (headless Chrome with a fresh profile: the time
     to "ready", and the compile time per shader and per program; `--cam=`
     and `--time=` pick the view, `--peds=` and `--gangs=` bring in
-    pedestrians and thugs, which it leaves out by default). Keep Times
+    pedestrians and thugs, which it leaves out by default; `--settle=S`
+    keeps counting S seconds after ready, for shaders first drawn later,
+    e.g. `"http://localhost:8060/?demo=tells" --cam=none --settle=180` for
+    the thugs' wind-up tell at its first punch; `--swiftshader` uses
+    Chrome's software WebGL on machines without a GPU, whose times don't
+    compare with the targets here). Keep Times
     Square around 20 s to ready on the dev machine, building.gdshader's
     color variant under about 10 s and every other shader under about 2 s.
 - Public site: `tools/deploy_cloudflare.ps1 [-Build]` publishes the web

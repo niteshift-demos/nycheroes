@@ -10,7 +10,14 @@
 // Needs Node 22+ and Chrome; serve the build first (tools/build_web.ps1 -Serve).
 // Usage: node shader_compile_check.mjs [url] [--cam=x,y,z,yaw,pitch] [--time=HH:MM]
 //            [--peds=0] [--gangs=0] [--port=9350] [--chrome=path] [--timeout=300]
+//            [--settle=3] [--swiftshader]
 //   e.g. node tools/shader_compile_check.mjs http://localhost:8060/
+// --settle: seconds to keep counting after ready (shaders first drawn later,
+// like a thug's wind-up tell at its first punch: try
+// "http://localhost:8060/?demo=tells" --cam=none --settle=40). --cam=none
+// leaves the page's own camera. --swiftshader: Chrome's software WebGL, for
+// machines without a GPU (Linux sandboxes); its times aren't comparable with
+// the targets below, which are for the dev machine's GPU.
 // The default view is Times Square at street level (tools/reference/views.json),
 // with no pedestrians, thugs or traffic (--peds=45 --gangs=2 brings in
 // npc.gdshader, the pedestrians' and thugs' clothes).
@@ -32,6 +39,8 @@ const peds = option('peds', '0');
 const gangs = option('gangs', '0');
 const port = Number(option('port', '9350'));
 const timeoutMs = Number(option('timeout', '300')) * 1000;
+const settleMs = Number(option('settle', '3')) * 1000;
+const swiftshader = args.includes('--swiftshader');
 const chrome = option('chrome', process.platform === 'win32'
   ? 'C:/Program Files/Google/Chrome/Application/chrome.exe' : 'google-chrome');
 
@@ -113,7 +122,10 @@ const hook = `(() => {
 
 const profile = mkdtempSync(join(tmpdir(), 'shader-compile-'));
 const browser = spawn(chrome, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
-  '--window-size=1600,900', '--ignore-gpu-blocklist', '--no-first-run', '--no-default-browser-check', 'about:blank'],
+  '--window-size=1600,900', '--ignore-gpu-blocklist', '--no-first-run', '--no-default-browser-check',
+  ...(swiftshader ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : []),
+  ...(process.getuid?.() === 0 ? ['--no-sandbox'] : []),  // Chrome won't run as root (sandboxes) without it
+  'about:blank'],
 { stdio: 'ignore' });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
@@ -139,7 +151,7 @@ try {
   await send('Runtime.enable');
   await send('Page.enable');
   await send('Page.addScriptToEvaluateOnNewDocument', { source: hook });
-  const query = `cam=${cam}&peds=${peds}&gangs=${gangs}&traffic=0${time ? `&time=${time}` : ''}`;
+  const query = `${cam === 'none' ? '' : `cam=${cam}&`}peds=${peds}&gangs=${gangs}&traffic=0${time ? `&time=${time}` : ''}`;
   const started = Date.now();
   await send('Page.navigate', { url: `${url}${url.includes('?') ? '&' : '?'}${query}` });
   let ready = null;
@@ -148,7 +160,7 @@ try {
     if (line) ready = Date.now() - started;
     else await sleep(250);
   }
-  await sleep(3000);  // the first frames after ready can still compile
+  await sleep(settleMs);  // the first frames after ready can still compile
   const result = await send('Runtime.evaluate', { expression: 'JSON.stringify(window.__shaderCompile.summary())', returnByValue: true });
   const programs = JSON.parse(result.result.result.value ?? '[]')
     .map((p) => ({ ...p, shader: nameOf(p.source), variant: variantOf(p.source) }));
