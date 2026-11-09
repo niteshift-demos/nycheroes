@@ -10,13 +10,15 @@ extends Node
 ## Avenue in Midtown (found by tools/capture/alley_scan.tscn), next to the
 ## front of the southern building. The shot: a kick off that front, mashing
 ## jump at the same wall (no climbing it), then kicking back and forth up the
-## gap until the third kick, after which jump does nothing and the hero drops.
+## gap until the third kick, after which jump does nothing and the hero drops;
+## then once more, as touching down gave the kicks back.
 ##
 ## Record (native Godot Movie Maker, 30 fps, see docs/ROADMAP.md):
 ##   xvfb-run -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 \
 ##     --resolution 1280x720 --fixed-fps 30 --write-movie /tmp/wallkick/frame.png \
 ##     res://tools/capture/wall_kick_capture.tscn -- \
-##     --spawn=422.6,19.2,-264.4,61 --solo=1 --gangs=0 --tiles_url=https://nycheroes.party/tiles/
+##     --spawn=422.6,19.2,-264.4,61 --name=Kicker --solo=1 --gangs=0 --time=12:30 \
+##     --tiles_url=https://nycheroes.party/tiles/
 ## It prints "[capture] start frame N" once the city has loaded and the hero
 ## has stood still for a moment, and quits after "[capture] end frame N".
 
@@ -41,6 +43,9 @@ var _gap_entry := Vector3.ZERO
 
 
 func _ready() -> void:
+	# The options menu's "Show FPS and stats" off (it's on by default on
+	# desktop), as a player recording a clip would have it.
+	Settings.set_value("show_stats", false)
 	_world = load("res://scenes/world.tscn").instantiate()
 	add_child(_world)
 	_world.get_node("PlayerInput").process_mode = Node.PROCESS_MODE_DISABLED
@@ -59,7 +64,7 @@ func _process(delta: float) -> void:
 
 func _run() -> void:
 	var front_yaw := _yaw_of(-CROSS)
-	_yaw_target = front_yaw + 0.95
+	_yaw_target = front_yaw + 1.35  # nearly side-on to the building's front
 	_camera.yaw = _yaw_target
 	_camera.pitch = _pitch_target
 	while _hero.frozen or _city.pending_count() > 0:
@@ -89,14 +94,35 @@ func _run() -> void:
 
 	# 3. Over to the gap, camera looking into it and up.
 	print("[capture] to the gap")
-	_yaw_target = front_yaw + 0.3
-	_pitch_target = 0.2
+	_yaw_target = front_yaw + 0.1
+	_pitch_target = 0.3
 	await _walk_to(_gap_entry + CROSS * 6.0, 1.0)
 	await _walk_to(_gap_entry, 0.6)
 	await _idle(0.8)
 
 	# 4. Kick back and forth up the gap, until the kicks run out.
 	print("[capture] up the gap")
+	await _gap_chain()
+	await _hold_until_landed({})
+	await _idle(1.0)
+
+	# 5. Touching down gave the kicks back: again, from the same spot.
+	print("[capture] up the gap again")
+	await _walk_to(_gap_entry, 0.6)
+	await _idle(0.8)
+	await _gap_chain()
+	await _hold_until_landed({})
+	await _idle(2.0)
+	print("[capture] end frame %d" % Engine.get_frames_drawn())
+	get_tree().quit()
+
+
+## Jumps beside the southern wall and kicks back and forth across the gap,
+## pressing jump as each wall comes within reach, then keeps mashing jump
+## once the kicks have run out.
+func _gap_chain() -> void:
+	var at := _hero.world_position() - GAP
+	print("[capture] start of the chain at %.1f across, %.1f along the gap" % [at.dot(AVENUE), at.dot(CROSS)])
 	await _tick({jump = true})
 	await _tick({jump = true})
 	await _tick({})
@@ -108,8 +134,12 @@ func _run() -> void:
 	for n in 600:
 		since_press += get_physics_process_delta_time()
 		if _hero.is_on_floor() and n > 20:
+			print("[capture] landed")
 			break
 		var wall := _on_foot.find_wall()
+		if OS.has_environment("CAPTURE_DEBUG") and n % 3 == 0:
+			var p := _hero.world_position() - GAP
+			print("[debug] n %d across %.2f along %.2f up %.2f v %s wall %s floor %s" % [n, p.dot(AVENUE), p.dot(CROSS), p.y, _hero.velocity.snapped(Vector3.ONE * 0.1), wall.snapped(Vector3.ONE * 0.01), _hero.is_on_floor()])
 		# Press as a wall comes within reach: the one beside the hero first,
 		# then the one ahead each time across the gap.
 		var press := since_press > 0.32 and wall != Vector3.ZERO and (presses == 0 or wall.dot(toward) < -0.5)
@@ -120,8 +150,9 @@ func _run() -> void:
 			if after_last > 1.5:
 				break
 		var heading := toward
-		if press and presses > 0 and after_last < 0.0:
-			heading = -toward  # kick off the wall ahead, back across the gap
+		if press and after_last < 0.0:
+			# Kick off the wall within reach, back across the gap.
+			heading = AVENUE if wall.dot(AVENUE) > 0.0 else -AVENUE
 		if not press:
 			await _tick({move = toward})
 			continue
@@ -136,10 +167,6 @@ func _run() -> void:
 			toward = heading
 		elif after_last < 0.0:
 			after_last = 0.0
-	await _hold_until_landed({})
-	await _idle(2.0)
-	print("[capture] end frame %d" % Engine.get_frames_drawn())
-	get_tree().quit()
 
 
 func _yaw_of(direction: Vector3) -> float:
@@ -204,7 +231,7 @@ func _walk_to(world_point: Vector3, speed: float) -> void:
 	for n in 900:
 		var offset := world_point - _hero.world_position()
 		offset.y = 0.0
-		if offset.length() < 0.25:
+		if offset.length() < 0.1:
 			break
 		await _tick({move = offset.normalized(), speed = minf(speed, offset.length() * 0.8 + 0.15)})
 	for n in 30:
