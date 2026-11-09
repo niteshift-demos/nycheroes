@@ -1,7 +1,8 @@
 class_name DemoDirector
 extends Node
 ## Plays a scripted tour for recording videos: ?demo shows off the hero's
-## powers, ?demo=fight a street fight, ?demo=city flies the free camera over
+## powers, ?demo=fight a street fight, ?demo=tells thugs' wind-up tells (standing
+## in them, stepping out in time, and too late), ?demo=city flies the free camera over
 ## the city, ?demo=new over what's new lately. Drives the hero's input and the camera and captions each part.
 ## Prints "[demo] start" and "[demo] finished" so a recorder can follow, and
 ## "[demo] pause" / "[demo] resume" around waits for the city to load (a
@@ -16,6 +17,10 @@ const SETTLE_TIME := 1.0
 ## City tour: after a jump, the camera holds still this long once every tile
 ## has loaded, before the shot rolls.
 const LOADED_SETTLE := 0.6
+## Tells tour: seconds from a tell showing up to the hero stepping away from
+## it, in time (a quick human reaction) and too late.
+const QUICK_REACTION := 0.25
+const LATE_REACTION := 0.42
 
 @export var game: Game
 @export var hero: Hero
@@ -102,6 +107,16 @@ func _ready() -> void:
 			_shot("", 3.0, Callable(), _aftermath_camera),
 			_shot("", 0.5),
 		]
+	elif LaunchOptions.get_string("demo") == "tells":
+		_yaw = _avenue_yaw
+		camera.yaw = _yaw
+		_shots = [
+			_shot("Street thugs", 2.5, Callable(), _tells_camera, _spawn_gang_ahead.bind(9.0, 3)),
+			_shot("Each punch winds up over where it will land", 6.0, _approach_input, _tells_camera),
+			_shot("Step out of it in time, and it misses", 8.0, _dodge_input.bind(QUICK_REACTION), _tells_camera),
+			_shot("A moment too late, and it lands", 6.0, _dodge_input.bind(LATE_REACTION), _tells_camera),
+			_shot("", 0.5),
+		]
 	else:
 		_shots = [
 			_shot("Manhattan at 1:1 scale", 3.5, Callable(), _intro_camera),
@@ -124,7 +139,7 @@ func _physics_process(delta: float) -> void:
 			return
 		_settle -= delta
 		if _settle <= 0.0:
-			print("[demo] start")
+			print("[demo] start (frame %d)" % Engine.get_frames_drawn())
 			_begin(0)
 		return
 	if _index >= _shots.size():
@@ -142,7 +157,7 @@ func _physics_process(delta: float) -> void:
 	if _time >= shot.seconds:
 		_begin(_index + 1)
 		if _index >= _shots.size():
-			print("[demo] finished")
+			print("[demo] finished (frame %d)" % Engine.get_frames_drawn())
 
 
 func _process(delta: float) -> void:
@@ -277,6 +292,54 @@ func _ram_camera(_t: float) -> void:
 func _aftermath_camera(t: float) -> void:
 	_yaw = _avenue_yaw + 2.6 * smoothstep(0.0, 3.0, t)
 	_pitch = -0.35
+
+
+# --- Tells tour ---
+
+func _tells_camera(t: float) -> void:
+	_yaw = _avenue_yaw + 0.5 * sin(t * 0.35)
+	_pitch = -0.6
+
+
+## Between punches, walk up to the nearest thug (they hold back just out of
+## reach otherwise); stand still while one winds up.
+func _approach_input(input: HeroInput, _t: float) -> void:
+	if _winding_up().is_empty():
+		var nearest := _nearest_standing_thug()
+		if nearest:
+			var to_thug := nearest.global_position - hero.global_position
+			to_thug.y = 0.0
+			if to_thug.length() > 1.6:
+				input.move = to_thug.normalized() * 0.3
+				input.stick = Vector2(0.0, -0.3)
+
+
+## Steps away from every thug whose tell has been up `reaction` seconds, as a
+## player reacting to it would; otherwise walks up to them.
+func _dodge_input(input: HeroInput, t: float, reaction: float) -> void:
+	var away := Vector3.ZERO
+	for thug in _winding_up():
+		if Thug.PUNCH_HIT_TIME - thug.windup_left() >= reaction:
+			var from := hero.global_position - thug.global_position
+			away += Vector3(from.x, 0.0, from.z).normalized()
+	if away.length_squared() > 0.01:
+		input.move = away.normalized()
+		input.stick = Vector2(0.0, -1.0)
+	elif _winding_up().is_empty():
+		_approach_input(input, t)
+
+
+func _winding_up() -> Array[Thug]:
+	return Combat.thugs.filter(func(thug: Thug) -> bool: return thug.windup_left() > 0.0)
+
+
+func _nearest_standing_thug() -> Thug:
+	var best: Thug = null
+	for thug in Combat.thugs:
+		if not thug.is_down() and (best == null or thug.global_position.distance_to(hero.global_position)
+				< best.global_position.distance_to(hero.global_position)):
+			best = thug
+	return best
 
 
 # --- Powers tour ---

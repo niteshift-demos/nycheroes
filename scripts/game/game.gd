@@ -234,7 +234,15 @@ func _plays_public() -> bool:
 
 func _start_demo() -> void:
 	player_input.process_mode = Node.PROCESS_MODE_DISABLED
-	hud.visible = false
+	# The tells tour keeps the game's HUD (not the stats or co-op panel): its
+	# health bar shows which punches landed.
+	var tells := LaunchOptions.get_string("demo") == "tells"
+	hud.visible = tells
+	for panel: String in ["DebugLabel", "CoopPanel"]:
+		var node := hud.get_node_or_null(panel) as CanvasItem
+		if node and tells:
+			node.visible = false
+			node.process_mode = Node.PROCESS_MODE_DISABLED
 	var director := DemoDirector.new()
 	director.game = self
 	director.hero = hero

@@ -5,7 +5,8 @@ extends Node
 ## through the webrtc-native extension). Run it once: it starts the server, hosts
 ## a game, starts a second copy of the game that joins, and checks that each
 ## sees the other's hero in the right place, that the host's thugs show up for
-## the joined player and hurt them, and that the joined player's punches take
+## the joined player and hurt them (their punches' wind-up tells showing on
+## the joined player's copies too), and that the joined player's punches take
 ## the host's thugs down. Then the joined player goes across the city: its own
 ## game puts gangs down there, and the host's runs none and loads no streets
 ## there; the host comes over, sees the joined player's gang (run by that
@@ -42,6 +43,8 @@ var _client_log := ""
 var _client_report: Array = []
 var _gang: Array[Thug] = []
 var _position_checked := false
+## (joined) A copy of a thug was seen winding up a punch with its tell showing.
+var _saw_copy_tell := false
 var _far_since := -1.0  # (host) when the other hero was last seen arriving far off
 
 
@@ -139,8 +142,8 @@ func _client_steps() -> Array[Dictionary]:
 			func() -> bool: return _time > 1.0),
 		_step("the host's thugs show up", 20.0, Callable(), func() -> bool:
 			return _standing_thugs().size() >= 3),
-		_step("the host's thugs hurt our hero", 20.0, Callable(), func() -> bool:
-			return _hero.health < Hero.MAX_HEALTH),
+		_step("the host's thugs hurt our hero, tells showing", 20.0, Callable(), func() -> bool:
+			return _hero.health < Hero.MAX_HEALTH and _saw_copy_tell),
 		_step("our punches take them down", 45.0, Callable(), func() -> bool:
 			return _standing_thugs().is_empty() and Combat.defeated_count >= 3),
 		_step("travel across the city", 30.0, func() -> void:
@@ -168,6 +171,11 @@ func _physics_process(delta: float) -> void:
 		_begin(0)
 	var step := _steps[_index]
 	_time += delta
+	if not _saw_copy_tell:
+		_saw_copy_tell = Combat.thugs.any(func(thug: Thug) -> bool:
+			return thug.puppet and thug.windup_left() > 0.0 \
+					and thug.find_children("*", "AttackTell", false, false).any(func(tell: Node) -> bool:
+						return (tell as AttackTell).visible))
 	if step.name in ["our punches take them down", "go up to it; our punches (applied by their game) take it down"]:
 		_punch_nearest_thug()
 	var done: bool = step.until.call() if step.until.is_valid() else _time >= step.seconds

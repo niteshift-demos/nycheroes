@@ -2,7 +2,9 @@ class_name Thug
 extends CharacterBody3D
 ## A street thug. Hangs around with its gang until a hero comes near, then
 ## surrounds that hero and attacks (only a couple at a time; see Combat).
-## Goes down as a ragdoll and leaves a pool of blood.
+## Goes down as a ragdoll and leaves a pool of blood. Each punch winds up
+## for PUNCH_HIT_TIME with a tell on the ground (AttackTell) over where it will
+## land, so a hero can get out of the way.
 ##
 ## In co-op each thug runs in one game: the game of the player who put its
 ## gang down (see EncounterDirector). In the other players' games it's a copy
@@ -26,6 +28,15 @@ const WAIT_RADIUS := 6.0
 const PUNCH_DAMAGE := 6.0
 ## Seconds from the start of a punch to when it lands; it can be dodged until then.
 const PUNCH_HIT_TIME := 0.45
+## A punch lands on a hero (its position) within this far of the thug when it
+## lands (a little past ATTACK_RANGE, which the thug swings from)...
+const PUNCH_REACH := ATTACK_RANGE + 0.4
+## ...and in front of it: the cosine of the angle off its facing (60 degrees).
+## AttackTell draws this wedge.
+const PUNCH_CONE := 0.5
+## Punch_Jab and Punch_Cross in ANIMATIONS: a copy sees a punch start when one
+## of them restarts.
+const PUNCH_ANIMATIONS: Array[int] = [3, 4]
 const RECOVER_TIME := 0.4
 const STAGGER_TIME := 0.5
 const BLOOD_POOL_DELAY := 1.2
@@ -73,6 +84,10 @@ var _snapshots: SnapshotBuffer
 var _shown_restarts := -1
 var _local_animation_until := 0
 var _detail_check := randf() * 0.5
+## The wind-up tell, made at the first punch.
+var _tell: AttackTell
+## Copies only: seconds until a punch they saw start lands (0: not punching).
+var _copy_windup := 0.0
 
 @onready var _model: Node3D = $Model
 
@@ -179,6 +194,8 @@ func take_hit(damage: float, push: Vector3, launch: bool) -> void:
 		GameAudio.play(&"thug_hurt", body_center())
 	if puppet:
 		_local_animation_until = Time.get_ticks_msec() + int(STAGGER_TIME * 1000.0)
+		_copy_windup = 0.0  # the game running it cuts the punch short too
+		_update_tell()
 		return
 	state = State.STAGGER
 	_timer = STAGGER_TIME
@@ -194,6 +211,9 @@ func go_down(launch: Vector3, counts := true) -> void:
 	velocity = Vector3.ZERO
 	_release_attack_slot()
 	_player.pause()
+	_copy_windup = 0.0
+	if _tell:
+		_tell.hide_now()
 	_ragdoll = Ragdoll.start(_skeleton, launch)
 	if counts:
 		Combat.on_thug_down(self, launch)
@@ -225,8 +245,10 @@ func _physics_process(delta: float) -> void:
 		return
 	if puppet:
 		_follow_updates(delta)
+		_update_tell()
 		return
 	if frozen:
+		_update_tell()
 		return
 	_timer -= delta
 	_cooldown -= delta
@@ -288,6 +310,7 @@ func _physics_process(delta: float) -> void:
 	LedgeClimb.climb(self, intended, delta)
 	if state == State.IDLE or state == State.CHASE:
 		_animate_movement(horizontal.length())
+	_update_tell()
 	_model.rotation.y = lerp_angle(_model.rotation.y, _facing, 1.0 - exp(-10.0 * delta))
 
 
@@ -319,7 +342,7 @@ func _surround_velocity(reachable: bool) -> Vector3:
 
 func _land_punch(flat: Vector3, distance: float, reachable: bool) -> void:
 	var forward := Vector3(-sin(_facing), 0.0, -cos(_facing))
-	if not reachable or distance > ATTACK_RANGE + 0.4 or forward.dot(flat.normalized()) < 0.5:
+	if not reachable or distance > PUNCH_REACH or forward.dot(flat.normalized()) < PUNCH_CONE:
 		return  # the hero got out of the way
 	# Push along the ground only: lifting the hero would cancel a super jump charge.
 	Combat.hurt_hero(hero, PUNCH_DAMAGE, forward * 5.0)
@@ -341,10 +364,36 @@ func _follow_updates(delta: float) -> void:
 	if Time.get_ticks_msec() >= _local_animation_until:
 		var restart := _shown_restarts >= 0 and restarts != _shown_restarts
 		_play(ANIMATIONS[clampi(newer[3], 0, ANIMATIONS.size() - 1)], newer[4], 0.05 if restart else 0.2, restart)
-		if restart and (newer[3] == 3 or newer[3] == 4):  # Punch_Jab, Punch_Cross
+		if restart and PUNCH_ANIMATIONS.has(newer[3]):
 			_punch_sound()
+			# The punch started then in the running game: it lands PUNCH_HIT_TIME later.
+			_copy_windup = PUNCH_HIT_TIME
+	_copy_windup = maxf(_copy_windup - delta, 0.0)
 	_shown_restarts = restarts
 	_model.rotation.y = lerp_angle(_model.rotation.y, _facing, 1.0 - exp(-10.0 * delta))
+
+
+## Seconds until the punch being wound up lands, or 0 when not winding one up:
+## the thug's own attack state, or for a copy, the punch it saw start.
+func windup_left() -> float:
+	if state == State.DOWN:
+		return 0.0
+	if puppet:
+		return _copy_windup
+	return maxf(_timer, 0.0) if state == State.PUNCH else 0.0
+
+
+## Shows the tell while a punch winds up, turned the way the punch will check
+## (`_facing`, not the model's smoothed turn).
+func _update_tell() -> void:
+	var left := windup_left()
+	if left > 0.0:
+		if _tell == null:
+			_tell = AttackTell.create(PUNCH_REACH, PUNCH_CONE)
+			add_child(_tell)
+		_tell.wind_up(1.0 - left / PUNCH_HIT_TIME, _facing)
+	elif _tell:
+		_tell.finish()
 
 
 func _update_down(delta: float) -> void:

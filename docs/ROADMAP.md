@@ -50,6 +50,27 @@ peer can drive one later. Nearby tiles get collision.
   character (instance uniforms would reserve 16 vec4s each in a uniform
   buffer of 1024 on some GPUs); same draw calls, 0.1-0.2 s to compile.
 - Gangs of thugs surround and attack the hero, at most two swinging at once.
+- Wind-up tells (added 2026-11-09): from the tick a thug starts a punch, a
+  faint orange wedge on the ground shows exactly where it will land (within
+  `Thug.PUNCH_REACH`, 2.3 m, and 60 degrees either side of where the thug
+  faces, the same constants `_land_punch` checks), with a band sweeping out
+  from the thug that reaches the wedge's edge on the tick the punch lands
+  (`Thug.PUNCH_HIT_TIME`, 0.45 s, unchanged). Get out of the wedge (or more
+  than 4 m above it) by then and the punch misses; a player reacting in
+  0.25 s steps out in time, at 0.4 s it's too late. Damage, timing,
+  cooldowns and the two-attacker limit are as before; the tell only shows
+  the attack state that was already there. `AttackTell`
+  (`scripts/combat/attack_tell.gd`, `shaders/attack_tell.gdshader`, a tiny
+  unshaded shader of its own) is driven from `Thug.windup_left()` every
+  tick and fades in 0.15 s when the punch lands or is cut short by a hit.
+  In co-op, copies of thugs start their tell when the punch animation they
+  already receive restarts (no new messages), so it shows as late as the
+  copy's movement does (SnapshotBuffer.DELAY, 120 ms, plus the network) while the
+  punch is decided in the game running the thug against its copy of the
+  hero. Limits: a thug keeps turning to face the hero while winding up, so
+  side-stepping within reach doesn't escape; backing off or jumping does.
+  With two thugs swinging from opposite sides, backing away from one can
+  take the hero into the other's wedge. `?demo=tells` films it.
 - Punch combos, dive attacks, landing slams and super speed rams; defeated
   thugs ragdoll, bleed, and stay on the street while you're nearby.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
@@ -2499,7 +2520,10 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/attack_tell_test.tscn` (a
+  thug's wind-up tell shows over each punch, turned and filled in step with
+  it; standing still the punches land, stepping out 0.25 s after the tell
+  shows they all miss, at 0.4 s they land), `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
@@ -2526,7 +2550,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=tells` / `?demo=city` / `?demo=new` scripted tours for videos (`tells`: thugs' wind-up tells, standing in them, stepping out in time and too late; it keeps the health bar on screen),
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

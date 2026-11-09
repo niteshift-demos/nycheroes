@@ -51,7 +51,7 @@ On a fresh checkout run `godot --headless --path . --import` once before
 tests or exports, so `class_name` scripts resolve.
 
 Pick the tests that cover what you changed (hero movement:
-`hero_moves_test`; fights: `combat_test`; streaming: `streaming_test`,
+`hero_moves_test`; fights: `combat_test`, `attack_tell_test`; streaming: `streaming_test`,
 `flight_streaming_regression`; co-op: `coop_*`; traffic and trains:
 `traffic_test`, `trains_test`; options: `options_test`; the Go to box:
 `address_test`). Each test's header comment says what it checks and how to
