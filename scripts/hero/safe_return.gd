@@ -24,7 +24,10 @@ func _init(owner_hero: Hero) -> void:
 ## Called only for the locally owned hero, before its movement mode runs.
 ## Returns true on recovery so the caller skips movement for this tick.
 func tick(delta: float) -> bool:
+	var was_cooling := cooldown > 0.0
 	cooldown = maxf(0.0, cooldown - delta)
+	if was_cooling and cooldown == 0.0:
+		message = "Return ready. Destination safety will be checked again."
 	combat_delay = maxf(0.0, combat_delay - delta)
 	if hero.input.attack_held or hero.mode.name in [&"Melee", &"Dive"] or hero.slam_pending or enemies_near(hero.global_position):
 		combat_delay = COMBAT_DELAY
@@ -53,7 +56,7 @@ func tick(delta: float) -> bool:
 	if checkpoint == Vector3.INF:
 		message = "Save a safe point first (K)."
 	elif cooldown > 0.0:
-		message = "Return cooling down: %d seconds." % ceili(cooldown)
+		message = "Return cooling down."
 	elif hero.world_position().distance_to(checkpoint) > MAX_DISTANCE:
 		message = "Safe point is over 250 m away. Save a nearer one."
 	else:
@@ -70,7 +73,7 @@ func tick(delta: float) -> bool:
 			hero.slam_pending = false
 			hero.reset_visual_position()
 			cooldown = COOLDOWN
-			message = "Returned safely. Recovery cooldown: 15 seconds."
+			message = "Returned safely. Return has a 15-second cooldown."
 			return true
 	return false
 
