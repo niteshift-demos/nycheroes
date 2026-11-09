@@ -193,7 +193,12 @@ func _draw_flight() -> void:
 			if _hover_note <= 0.0 and _brake_from > HOVER_SPEED * 4.0:
 				_hover_note = HOVER_NOTE_TIME
 			_brake_from = HOVER_SPEED  # (stopped: the bar stays empty)
-			line = "AIR BRAKE  ·  HOVERING" if is_zero_approx(hero.input.vertical) else "AIR BRAKE  ·  holding still"
+			if hero.input.vertical < 0.0:
+				line = "AIR BRAKE  ·  descending"
+			elif hero.input.vertical > 0.0:
+				line = "AIR BRAKE  ·  climbing"
+			else:
+				line = "AIR BRAKE  ·  HOVERING"
 		color = BRAKE_COLOR
 	else:
 		_brake_from = 0.0
