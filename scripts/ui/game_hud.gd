@@ -164,7 +164,7 @@ func _draw_coop_status() -> void:
 		y += 30.0
 
 
-## Bottom middle while flying: "FLIGHT 142 m/s  BOOST" over "Q / LT  AIR BRAKE
+## Bottom middle while flying: "FLIGHT 142 m/s  BOOST" over "Hold Q: air brake
 ## · stops in 36 m"; while braking, the meters still to go over a bar that
 ## empties, then "HOVERING" for a moment once stopped.
 func _draw_flight() -> void:
@@ -181,7 +181,7 @@ func _draw_flight() -> void:
 	var top_line := "FLIGHT  %d m/s" % roundi(speed)
 	if hero.input.sprint_held and speed > flight.cruise_speed + 1.0 and not flight.braking:
 		top_line += "  ·  BOOST"
-	var key := "BRAKE button" if touch_controls else ("Q / LT" if not Input.get_connected_joypads().is_empty() else "Q")
+	var key := "BRAKE" if touch_controls else ("Q / LT" if not Input.get_connected_joypads().is_empty() else "Q")
 	var line := ""
 	var color := Color(1.0, 1.0, 1.0, 0.85)
 	if flight.braking:
@@ -206,9 +206,9 @@ func _draw_flight() -> void:
 			line = "HOVERING"
 			color = BRAKE_COLOR
 		elif shed > 8.0:
-			line = "%s  air brake  ·  stops in %d m" % [key, ceili(flight.stopping_distance(shed))]
+			line = "Hold %s: air brake  ·  stops in %d m" % [key, ceili(flight.stopping_distance(shed))]
 		else:
-			line = "%s  air brake" % key
+			line = "Hold %s: air brake" % key
 	_text_centered(bottom - 26.0, top_line, 18, Color.WHITE)
 	_text_centered(bottom, line, 16 if not flight.braking else 20, color)
 	if flight.braking and _brake_from > HOVER_SPEED:
