@@ -552,9 +552,7 @@ func _on_place_found(world_position: Vector3, label: String) -> void:
 		_show_address_note("%s isn't on the city's map." % label)
 		return
 	if _marking:
-		# On the ground (or the roof) there if it has loaded; else street level.
-		var ground := city.ground_height_at(world_position) if city else NAN
-		waypoint.set_at(Vector3(world_position.x, 0.0 if is_nan(ground) else ground, world_position.z), label)
+		waypoint.set_on_address(world_position, label)
 		_show_address_note("Marked %s as your waypoint." % label)
 		_refresh_waypoint()
 		close()

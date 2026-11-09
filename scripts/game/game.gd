@@ -355,6 +355,7 @@ func _add_waypoint() -> void:
 	_waypoint.name = "Waypoint"
 	_waypoint.hero = hero
 	_waypoint.camera_rig = hero_camera
+	_waypoint.city = city
 	add_child(_waypoint)
 	var game_hud := hud.get_node_or_null("GameHud") as GameHud
 	if game_hud:

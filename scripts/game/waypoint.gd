@@ -35,7 +35,7 @@ signal mark_failed(reason: String)
 const MARK_RANGE := 1200.0
 ## Within this distance (m, across the ground) the hero has got there.
 const ARRIVE_RADIUS := 25.0
-## Settings key: [x, y, z, label], or [] for none.
+## Settings key: [x, y, z, label, height_known], or [] for none.
 const SETTING := "waypoint"
 const DEFAULT_LABEL := "Waypoint"
 ## Water is a separate layer (CityStreamer.WATER_LAYER): a waypoint on the
@@ -44,11 +44,17 @@ const RAY_MASK := CityStreamer.COLLISION_LAYER | CityStreamer.WATER_LAYER
 
 @export var hero: Hero
 @export var camera_rig: ThirdPersonCamera
+## For finding the ground under a waypoint set on an address far off.
+var city: CityStreamer
 
 ## World position (WorldOrigin) of the waypoint; Vector3.INF when there's none.
 var world_position := Vector3.INF
 ## What it marks: an address from the Go to box, or DEFAULT_LABEL.
 var label := ""
+## Whether world_position.y is the real ground (or roof) there. An address
+## far off is set before its tile's collision has loaded: its height is then
+## filled in once it has (and the HUD doesn't say "up" or "down" until then).
+var height_known := true
 
 
 ## Adds the "waypoint" action: G, and a gamepad's D-pad up.
@@ -67,23 +73,30 @@ static func add_action() -> void:
 func _ready() -> void:
 	add_action()
 	var saved: Variant = Settings.get_value(SETTING, [])
-	if saved is Array and (saved as Array).size() == 4:
+	if saved is Array and (saved as Array).size() >= 4:
 		var at := Vector3(float(saved[0]), float(saved[1]), float(saved[2]))
 		if at.is_finite():
 			world_position = at
 			label = str(saved[3])
+			height_known = (saved as Array).size() >= 5 and bool(saved[4])
 
 
 func is_set() -> bool:
 	return world_position != Vector3.INF
 
 
-## Puts the waypoint at a world position (WorldOrigin), labeled.
-func set_at(at: Vector3, what := DEFAULT_LABEL) -> void:
+## Puts the waypoint at a world position (WorldOrigin), labeled. Without
+## `known_height`, at.y is a guess, corrected once the ground there loads.
+func set_at(at: Vector3, what := DEFAULT_LABEL, known_height := true) -> void:
 	world_position = at
 	label = what if not what.is_empty() else DEFAULT_LABEL
-	Settings.set_value(SETTING, [at.x, at.y, at.z, label])
+	height_known = known_height
+	_save()
 	changed.emit()
+
+
+func _save() -> void:
+	Settings.set_value(SETTING, [world_position.x, world_position.y, world_position.z, label, height_known])
 
 
 func clear(arrived := false) -> void:
@@ -143,6 +156,14 @@ func find_surface(from: Vector3, direction: Vector3) -> Dictionary:
 	return hit
 
 
+## Puts the waypoint on an address (a world position, any height): on the
+## ground or roof there if its collision has loaded, else at street level
+## until it has.
+func set_on_address(at: Vector3, what: String) -> void:
+	var ground := city.ground_height_at(at) if city else NAN
+	set_at(Vector3(at.x, 0.0 if is_nan(ground) else ground, at.z), what, not is_nan(ground))
+
+
 ## Ground distance from the hero to the waypoint (m), INF without one.
 func ground_distance() -> float:
 	if not is_set():
@@ -173,6 +194,12 @@ func bearing_from_view() -> float:
 
 
 func _physics_process(_delta: float) -> void:
+	if is_set() and not height_known and city and city.has_collision_at(world_position):
+		var ground := city.ground_height_at(world_position)
+		if not is_nan(ground):
+			world_position.y = ground
+			height_known = true
+			_save()
 	if is_set() and not hero.frozen and ground_distance() < ARRIVE_RADIUS:
 		var what := label
 		clear(true)

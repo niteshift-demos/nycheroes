@@ -169,7 +169,7 @@ func _draw_coop_status() -> void:
 			at = Vector2(size.x - touch_controls.safe_insets.z - width - 16.0, touch_controls.safe_insets.y + 78.0)
 		_text(at, line, 16)
 	# Notices: centered, under the debug text in the top left.
-	var y := maxf(size.y * 0.2, 130.0)
+	var y := maxf(maxf(size.y * 0.2, 130.0), _compass_top() + 84.0 if waypoint and waypoint.is_set() else 0.0)
 	for text in current_notices():
 		var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22).x
 		_text(Vector2((size.x - width) * 0.5, y), text, 22, NOTICE_COLOR)
@@ -219,14 +219,22 @@ static func distance_text(meters: float) -> String:
 	return "%d m" % roundi(meters) if meters < 999.5 else "%.1f km" % (meters / 1000.0)
 
 
+## Where the compass goes: the top middle, under the stats text when it shows.
+func _compass_top() -> float:
+	var top := 34.0
+	if touch_controls:
+		top += touch_controls.safe_insets.y
+	var stats := get_node_or_null(^"../DebugLabel") as Control
+	if stats and stats.visible:
+		top = maxf(top, stats.get_global_rect().end.y + 18.0)
+	return top
+
+
 ## The waypoint's compass line (see the top) and its marker.
 func _draw_waypoint() -> void:
 	if waypoint == null or not waypoint.is_set():
 		return
-	var top := 34.0
-	if touch_controls:
-		top += touch_controls.safe_insets.y
-	var center := Vector2(size.x * 0.5, top + 14.0)
+	var center := Vector2(size.x * 0.5, _compass_top() + 14.0)
 	var bearing := waypoint.bearing_from_view()
 	var direction := Vector2(sin(bearing), -cos(bearing))  # (up the screen is ahead)
 	var side := Vector2(-direction.y, direction.x)
@@ -237,7 +245,7 @@ func _draw_waypoint() -> void:
 	draw_colored_polygon(PackedVector2Array([tip, back + side * 8.0, center - direction * 4.0, back - side * 8.0]), WAYPOINT_COLOR)
 	var line := "%s  %s" % [waypoint.label.to_upper(), distance_text(waypoint.ground_distance())]
 	var rise := waypoint.height_above_hero()
-	if absf(rise) > WAYPOINT_HEIGHT_SHOWN:
+	if waypoint.height_known and absf(rise) > WAYPOINT_HEIGHT_SHOWN:
 		line += "  ·  %s %s" % [distance_text(absf(rise)), "up" if rise > 0.0 else "down"]
 	var width := _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18).x
 	_text(Vector2(center.x - width * 0.5, center.y + 40.0), line, 18, WAYPOINT_COLOR)

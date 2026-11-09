@@ -12,7 +12,8 @@ extends Node
 ##   and says "Reached".
 ## - The options menu: a latitude and longitude and Mark put the waypoint on
 ##   the Empire State Building (about 1.06 km off), close the menu and leave
-##   the hero where it is; somewhere off the map marks nothing; Clear clears.
+##   the hero where it is (its height counts as known only once the ground
+##   there has loaded); somewhere off the map marks nothing; Clear clears.
 ## Uses a settings file of its own, not the player's.
 ## Run: godot --headless --path . res://tests/waypoint_test.tscn -- --solo=1 [--tiles=DIR | --tiles_url=URL]
 
@@ -90,7 +91,7 @@ func _check_marking() -> void:
 	_camera.yaw = _hero.facing
 	var saved: Variant = Settings.get_value(Waypoint.SETTING, [])
 	var spot := _waypoint.world_position
-	_check(saved is Array and (saved as Array).size() == 4 and Vector3(saved[0], saved[1], saved[2]).is_equal_approx(spot),
+	_check(saved is Array and (saved as Array).size() == 5 and Vector3(saved[0], saved[1], saved[2]).is_equal_approx(spot),
 		"it's saved in the settings")
 	var reread := Waypoint.new()
 	reread.hero = _hero
@@ -150,9 +151,11 @@ func _check_menu() -> void:
 		"Mark somewhere off the map marks nothing and says so")
 	var chosen: Array = []
 	_options.place_chosen.connect(func(at: Vector3) -> void: chosen.append(at), CONNECT_ONE_SHOT)
+	var address := Geo.to_world(40.748441, -73.985656)
+	var loaded := _city.has_collision_at(address)
 	_options._address.text = EMPIRE_STATE
 	_options._address_mark.pressed.emit()
-	var address := Geo.to_world(40.748441, -73.985656)
+	_check(_waypoint.height_known == loaded, "its height counts as known only if the ground there has loaded (%s)" % loaded)
 	var off := Vector2(_waypoint.world_position.x - address.x, _waypoint.world_position.z - address.z).length()
 	_check(_waypoint.is_set() and off < 0.01 and _waypoint.label == EMPIRE_STATE,
 		"Mark puts the waypoint on the Empire State Building (%s, %.2f m off)" % [_waypoint.label, off])

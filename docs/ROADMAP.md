@@ -2408,11 +2408,13 @@ deployed); in a computer's browser the co-op menu links to it.
   1.2 km (`Waypoint.MARK_RANGE`); G again clears it. The options menu's Go
   to box has Mark beside Go: an address, place, ZIP code or latitude and
   longitude becomes the waypoint (at its ground or roof height if that has
-  loaded, else street level) and nobody travels; its Waypoint row shows
+  loaded; else its height is filled in once it has, and the HUD doesn't say
+  up or down until then) and nobody travels; its Waypoint row shows
   what's marked and how far, and Clear. `scripts/game/waypoint.gd` (made by
   Game, which passes G on only while the hero is being played: no menu, no
   free camera, not in `?demo`).
-- **HUD** (`GameHud`): a compass at the top middle, an arrow that turns to
+- **HUD** (`GameHud`): a compass at the top middle (under the stats text
+  when that shows), an arrow that turns to
   point at the waypoint from where the camera faces (straight up is
   ahead), with what it marks, the distance across the ground ("850 m",
   "1.4 km") and, past 8 m, how far up or down it is; plus a marker over the
@@ -2433,16 +2435,17 @@ deployed); in a computer's browser the co-op menu links to it.
   needs the address searches online, as Go does. There's one waypoint, no
   route along the streets: the arrow points straight at it.
 - **Kept:** in world meters (WorldOrigin), so floating origin shifts don't
-  move it, and in Settings (`waypoint`: x, y, z, label), so a reload keeps
+  move it, and in Settings (`waypoint`: x, y, z, label, whether the height is known), so a reload keeps
   it. It's personal: co-op players don't see each other's, and it isn't
   hero state (the hero doesn't act on it), so PlayerSync doesn't carry it.
-- **Tested:** `tests/waypoint_test.tscn` (24 checks at Times Square): G at
+- **Tested:** `tests/waypoint_test.tscn` (25 checks at Times Square): G at
   the sky and at the street underfoot marks nothing and says why; G up
   Broadway marks a spot ~80 m off; the compass bearing (ahead, then a
   quarter turn); saved and read back; a floating origin shift; G ignored
   with the menu open; G clears and marks again; walking up Broadway with W
   reaches it and it clears itself; Mark on the Empire State Building's
-  latitude and longitude sets it without travelling, Mark off the map
+  latitude and longitude sets it without travelling (its height known only
+  if the ground there has loaded), Mark off the map
   doesn't, and Clear. `tests/waypoint_movie.tscn` isn't a test: it plays
   the real game through the ordinary controls (keys and the look actions)
   for a Movie Maker recording:
