@@ -48,7 +48,6 @@ func _physics_process(delta: float) -> void:
 			_camera.yaw = lerp_angle(_camera.yaw, atan2(-direction.x, -direction.z), minf(1.0, delta * 2.0))
 			if toward.length() > 9.0:
 				_hero.input.move = direction
-				_hero.input.sprint_held = toward.length() > 25.0
 				_hero.input.stick = Vector2(0.0, -1.0)
 			else:
 				_contact = true
