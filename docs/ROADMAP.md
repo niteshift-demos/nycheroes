@@ -2410,8 +2410,8 @@ individual thugs, distance despawns and remote-owned gangs do not count.
 Progress has no timer and is personal/session-only, including in co-op;
 there is no reward or saved leaderboard. After completion, **Replay patrol**
 (or P) resets progress and starts a fresh circle at your current position.
-Normal gang spawning is unchanged: without nearby streets or with `gangs=0`,
-there may be nothing eligible to fight. Leaving and returning preserves
+Normal gang spawning is unchanged: without nearby streets, there may be
+nothing eligible to fight. Leaving and returning preserves
 progress, but does not turn partially cleared or removed encounters into
 fresh ones. Existing gangs with every member still standing are eligible.
 
