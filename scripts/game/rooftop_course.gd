@@ -75,6 +75,11 @@ const ABANDON_DISTANCE := 800.0
 ## The pads' beams reach this high over their roofs (m).
 const BEAM_HEIGHT := 140.0
 const BEST_KEY := "rooftop_best"
+## How long the banner (a roof reached, a failure, the finish) shows, in
+## game time (s): it keeps step with the clock at any frame rate.
+const BANNER_TIME := 3.0
+const FINISH_BANNER_TIME := 7.0
+const COLOR_FAIL := Color(1.0, 0.4, 0.3)
 ## A pad's beam and number hide when the hero is this close (m): standing in
 ## them would fill the screen.
 const HIDE_NEAR := 16.0
@@ -100,6 +105,10 @@ var falls := 0
 var best := 0.0
 var last_time := 0.0
 var fail_reason := ""
+## The banner the HUD shows under the run's line while banner_time lasts.
+var banner := ""
+var banner_color := Color.WHITE
+var banner_time := 0.0
 
 var _heights: Array[float] = []
 var _measured: Array[bool] = []
@@ -164,6 +173,7 @@ func restart() -> void:
 	elapsed = 0.0
 	falls = 0
 	fail_reason = ""
+	banner_time = 0.0
 
 
 ## Horizontal distance from the hero to the nearest part of the course (m).
@@ -176,6 +186,7 @@ func distance_to_course() -> float:
 
 
 func _physics_process(delta: float) -> void:
+	banner_time = maxf(banner_time - delta, 0.0)
 	if hero == null or hero.frozen:
 		return
 	_measure_heights()
@@ -193,6 +204,7 @@ func _physics_process(delta: float) -> void:
 					state = State.IDLE
 				else:
 					state = State.RUNNING
+					_show("GO!", COLOR_NEXT, 1.2)
 					run_started.emit()
 		State.RUNNING:
 			elapsed += delta
@@ -222,10 +234,12 @@ func _check_run() -> void:
 		return
 	if _on_pad(next_index):
 		last_index = next_index
-		pad_reached.emit(next_index)
 		next_index += 1
 		if next_index >= PADS.size():
 			_finish()
+		else:
+			_show("ROOF %d OF %d  ·  %s" % [last_index + 1, PADS.size(), clock_text(elapsed)], COLOR_DONE)
+		pad_reached.emit(last_index)
 		return
 	var floor_height := minf(_heights[last_index], _heights[next_index]) - DROP_BELOW
 	if hero.world_position().y < floor_height:
@@ -237,6 +251,8 @@ func _fail(reason: String) -> void:
 	falls += 1
 	state = State.FAILED
 	_fail_timer = RETURN_DELAY
+	_show("%s  ·  back to %s" % [reason.to_upper(), "the start" if last_index == 0 else "roof %d" % (last_index + 1)],
+		COLOR_FAIL, RETURN_DELAY + 1.0)
 	run_failed.emit(reason)
 
 
@@ -247,7 +263,20 @@ func _finish() -> void:
 	if is_best:
 		best = elapsed
 		Settings.set_value(BEST_KEY, best)
+	_show("FINISHED IN %s  ·  %d fall%s%s" % [clock_text(elapsed), falls, "" if falls == 1 else "s",
+		"  ·  BEST TIME!" if is_best else "  ·  best %s" % clock_text(best)], COLOR_FINISH, FINISH_BANNER_TIME)
 	run_finished.emit(elapsed, is_best)
+
+
+func _show(text: String, color: Color, seconds := BANNER_TIME) -> void:
+	banner = text
+	banner_color = color
+	banner_time = seconds
+
+
+## Minutes, seconds and tenths: 0:41.7.
+static func clock_text(seconds: float) -> String:
+	return "%d:%04.1f" % [floori(seconds / 60.0), fmod(seconds, 60.0)]
 
 
 ## Standing on a pad (or, with `or_rising`, still within its circle on the

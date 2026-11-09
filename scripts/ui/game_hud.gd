@@ -8,7 +8,8 @@ extends Control
 ## options menu with a click (touch screens have TouchControls' gear instead).
 ## While a super jump charges, a meter under the hero shows how much. The
 ## rooftop run (RooftopCourse) gets a line at the top (roof, clock, falls),
-## a marker to its next pad (or to its start, nearby), its notices, and on
+## a marker to its next pad (or to its start, nearby), its banner (a roof
+## reached, a failure, the finish; timed by the course in game time), and on
 ## touch screens a RESTART button.
 
 ## The Options button was clicked.
@@ -47,16 +48,7 @@ var touch_controls: TouchControls:
 			_options_button.visible = value == null
 
 ## Set by Game when the rooftop run is in.
-var course: RooftopCourse:
-	set(value):
-		course = value
-		if course:
-			course.pad_reached.connect(_on_pad_reached)
-			course.run_started.connect(func() -> void: notify("Rooftop run: go!"))
-			course.run_failed.connect(func(reason: String) -> void:
-				notify("%s  ·  back to the last roof" % reason))
-			course.run_finished.connect(func(seconds: float, best: bool) -> void:
-				notify("Rooftop run finished in %s%s" % [_clock(seconds), "  ·  best time!" if best else ""]))
+var course: RooftopCourse
 
 var _font: Font
 var _restart_button: Button
@@ -166,8 +158,8 @@ func _draw_coop_status() -> void:
 	# Notices: centered, under the debug text in the top left (and the rooftop
 	# run's line).
 	var y := maxf(size.y * 0.2, 130.0)
-	if course and course.is_active():
-		y = maxf(y, _course_line_y() + 36.0)
+	if course and (course.is_active() or course.banner_time > 0.0):
+		y = maxf(y, _course_line_y() + 76.0)
 	for text in current_notices():
 		var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22).x
 		_text(Vector2((size.x - width) * 0.5, y), text, 22, NOTICE_COLOR)
@@ -200,16 +192,21 @@ func _draw_course() -> void:
 			line += "jump to roof 2 to start  ·  R restart"
 		else:
 			line += "roof %d of %d  ·  %s  ·  falls %d" % [course.next_index + 1, course.pad_count(),
-				_clock(course.elapsed), course.falls]
+				RooftopCourse.clock_text(course.elapsed), course.falls]
 		if course.best > 0.0:
-			line += "  ·  best %s" % _clock(course.best)
+			line += "  ·  best %s" % RooftopCourse.clock_text(course.best)
 		var width := _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 20).x
 		# Under the stats text (when it's shown), over the notices.
 		var y := _course_line_y()
 		_text(Vector2((size.x - width) * 0.5, y), line, 20, RooftopCourse.COLOR_START.lightened(0.3))
+	if course.banner_time > 0.0:
+		var width := _font.get_string_size(course.banner, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 28).x
+		_text(Vector2((size.x - width) * 0.5, _course_line_y() + 38.0), course.banner, 28, course.banner_color)
 	var target := course.next_index if running else 0
 	if not running and course.distance_to_course() > RooftopCourse.SHOW_DISTANCE:
 		return
+	if course.state == RooftopCourse.State.FINISHED and course.banner_time > 0.0:
+		return  # (the finish's moment: no marker back to the start yet)
 	var label := "ROOFTOP RUN" if not running else (
 		"FINISH" if target == course.pad_count() - 1 else "ROOF %d" % (target + 1))
 	if course.state == RooftopCourse.State.ARMED:
@@ -223,15 +220,6 @@ func _course_line_y() -> float:
 	if touch_controls:
 		return touch_controls.safe_insets.y + 104.0
 	return maxf(size.y * 0.17, 124.0)
-
-
-func _on_pad_reached(index: int) -> void:
-	if index < course.pad_count() - 1:
-		notify("Roof %d of %d  ·  %s" % [index + 1, course.pad_count(), _clock(course.elapsed)])
-
-
-static func _clock(seconds: float) -> String:
-	return "%d:%04.1f" % [floori(seconds / 60.0), fmod(seconds, 60.0)]
 
 
 ## A marker pointing at a scene position, labeled with the distance to it.

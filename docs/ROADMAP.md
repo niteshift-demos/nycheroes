@@ -2418,8 +2418,9 @@ about 450 m west of Times Square). `scripts/game/rooftop_course.gd`
   on (on foot, within 7 m of its middle and 3 m of its roof) in order; the
   next one's beam is amber, reached ones turn green. The HUD shows "ROOFTOP
   RUN · roof N of 7 · clock · falls · best" under the stats text, a marker
-  to the next pad (to the start when not running, within 3 km), and notices
-  for each roof, a failure and the finish. The best time is kept
+  to the next pad (to the start when not running, within 3 km), and a
+  banner under it for each roof, a failure and the finish (timed in game
+  time, like the clock, so it keeps step at any frame rate). The best time is kept
   (`rooftop_best` in Settings).
 - **Failing and retrying:** touching down more than 6 m below both the last
   roof reached and the next pad's (the street, a low roof), landing in
