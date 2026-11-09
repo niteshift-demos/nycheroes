@@ -53,6 +53,18 @@ peer can drive one later. Nearby tiles get collision.
 - Punch combos, dive attacks, landing slams and super speed rams; defeated
   thugs ragdoll, bleed, and stay on the street while you're nearby.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
+- **Out-of-combat recovery (2026-11-09):** health comes back only once the
+  hero is clear of the fight for 6 s (`Hero.RECOVERY_DELAY`): not hit, not
+  punching or diving, and no standing thug within 40 m (the range at which
+  thugs notice a hero). Then it returns at 5 health a second (20 s from
+  empty to full; it used to be 15 a second, 4 s after any hit, even
+  mid-fight). A hit stops it and starts the wait over; nothing heals while
+  knocked out (getting up still restores full health), so recovery can't
+  stave off a knockout. Beside "HEALTH" the HUD reads "IN COMBAT", then
+  "RECOVERY IN 5 s" with a thin amber line filling under the bar, then
+  "RECOVERING +5/s" with a pulsing edge on the health. Whether a hero is
+  recovering is plain state sent to the other players (PlayerSync's
+  RECOVERING flag). `tests/recovery_test.tscn` checks it.
 
 ## 4. All five boroughs and bridges (done)
 
@@ -2499,7 +2511,9 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/recovery_test.tscn` (no
+  health back near thugs, the 6 s wait, the rate, a hit interrupting it, a
+  knockout still happening), `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so

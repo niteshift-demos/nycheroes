@@ -21,9 +21,16 @@ const WATER_LINE := -0.6
 ## How far above and below the hero to look for a raised lake's surface.
 const WATER_PROBE := 4.0
 const MAX_HEALTH := 100.0
-## Health comes back after this long without being hit.
-const REGEN_DELAY := 4.0
-const REGEN_RATE := 15.0
+## Out-of-combat recovery: health only comes back once the hero has been clear
+## of the fight this long (s): not hit, not attacking, and no standing thug
+## within RECOVERY_THREAT_RANGE. Long enough that it can't top the hero up
+## between punches, so a losing fight still ends in a knockout.
+const RECOVERY_DELAY := 6.0
+## Then it comes back slowly (health/s): 20 s from empty to full.
+const RECOVERY_RATE := 5.0
+## A standing thug this close (m) keeps the hero in the fight: the range at
+## which thugs notice a hero and come for it.
+const RECOVERY_THREAT_RANGE := Thug.NOTICE_RANGE
 ## Landing faster than this slams the ground, hurling thugs nearby.
 const SLAM_SPEED := 35.0
 ## How long a hit staggers the hero.
@@ -41,6 +48,14 @@ var frozen := true
 var health := MAX_HEALTH
 ## Seconds left of being staggered by a hit.
 var hurt_time := 0.0
+## Seconds the hero has been clear of the fight (up to RECOVERY_DELAY); the
+## HUD shows it counting toward recovery. Reset by every hit.
+var recovery_clear := 0.0
+## Health is coming back now (clear for RECOVERY_DELAY and not full). Plain
+## state, sent to the other players by PlayerSync.
+var recovering := false
+## Thugs or our own attacks are keeping the hero in a fight (no recovery).
+var in_combat := false
 ## Set by a dive attack: the next landing slams, however slow it is.
 var slam_pending := false
 ## For a copy of another player's hero: that player's number (0 for our own).
@@ -63,7 +78,6 @@ var _prev_web := false
 var _prev_attack := false
 var _prev_position := Vector3.ZERO
 var _was_on_floor := false
-var _regen_delay := 0.0
 var _step_offset := 0.0  # height still to ease up after stepping onto a curb (m)
 
 
@@ -96,9 +110,7 @@ func _physics_process(delta: float) -> void:
 	_prev_web = input.web_held
 	_prev_attack = input.attack_held
 	hurt_time = maxf(hurt_time - delta, 0.0)
-	_regen_delay -= delta
-	if _regen_delay <= 0.0:
-		health = minf(health + REGEN_RATE * delta, MAX_HEALTH)
+	_update_recovery(delta)
 
 	var fall_speed := -velocity.y
 	var next := mode.physics_update(delta)
@@ -192,11 +204,38 @@ func take_hit(damage: float, push: Vector3) -> void:
 		return
 	health = maxf(health - damage, 0.0)
 	hurt_time = HURT_TIME
-	_regen_delay = REGEN_DELAY
+	recovery_clear = 0.0
+	recovering = false
 	velocity += push
 	hurt.emit(damage)
 	if health <= 0.0:
 		set_mode(&"KnockedOut")
+
+
+## Out-of-combat recovery: counts time clear of the fight, then heals slowly.
+## Nothing heals while knocked out (getting up restores health, as before) or
+## while a fight is on, so recovery can't stave off a knockout.
+func _update_recovery(delta: float) -> void:
+	in_combat = _is_in_combat()
+	if in_combat or mode.name == &"KnockedOut" or health >= MAX_HEALTH:
+		recovery_clear = 0.0
+		recovering = false
+		return
+	recovery_clear = minf(recovery_clear + delta, RECOVERY_DELAY)
+	recovering = recovery_clear >= RECOVERY_DELAY
+	if recovering:
+		health = minf(health + RECOVERY_RATE * delta, MAX_HEALTH)
+
+
+## Just hit, attacking, or a standing thug (ours or a co-op copy) close by.
+func _is_in_combat() -> bool:
+	if hurt_time > 0.0 or mode.name == &"Melee" or mode.name == &"Dive":
+		return true
+	var threat := RECOVERY_THREAT_RANGE * RECOVERY_THREAT_RANGE
+	for thug in Combat.thugs:
+		if not thug.is_down() and thug.global_position.distance_squared_to(global_position) < threat:
+			return true
+	return false
 
 
 ## The surface of a raised lake just above or below the hero, else sea level.

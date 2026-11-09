@@ -25,6 +25,9 @@ const NOTICE_TIME := 6.0
 ## "Player joined" waits this long for their name (seconds).
 const NAME_WAIT := 1.0
 const NOTICE_COLOR := Color(1.0, 0.9, 0.45)
+## Health bar cues for out-of-combat recovery (see Hero.recovering).
+const RECOVERY_COLOR := Color(0.6, 1.0, 0.65)
+const RECOVERY_WAIT_COLOR := Color(1.0, 0.85, 0.45)
 ## The license (CC BY 4.0) asks for this whenever the photos are shown.
 const AERIAL_CREDIT := "Aerial imagery: NYC OTI / NYS Orthoimagery Program 2024 (CC BY 4.0)"
 
@@ -45,6 +48,8 @@ var touch_controls: TouchControls:
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
+## Game time (s) for the recovery cue's pulse: it slows and stops with the game.
+var _pulse_time := 0.0
 
 
 func _ready() -> void:
@@ -80,7 +85,8 @@ func current_notices() -> PackedStringArray:
 	return PackedStringArray(_notices.map(func(notice: Array) -> String: return notice[0]))
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_pulse_time += delta
 	queue_redraw()
 
 
@@ -94,6 +100,7 @@ func _draw() -> void:
 	var fill := Color(0.85, 0.15, 0.12).lerp(Color(0.2, 0.8, 0.3), health)
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * health, bar.size.y)), fill)
 	_text(bar.position + Vector2(0.0, -8.0), "HEALTH", 14)
+	_draw_recovery(bar, health)
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
@@ -118,6 +125,26 @@ func _draw() -> void:
 		var other: Hero = players.remote_heroes[id]
 		_draw_marker(other.global_position + Vector3.UP * 2.6, Net.player_name(id).to_upper(),
 			Net.player_color(id).lightened(0.35), PLAYER_NEAR_ENOUGH)
+
+
+## Out-of-combat recovery's cue, beside "HEALTH" and along the bar's bottom
+## edge: what's holding it back, the wait filling up, then a pulsing edge on
+## the health as it comes back.
+func _draw_recovery(bar: Rect2, health: float) -> void:
+	if hero.mode.name == &"KnockedOut" or health >= 1.0:
+		return
+	var label_at := bar.position + Vector2(64.0, -8.0)
+	if hero.recovering:
+		var pulse := 0.5 + 0.5 * sin(_pulse_time * 8.0)
+		var edge := bar.position.x + bar.size.x * health
+		draw_rect(Rect2(edge - 6.0, bar.position.y, 6.0, bar.size.y), RECOVERY_COLOR * Color(1, 1, 1, 0.5 + 0.5 * pulse))
+		_text(label_at, "RECOVERING  +%d/s" % int(Hero.RECOVERY_RATE), 14, RECOVERY_COLOR)
+	elif hero.in_combat:
+		_text(label_at, "IN COMBAT", 14, Color(1.0, 0.55, 0.45, 0.9))
+	else:
+		var wait := hero.recovery_clear / Hero.RECOVERY_DELAY
+		draw_rect(Rect2(bar.position.x, bar.end.y + 1.0, bar.size.x * wait, 2.0), RECOVERY_WAIT_COLOR)
+		_text(label_at, "RECOVERY IN %d s" % ceili(Hero.RECOVERY_DELAY - hero.recovery_clear), 14, RECOVERY_WAIT_COLOR)
 
 
 func _draw_coop_status() -> void:
