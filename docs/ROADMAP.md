@@ -68,9 +68,12 @@ peer can drive one later. Nearby tiles get collision.
   copy's movement does (SnapshotBuffer.DELAY, 120 ms, plus the network) while the
   punch is decided in the game running the thug against its copy of the
   hero. Limits: a thug keeps turning to face the hero while winding up, so
-  side-stepping within reach doesn't escape; backing off or jumping does.
+  side-stepping within reach doesn't escape; backing off or a super jump
+  does (a plain jump peaks about 2.4 m up, under the 4 m reach).
   With two thugs swinging from opposite sides, backing away from one can
-  take the hero into the other's wedge. `?demo=tells` films it.
+  take the hero into the other's wedge: in four headless runs of `?demo=tells`, stepping out
+  0.25 s after a tell made all 9 single-thug punches miss, but 2-3 punches
+  a run still landed with two thugs at once. `?demo=tells` films it.
 - Punch combos, dive attacks, landing slams and super speed rams; defeated
   thugs ragdoll, bleed, and stay on the street while you're nearby.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
@@ -2550,7 +2553,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=tells` / `?demo=city` / `?demo=new` scripted tours for videos (`tells`: a thug's wind-up tells, standing in them, stepping out in time and too late, then two thugs at once; it keeps the health bar on screen),
+  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=tells` / `?demo=city` / `?demo=new` scripted tours for videos (`tells`: a thug's wind-up tells, standing in them, stepping out in time and too late, then two thugs at once; it keeps the health bar on screen and prints each punch's start and whether it landed, with its shot, so a recording can be checked against its captions),
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

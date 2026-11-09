@@ -46,11 +46,18 @@ var _caption: Label
 var _flight := {}
 var _holding := false
 var _loaded_time := 0.0
+## Tells tour: thugs winding up a punch as of the last tick, to log each punch
+## and hit (so a recording's beats can be checked against what happened).
+var _winding: Array[Thug] = []
+var _punch_shots := {}  # thug -> the shot its punch started in
+var _hurt := false
 
 
 func _ready() -> void:
 	process_physics_priority = -20  # before the hero reads its input
 	game.place_hero(START, _avenue_yaw, true)
+	if LaunchOptions.get_string("demo") == "tells":
+		hero.hurt.connect(func(_damage: float) -> void: _hurt = true)
 	_yaw = _avenue_yaw + 2.4
 	camera.yaw = _yaw
 	camera.pitch = _pitch
@@ -114,8 +121,8 @@ func _ready() -> void:
 			_shot("A street thug", 2.5, Callable(), _tells_camera, _spawn_gang_ahead.bind(9.0, 1)),
 			_shot("Each punch winds up over where it will land", 5.0, _approach_input, _tells_camera),
 			_shot("Step out of it in time, and it misses", 6.0, _dodge_input.bind(QUICK_REACTION), _tells_camera),
-			_shot("A moment too late, and it lands", 4.5, _dodge_input.bind(LATE_REACTION), _tells_camera),
-			_shot("Two at once: two tells to watch", 6.0,
+			_shot("A moment too late, and it lands", 6.5, _dodge_input.bind(LATE_REACTION), _tells_camera),
+			_shot("Two at once: harder, and some still land", 6.0,
 					_dodge_input.bind(QUICK_REACTION), _tells_camera, _spawn_gang_ahead.bind(6.0, 2)),
 			_shot("", 0.5),
 		]
@@ -152,6 +159,8 @@ func _physics_process(delta: float) -> void:
 
 	var shot := _shots[_index]
 	_time += delta
+	if LaunchOptions.get_string("demo") == "tells":
+		_log_punches()
 	if shot.input.is_valid():
 		shot.input.call(hero.input, _time)
 	if shot.camera.is_valid():
@@ -329,6 +338,24 @@ func _dodge_input(input: HeroInput, t: float, reaction: float) -> void:
 		input.stick = Vector2(0.0, -1.0)
 	elif _winding_up().is_empty():
 		_approach_input(input, t)
+
+
+## Prints each punch as it starts and as it ends (landed on the hero or not),
+## with the shot it started in. Thugs punch after this node's tick, so a punch
+## that ended last tick landed if the hero was hurt then.
+func _log_punches() -> void:
+	var now := _winding_up()
+	for thug in _winding:
+		if not now.has(thug):
+			print("[demo] punch %s (frame %d, started in shot %d)" % [
+				"landed" if _hurt and is_instance_valid(thug) and not thug.is_down() else "missed",
+				Engine.get_frames_drawn(), _punch_shots.get(thug, -1)])
+	for thug in now:
+		if not _winding.has(thug):
+			_punch_shots[thug] = _index
+			print("[demo] punch winds up (frame %d, shot %d)" % [Engine.get_frames_drawn(), _index])
+	_winding = now
+	_hurt = false
 
 
 func _winding_up() -> Array[Thug]:
