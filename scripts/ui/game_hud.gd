@@ -186,7 +186,10 @@ func _draw_banner() -> void:
 	var width := maxf(_font.get_string_size(landmark_name, HORIZONTAL_ALIGNMENT_LEFT, -1.0, name_size).x,
 		_font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, line_size).x) + 48.0
 	width = minf(width, size.x - 24.0)
-	var top := size.y * 0.24 + 40.0
+	# High up, clear of the hero in the middle (and under the touch buttons' row).
+	var top := maxf(size.y * 0.09, 56.0)
+	if touch_controls:
+		top = maxf(top, touch_controls.safe_insets.y + 100.0)
 	var box := Rect2((size.x - width) * 0.5, top, width, name_size + line_size * 2.0 + 62.0)
 	draw_rect(box, Color(0.0, 0.05, 0.1, 0.6 * alpha))
 	draw_rect(Rect2(box.position, Vector2(box.size.x, 3.0)), Color(DISCOVERY_COLOR, alpha))
