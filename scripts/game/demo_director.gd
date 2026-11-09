@@ -96,14 +96,14 @@ func _ready() -> void:
 		_yaw = _avenue_yaw
 		camera.yaw = _yaw
 		_shots = [
-			_shot("Street thugs", 2.5, Callable(), _fight_camera, _spawn_gang_ahead.bind(10.0, 4)),
-			_shot("Every punch that lands adds to the chain", 6.0, _combo_punch_input, _punch_camera),
-			_shot("Punches that hit nobody add nothing...", 2.6, _punch_input, _combo_whiff_camera),
-			_shot("...and the chain drops", 2.4, Callable(), _combo_whiff_camera),
-			_shot("A new gang", 2.5, Callable(), _fight_camera, _spawn_gang_ahead.bind(9.0, 3)),
-			_shot("Build a chain...", 3.0, _combo_punch_input, _punch_camera),
-			_shot("...stop punching, and a thug's hit breaks it", 5.0, Callable(), _punch_camera),
-			_shot("", 1.5),
+			_shot("Street thugs", 2.0, Callable(), _fight_camera, _spawn_gang_ahead.bind(8.0, 6)),
+			_shot("Every punch that lands adds to the chain", 4.5, _combo_punch_input, _combo_camera),
+			_shot("Punches that hit nobody add nothing...", 2.4, _punch_input, _combo_camera),
+			_shot("...and the chain runs out", 2.6, Callable(), _combo_camera),
+			_shot("Another gang", 2.0, Callable(), _fight_camera, _spawn_gang_ahead.bind(6.0, 6)),
+			_shot("Slow jabs keep a chain going...", 3.5, _combo_jab_input, _combo_camera),
+			_shot("...until a thug lands a hit and breaks it", 6.0, _combo_jab_input, _combo_camera),
+			_shot("", 1.0),
 		]
 	elif LaunchOptions.get_string("demo") == "fight":
 		_yaw = _avenue_yaw
@@ -271,9 +271,21 @@ func _combo_punch_input(input: HeroInput, t: float) -> void:
 	input.attack_held = near and fmod(t, 0.3) < 0.12
 
 
-func _combo_whiff_camera(t: float) -> void:
-	_yaw = _avenue_yaw + 0.8 - 0.3 * smoothstep(0.0, 5.0, t)
-	_pitch = -0.3
+## Combo tour: a lone jab every 1.2 s (too slow to chain into a cross),
+## while a thug stands near: each landed jab keeps the chain alive, and the
+## gang gets time to swing back.
+func _combo_jab_input(input: HeroInput, t: float) -> void:
+	var near := false
+	for thug: Thug in Combat.thugs:
+		if not thug.is_down() and thug.global_position.distance_to(hero.global_position) < 6.0:
+			near = true
+	input.attack_held = near and fmod(t, 1.2) < 0.1
+
+
+## Combo tour: close behind the hero, so the fight and the HUD read together.
+func _combo_camera(_t: float) -> void:
+	_yaw = _avenue_yaw + 0.35
+	_pitch = -0.28
 
 
 func _punch_camera(t: float) -> void:

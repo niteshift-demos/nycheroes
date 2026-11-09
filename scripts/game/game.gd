@@ -234,7 +234,13 @@ func _plays_public() -> bool:
 
 func _start_demo() -> void:
 	player_input.process_mode = Node.PROCESS_MODE_DISABLED
-	hud.visible = LaunchOptions.get_string("demo") == "combo"  # (its subject)
+	hud.visible = false
+	if LaunchOptions.get_string("demo") == "combo":  # its subject is the HUD's combo counter
+		hud.visible = true
+		for path: String in ["DebugLabel", "GameHud/OptionsButton"]:
+			var clutter := hud.get_node_or_null(path) as CanvasItem
+			if clutter:
+				clutter.visible = false
 	var director := DemoDirector.new()
 	director.game = self
 	director.hero = hero

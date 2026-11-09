@@ -142,14 +142,14 @@ func _draw_combo(at: Vector2) -> void:
 		var pop := clampf(1.0 - combo.since_hit / COMBO_POP_TIME, 0.0, 1.0)
 		var color := COMBO_COLOR.lerp(COMBO_HOT_COLOR, clampf((combo.count - 2) / 10.0, 0.0, 1.0))
 		color = color.lerp(Color.WHITE, pop * 0.6)
-		var size_now := int(30.0 + 12.0 * pop)
+		var size_now := int(40.0 + 14.0 * pop)
 		var count_text := "%d" % combo.count
 		_text(at + Vector2(0.0, 34.0), count_text, size_now, color)
 		var width := _font.get_string_size(count_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size_now).x
-		_text(at + Vector2(width + 8.0, 34.0), "HIT" if combo.count == 1 else "HITS", 18, color)
+		_text(at + Vector2(width + 8.0, 34.0), "HIT" if combo.count == 1 else "HITS", 22, color)
 		if combo.last_heavy and pop > 0.0:
-			_text(at + Vector2(width + 60.0, 34.0), "LAUNCH!", 18, Color(1.0, 1.0, 1.0, pop))
-		var timer := Rect2(at + Vector2(0.0, 44.0), Vector2(150.0, 6.0))
+			_text(at + Vector2(width + 70.0, 34.0), "LAUNCH!", 22, Color(1.0, 1.0, 1.0, pop))
+		var timer := Rect2(at + Vector2(0.0, 46.0), Vector2(180.0, 8.0))
 		draw_rect(timer.grow(2.0), Color(0.0, 0.0, 0.0, 0.55))
 		var left := combo.remaining()
 		var urgent := left < 0.3
@@ -161,16 +161,16 @@ func _draw_combo(at: Vector2) -> void:
 		var line := "%d-HIT CHAIN %s" % [combo.last_count, "BROKEN" if broken else "DROPPED"]
 		var color := MISS_COLOR if broken else Color(0.8, 0.8, 0.8)
 		color.a = fade
-		_text(at + Vector2(0.0, 34.0), line, 20, color)
+		_text(at + Vector2(0.0, 34.0), line, 24, color)
 		if combo.last_count >= combo.best:
-			_text(at + Vector2(0.0, 52.0), "BEST YET", 13, Color(COMBO_COLOR, fade))
+			_text(at + Vector2(0.0, 56.0), "BEST YET", 15, Color(COMBO_COLOR, fade))
 	if combo.best >= ComboChain.MIN_REPORTED:
-		_text(at + Vector2(160.0, 52.0), "BEST %d" % combo.best, 13, Color(1.0, 1.0, 1.0, 0.7))
+		_text(at + Vector2(190.0, 56.0), "BEST %d" % combo.best, 15, Color(1.0, 1.0, 1.0, 0.75))
 	# The current punch string, while punching or while the chain lasts.
 	if hero.mode.name != &"Melee" and combo.count == 0:
 		return
 	var x := at.x
-	var y := at.y + 70.0
+	var y := at.y + 78.0
 	for k in combo.punches.size():
 		var state: int = combo.punches[k]
 		var dot := Vector2(x + 6.0, y - 5.0)
@@ -185,8 +185,8 @@ func _draw_combo(at: Vector2) -> void:
 		var name_color := {ComboChain.Punch.LANDED: COMBO_COLOR, ComboChain.Punch.MISSED: MISS_COLOR}.get(
 			state, Color(1.0, 1.0, 1.0, 0.55)) as Color
 		var punch_name := PUNCH_NAMES[k] if k < PUNCH_NAMES.size() else str(k + 1)
-		_text(Vector2(x + 16.0, y), punch_name, 13, name_color)
-		x += 22.0 + _font.get_string_size(punch_name, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13).x + 10.0
+		_text(Vector2(x + 16.0, y), punch_name, 15, name_color)
+		x += 22.0 + _font.get_string_size(punch_name, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 15).x + 10.0
 
 
 func _draw_coop_status() -> void:
