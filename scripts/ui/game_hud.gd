@@ -233,6 +233,12 @@ func _draw_waypoint() -> void:
 		var to := camera.unproject_position(top)
 		var faded := Color(WAYPOINT_COLOR, 0.0)
 		draw_polyline_colors(PackedVector2Array([from, to]), PackedColorArray([Color(WAYPOINT_COLOR, 0.75), faded]), 3.0)
+	# The compass line: bottom middle, clear of the stats text and the co-op
+	# line at the top, above the health bar and "Thugs down" (touch screens:
+	# top middle, clear of the thumbs).
+	var line_y := size.y - 70.0
+	if touch_controls:
+		line_y = touch_controls.safe_insets.y + 34.0
 	var placed := _place_marker(base + Vector3.UP * 2.0)
 	var distance_text := Waypoint.format_distance(waypoint.distance())
 	if not placed.is_empty():
@@ -241,6 +247,8 @@ func _draw_waypoint() -> void:
 			_diamond(point, 11.0)
 			_text(point + Vector2(-30.0, 30.0), distance_text, 15, WAYPOINT_COLOR)
 		else:
+			if not touch_controls:
+				point.y = minf(point.y, line_y - 64.0)  # (its label above the compass line)
 			var direction: Vector2 = placed.direction
 			var side := Vector2(-direction.y, direction.x)
 			var tip := point + direction * 16.0
@@ -252,23 +260,18 @@ func _draw_waypoint() -> void:
 	var facing := atan2(-forward.x, -forward.z)
 	var toward := base - camera.global_position
 	var turn := wrapf(atan2(-toward.x, -toward.z) - facing, -PI, PI)  # (positive: to the left)
-	var name := waypoint.label.to_upper()
-	if name.length() > 34:
-		name = name.left(32) + "..."
-	var line := "%s  ·  %s  ·  %s" % [name, distance_text, Waypoint.compass_point(waypoint.bearing())]
+	var title := waypoint.label.to_upper()
+	if title.length() > 34:
+		title = title.left(32) + "..."
+	var line := "%s  ·  %s  ·  %s" % [title, distance_text, Waypoint.compass_point(waypoint.bearing())]
 	var width := _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 17).x
-	# Bottom middle, clear of the stats text and the co-op line at the top
-	# (touch screens: top middle, clear of the thumbs).
-	var y := size.y - 70.0  # (above the health bar and "Thugs down")
-	if touch_controls:
-		y = touch_controls.safe_insets.y + 34.0
-	var arrow_at := Vector2(size.x * 0.5 - width * 0.5 - 4.0, y - 6.0)
+	var arrow_at := Vector2(size.x * 0.5 - width * 0.5 - 4.0, line_y - 6.0)
 	var up := Vector2.UP.rotated(-turn)
 	var across := Vector2(-up.y, up.x)
 	draw_circle(arrow_at, 15.0, Color(0.0, 0.0, 0.0, 0.45))
 	draw_colored_polygon(PackedVector2Array([arrow_at + up * 12.0, arrow_at - up * 8.0 + across * 8.0,
 		arrow_at - up * 3.0, arrow_at - up * 8.0 - across * 8.0]), WAYPOINT_COLOR)
-	_text(Vector2(arrow_at.x + 24.0, y), line, 17, WAYPOINT_COLOR)
+	_text(Vector2(arrow_at.x + 24.0, line_y), line, 17, WAYPOINT_COLOR)
 
 
 func _diamond(at: Vector2, radius: float) -> void:
