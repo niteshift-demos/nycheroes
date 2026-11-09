@@ -1,6 +1,8 @@
 class_name GameHud
 extends Control
-## Player HUD: health bar, thugs taken down, a marker pointing to the nearest
+## Player HUD: health bar, thugs taken down, the combat streak (a counter of
+## hits landed in a row with a bar running down to when it times out; how it
+## ended, briefly, when it does), a marker pointing to the nearest
 ## thug, and in co-op a marker for each other player (markers sit at the
 ## screen edge when what they point at is off screen), the game's status and
 ## short notices ("Player 2 is now the host"), plus the aerial photos' credit
@@ -25,6 +27,9 @@ const NOTICE_TIME := 6.0
 ## "Player joined" waits this long for their name (seconds).
 const NAME_WAIT := 1.0
 const NOTICE_COLOR := Color(1.0, 0.9, 0.45)
+const STREAK_COLOR := Color(1.0, 0.78, 0.25)
+## How a streak ended stays up this long (seconds of game time).
+const STREAK_END_TIME := 2.0
 ## The license (CC BY 4.0) asks for this whenever the photos are shown.
 const AERIAL_CREDIT := "Aerial imagery: NYC OTI / NYS Orthoimagery Program 2024 (CC BY 4.0)"
 
@@ -45,6 +50,9 @@ var touch_controls: TouchControls:
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
+var _streak_end_count := 0
+var _streak_end_reason := &""
+var _streak_end_left := 0.0
 
 
 func _ready() -> void:
@@ -66,6 +74,11 @@ func _ready() -> void:
 		if Net.is_online() and not Net.is_public:
 			notify("You're the host now" if id == Net.local_id() else "%s is now the host" % Net.player_name(id)))
 	_add_options_button()
+	Combat.streak.ended.connect(func(count: int, reason: StringName) -> void:
+		if count >= 2:  # (a single hit isn't a streak worth reporting)
+			_streak_end_count = count
+			_streak_end_reason = reason
+			_streak_end_left = STREAK_END_TIME)
 
 
 ## Shows a line near the top of the screen for a few seconds.
@@ -80,7 +93,8 @@ func current_notices() -> PackedStringArray:
 	return PackedStringArray(_notices.map(func(notice: Array) -> String: return notice[0]))
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_streak_end_left = maxf(_streak_end_left - delta, 0.0)
 	queue_redraw()
 
 
@@ -97,6 +111,7 @@ func _draw() -> void:
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
+	_draw_streak()
 	_draw_coop_status()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
@@ -149,6 +164,42 @@ func _draw_coop_status() -> void:
 		var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22).x
 		_text(Vector2((size.x - width) * 0.5, y), text, 22, NOTICE_COLOR)
 		y += 30.0
+
+
+## The streak counter, on the left at mid-height (clear of the touch sticks
+## and buttons): "x12 HITS", a callout from 5 on, a bar for the time left
+## before it runs out, and the best this session. When a streak of 2 or more
+## ends, how it ended shows there for a moment.
+func _draw_streak() -> void:
+	var streak := Combat.streak
+	var at := Vector2(28.0, size.y * 0.42)
+	if touch_controls:
+		at.x += touch_controls.safe_insets.x
+	if streak.count > 0:
+		# Pops bigger for a moment as each hit lands.
+		var pop := clampf(1.0 - streak.since_hit / 0.18, 0.0, 1.0)
+		var big := int(lerpf(40.0, 54.0, pop))
+		var count_text := "x%d" % streak.count
+		_text(at, count_text, big, STREAK_COLOR.lerp(Color.WHITE, pop * 0.6))
+		var width := _font.get_string_size(count_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, big).x
+		_text(at + Vector2(width + 10.0, 0.0), "HIT STREAK" if streak.count > 1 else "HIT", 18)
+		var bar := Rect2(at + Vector2(0.0, 12.0), Vector2(180.0, 6.0))
+		draw_rect(bar.grow(2.0), Color(0.0, 0.0, 0.0, 0.55))
+		var left := clampf(streak.time_left / CombatStreak.WINDOW, 0.0, 1.0)
+		draw_rect(Rect2(bar.position, Vector2(bar.size.x * left, bar.size.y)),
+			STREAK_COLOR if left > 0.33 else MARKER_COLOR)
+		var tier := CombatStreak.tier_name(streak.count)
+		if tier:
+			_text(at + Vector2(0.0, 44.0), tier + "!", 24, STREAK_COLOR)
+	elif _streak_end_left > 0.0:
+		var fade := clampf(_streak_end_left / 0.5, 0.0, 1.0)
+		var hurt := _streak_end_reason == &"hurt"
+		var color := (MARKER_COLOR if hurt else Color(0.85, 0.85, 0.85))
+		color.a = fade
+		_text(at, "x%d" % _streak_end_count, 40, color)
+		_text(at + Vector2(0.0, 30.0), "STREAK BROKEN: HIT!" if hurt else "STREAK TIMED OUT", 18, color)
+	if streak.best >= 2:
+		_text(at + Vector2(0.0, 74.0), "Best streak: %d" % streak.best, 14, Color(1.0, 1.0, 1.0, 0.75))
 
 
 ## A marker pointing at a scene position, labeled with the distance to it.
