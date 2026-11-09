@@ -53,6 +53,16 @@ peer can drive one later. Nearby tiles get collision.
 - Punch combos, dive attacks, landing slams and super speed rams; defeated
   thugs ragdoll, bleed, and stay on the street while you're nearby.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
+- Personal hit streak feedback: each confirmed damaging hit on a standing thug
+  counts once (including each target in a slam). A four-second game-time bar
+  refreshes on hits; misses do not refresh it. Damage taken or leaving the hero
+  resets the streak, with a short reason shown. Three/five/ten hits earn named
+  tiers and the session best remains visible during a streak. Damage and attack
+  timing are unchanged. Co-op waits for the thug owner's reliable confirmation;
+  predicted hits, duplicate replies and replies after taking damage earn nothing.
+  The streak is personal HUD state, not a shared score or damage multiplier.
+  `combo_test.tscn` covers hits, misses, zero damage, unchanged damage, timeout,
+  tiers, injury, downed targets and acknowledgement ownership/deduplication.
 
 ## 4. All five boroughs and bridges (done)
 
@@ -2499,7 +2509,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/combo_test.tscn`,
+  `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
@@ -2528,7 +2539,10 @@ deployed); in a computer's browser the co-op menu links to it.
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
-  public game), `?public=1` join the public game even headless or from a
+  public game), `?combo_replay=1&solo=1` optional solo combat input replay
+  (ordinary movement/punch inputs toward naturally spawned gangs for 23 seconds,
+  then nine seconds retreat; no actor placement, damage or clock overrides;
+  desktop `--replay_quit=1` exits after one 32-second cycle), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server
   (default: the page's host, port 8070), `?relay=1` co-op only through the
   TURN relay (testing), `?weather=overcast`, `?date=MM-DD` (or

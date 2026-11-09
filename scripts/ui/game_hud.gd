@@ -97,6 +97,7 @@ func _draw() -> void:
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
+	_draw_combo()
 	_draw_coop_status()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
@@ -145,6 +146,8 @@ func _draw_coop_status() -> void:
 		_text(at, line, 16)
 	# Notices: centered, under the debug text in the top left.
 	var y := maxf(size.y * 0.2, 130.0)
+	if Combat.combo.count > 0 or Combat.combo.notice_left > 0.0:
+		y = maxf(y, 250.0)
 	for text in current_notices():
 		var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22).x
 		_text(Vector2((size.x - width) * 0.5, y), text, 22, NOTICE_COLOR)
@@ -228,3 +231,23 @@ func _add_options_button() -> void:
 func _text(at: Vector2, text: String, font_size: int, color := Color.WHITE) -> void:
 	draw_string_outline(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, 4, Color.BLACK)
 	draw_string(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, color)
+
+
+## Compact at the top center, clear of touch thumbs and the health bar.
+func _draw_combo() -> void:
+	var streak := Combat.combo
+	if streak.count == 0 and streak.notice_left <= 0.0:
+		return
+	var width := minf(310.0, size.x - 32.0)
+	var top := 130.0 if not touch_controls else 100.0 + touch_controls.safe_insets.y
+	var box := Rect2((size.x - width) * 0.5, top, width, 85.0)
+	draw_rect(box, Color(0.025, 0.035, 0.065, 0.87))
+	var gold := Color(1.0, 0.79, 0.28).lerp(Color.WHITE, streak.pulse * 0.6)
+	if streak.count > 0:
+		_text(box.position + Vector2(14.0, 32.0), "%d HIT COMBO" % streak.count, 27, gold)
+		_text(box.position + Vector2(14.0, 56.0), "%s · BEST %d" % [streak.tier(), streak.best], 14)
+		draw_rect(Rect2(box.position + Vector2(14.0, 69.0), Vector2(width - 28.0, 5.0)), Color(1, 1, 1, 0.2))
+		draw_rect(Rect2(box.position + Vector2(14.0, 69.0), Vector2((width - 28.0) * streak.remaining / ComboStreak.WINDOW, 5.0)), gold)
+	else:
+		_text(box.position + Vector2(14.0, 31.0), "STREAK ENDED", 22, gold)
+		_text(box.position + Vector2(14.0, 57.0), streak.notice, 14)

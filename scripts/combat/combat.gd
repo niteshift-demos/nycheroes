@@ -34,6 +34,12 @@ var thugs: Array[Thug] = []
 ## Every hero in the game: ours, and copies of the other players' heroes.
 var heroes: Array[Hero] = []
 var defeated_count := 0
+## Local HUD feedback only; other players keep their own streak.
+var combo := ComboStreak.new()
+var _combo_request := 0
+## Outstanding owner confirmations: request -> [owner, game-time deadline].
+var _combo_pending := {}
+var _combo_clock := 0.0
 ## Set by the CombatEffects node when it enters the scene.
 var effects: CombatEffects
 
@@ -46,6 +52,20 @@ func _process(_delta: float) -> void:
 	if _hit_stop_end_msec > 0 and Time.get_ticks_msec() >= _hit_stop_end_msec:
 		_hit_stop_end_msec = 0
 		Engine.time_scale = 1.0
+
+
+func _physics_process(delta: float) -> void:
+	combo.advance(delta)
+	_combo_clock += delta
+	for request: int in _combo_pending.keys():
+		if float(_combo_pending[request][1]) < _combo_clock:
+			_combo_pending.erase(request)
+
+
+func _on_hero_hurt(damage: float) -> void:
+	if damage > 0.0:
+		combo.reset("HIT TAKEN")
+		_combo_pending.clear()  # late confirmations cannot restore a broken streak
 
 
 func register(thug: Thug) -> void:
@@ -65,10 +85,15 @@ func thug_by_id(net_id: int) -> Thug:
 
 func register_hero(hero: Hero) -> void:
 	heroes.append(hero)
+	if not hero.is_remote():
+		hero.hurt.connect(_on_hero_hurt)
 
 
 func unregister_hero(hero: Hero) -> void:
 	heroes.erase(hero)
+	if not hero.is_remote():
+		combo.reset("HERO LEFT")
+		_combo_pending.clear()
 	_attackers.erase(hero.get_instance_id())
 
 
@@ -184,10 +209,14 @@ func _hit_thugs(hits: Array) -> void:
 		else:
 			_tell_hit(thug, hit[2], hit[3], Net.local_id())  # before it can go down
 		thug.take_hit(hit[1], hit[2], hit[3])
+		if not thug.puppet and float(hit[1]) > 0.0:
+			combo.confirm()
 	var connected := Net.peers()
 	for player: int in reports:
 		if connected.has(player):
-			_report_hits.rpc_id(player, reports[player])
+			_combo_request += 1
+			_combo_pending[_combo_request] = [player, _combo_clock + ComboStreak.WINDOW]
+			_report_hits.rpc_id(player, reports[player], _combo_request)
 
 
 func _tell_hit(thug: Thug, push: Vector3, launch: bool, attacker: int) -> void:
@@ -216,7 +245,8 @@ func _hero_of(player: int) -> Hero:
 
 ## Another player hit thugs our game runs. [net id, damage, push, launch] each.
 @rpc("any_peer", "call_remote", "reliable")
-func _report_hits(reports: Array) -> void:
+func _report_hits(reports: Array, request: int = 0) -> void:
+	var confirmed := 0
 	var attacker := multiplayer.get_remote_sender_id()
 	for report: Array in reports:
 		var thug := thug_by_id(int(report[0]))
@@ -224,6 +254,21 @@ func _report_hits(reports: Array) -> void:
 			continue
 		_tell_hit(thug, report[2], bool(report[3]), attacker)
 		thug.take_hit(float(report[1]), report[2], bool(report[3]))
+		if float(report[1]) > 0.0:
+			confirmed += 1
+	if request > 0:
+		_confirm_combo.rpc_id(attacker, request, confirmed)
+
+
+## Only the requested thug owner can acknowledge a batch, once, before it expires.
+@rpc("any_peer", "call_remote", "reliable")
+func _confirm_combo(request: int, hits: int) -> void:
+	var pending: Array = _combo_pending.get(request, [])
+	if pending.is_empty() or int(pending[0]) != multiplayer.get_remote_sender_id():
+		return
+	_combo_pending.erase(request)
+	if float(pending[1]) >= _combo_clock:
+		combo.confirm(hits)
 
 
 ## The game running a thug says someone hit it.

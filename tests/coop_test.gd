@@ -192,6 +192,12 @@ func _begin(index: int) -> void:
 
 
 func _finish() -> void:
+	# Feedback waits for the owner's reliable reply, which may trail the
+	# predicted knockdown by a tick. Check after the final exchange.
+	if Combat.combo.best > 0:
+		_results.append("ok    confirmed co-op hits earned a personal streak (best %d)" % Combat.combo.best)
+	else:
+		_fail("confirmed co-op hits did not earn a personal streak")
 	if _role == "client":
 		_report.rpc_id(Net.host_id, _results, _failures)
 		await get_tree().create_timer(1.0).timeout

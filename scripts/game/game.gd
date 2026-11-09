@@ -113,6 +113,8 @@ func _ready() -> void:
 		city.initial_load_finished.connect(func(_seconds: float) -> void:
 			Net.start_public()
 			encounters.hold_for_public = false, CONNECT_ONE_SHOT)
+	if LaunchOptions.has("combo_replay") and LaunchOptions.has("solo"):
+		add_child(load("res://scripts/game/combo_replay.gd").new())
 	if LaunchOptions.has("screenshot") and not Device.is_web():
 		_take_screenshot(LaunchOptions.get_string("screenshot"))
 
