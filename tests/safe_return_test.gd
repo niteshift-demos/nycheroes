@@ -47,6 +47,9 @@ func _ready() -> void:
 	await _ticks(1)
 	_check(recovery.cooldown > 14.0, "saving again cannot bypass return cooldown")
 	saved = recovery.checkpoint
+	recovery.cooldown = 0.01
+	await _ticks(2)
+	_check(recovery.message.contains("Return ready"), "cooldown expiration updates the HUD status")
 	_check(not recovery.safe_at(Vector3(39.9, 2, 0)), "unsupported footprint at an edge is refused")
 	_check(not recovery.safe_at(Vector3(0, -3, 0)), "underwater ground is refused")
 	_check(not recovery.safe_at(Vector3(0, 20, 0)), "airborne ground is refused")
