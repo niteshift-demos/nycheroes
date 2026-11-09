@@ -33,6 +33,7 @@ const HURT_TIME := 0.35
 const STEP_EASE_SPEED := 2.5
 
 var input := HeroInput.new()
+var safe_return: SafeReturn
 ## Yaw the hero faces, in radians (0 = north, which is -Z).
 var facing := 0.0
 var mode: HeroMode
@@ -68,6 +69,7 @@ var _step_offset := 0.0  # height still to ease up after stepping onto a curb (m
 
 
 func _ready() -> void:
+	safe_return = SafeReturn.new(self)
 	add_to_group("floating")
 	Combat.register_hero(self)
 	WorldOrigin.shifted.connect(_on_origin_shifted)
@@ -99,6 +101,9 @@ func _physics_process(delta: float) -> void:
 	_regen_delay -= delta
 	if _regen_delay <= 0.0:
 		health = minf(health + REGEN_RATE * delta, MAX_HEALTH)
+
+	if safe_return.tick(delta):
+		return
 
 	var fall_speed := -velocity.y
 	var next := mode.physics_update(delta)
@@ -215,3 +220,10 @@ func _slam(impact_speed: float) -> void:
 
 func _on_origin_shifted(delta: Vector3) -> void:
 	_prev_position -= delta
+
+
+## Teleports must not interpolate across the city or retain a curb easing offset.
+func reset_visual_position() -> void:
+	_prev_position = global_position
+	_step_offset = 0.0
+	_was_on_floor = false

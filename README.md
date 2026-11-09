@@ -39,6 +39,7 @@ Windows and Mac versions are on the site's download page.
 | Co-op menu | M | |
 | Hero and options | O or Esc | |
 | Time of day | T | |
+| Save safe return point / recover | K / R, or HUD buttons | HUD buttons |
 
 Phones and tablets get touch controls.
 

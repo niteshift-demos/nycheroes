@@ -54,6 +54,7 @@ const KEYS: Array[Array] = [
 	["O", "options (this menu)"],
 	["N", "sound off and on"],
 	["T", "time of day"],
+	["K / R", "save safe ground / return (250 m; 15 s cooldown; out of combat)"],
 	["F1", "free camera (wheel: its speed)"],
 ]
 const DESKTOP_KEYS: Array[Array] = [
@@ -69,6 +70,7 @@ const TOUCH_HELP: Array[Array] = [
 	["FLY", "fly; DOWN goes down"],
 	["SPEED", "super speed, on and off"],
 	["CO-OP", "play with friends"],
+	["Save point / Return", "safe ground; 250 m; 15 s cooldown; out of combat"],
 ]
 
 ## Set by Game.

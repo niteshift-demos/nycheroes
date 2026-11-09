@@ -2398,6 +2398,32 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+## Safe return checkpoint
+
+K saves a session-only traversal checkpoint; R returns to it. The HUD also has
+Save point and Return buttons for mouse and touch. Save while stationary on
+dry static ground, with support across the footprint and room to stand. Air,
+water, steep slopes, ledges and moving trains cannot be saved. Saving again
+replaces the point without clearing the recovery cooldown.
+
+Recovery is limited to 250 m and has a 15-second cooldown. Both ends must be
+clear of living thugs (45 m, or 90 m for active pursuit). Attacking, diving,
+being hit or being near enemies requires another eight seconds clear of
+combat. Knocked-out heroes cannot recover. The destination is rechecked for
+support, water and occupied space; unloaded or obstructed destinations refuse
+the action. Recovery preserves health, clears velocity and the web/movement
+mode, and stores world coordinates so floating origin shifts are safe. The
+normal PlayerSync position/mode updates show recovery to other players.
+
+`safe_return_test.tscn` checks safety, origin shifts, cooldown and combat on
+synthetic collision. `safe_return_replay.tscn` is an input-only native recording
+harness: it waits for the city, saves, runs, attempts an airborne save, returns,
+shows a cooldown refusal, and returns again. Use normal launch options
+`--solo=1 --quality=low --name=Agent --peds=0 --traffic=0 --gangs=0
+--spawn=420,25,-220,-29`. It changes no hero/world state or physics settings.
+The checkpoint is not persisted across sessions, and recovery is a local retry
+aid rather than long-distance travel.
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2498,7 +2524,8 @@ deployed); in a computer's browser the co-op menu links to it.
   3 s. Co-op relay: TURN key "nycheroes-coop" in the Worker secrets
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
-- Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+- Tests (headless): `godot --headless --path . res://tests/safe_return_test.tscn`
+  (safe return ground validation, cooldown, combat and floating origin), then `godot --headless --path . res://tests/hero_moves_test.tscn`,
   `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and

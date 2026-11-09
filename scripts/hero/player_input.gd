@@ -11,6 +11,9 @@ var enabled := true
 
 func _ready() -> void:
 	process_physics_priority = -10
+	var panel := SafeReturnPanel.new()
+	panel.source = self
+	add_child(panel)
 
 
 func _physics_process(_delta: float) -> void:
@@ -26,5 +29,9 @@ func _physics_process(_delta: float) -> void:
 	input.sprint_held = Input.is_action_pressed("sprint")
 	input.web_held = Input.is_action_pressed("web")
 	input.attack_held = Input.is_action_pressed("attack")
+	if Input.is_action_just_pressed("safe_checkpoint"):
+		input.checkpoint_pressed = true
+	if Input.is_action_just_pressed("safe_return"):
+		input.return_pressed = true
 	if Input.is_action_just_pressed("fly_toggle"):
 		input.fly_toggle_pressed = true
