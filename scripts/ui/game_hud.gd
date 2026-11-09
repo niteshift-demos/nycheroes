@@ -97,6 +97,7 @@ func _draw() -> void:
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
+	_draw_swimming_hint()
 	_draw_coop_status()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
@@ -228,3 +229,16 @@ func _add_options_button() -> void:
 func _text(at: Vector2, text: String, font_size: int, color := Color.WHITE) -> void:
 	draw_string_outline(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, 4, Color.BLACK)
 	draw_string(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, color)
+
+
+## Persistent recovery instructions use action names shared by all input devices.
+func _draw_swimming_hint() -> void:
+	if hero.frozen or hero.mode.name != &"OnFoot" or not hero.is_in_water():
+		return
+	var lines := ["SWIMMING", "Toward shore + hold Jump: climb low ledges", "High walls: Jump or Flight"]
+	var y := size.y * 0.72
+	for line: String in lines:
+		var font_size := 20 if line == "SWIMMING" else 15
+		var width := _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
+		_text(Vector2((size.x - width) * 0.5, y), line, font_size, Color(0.65, 0.9, 1.0))
+		y += 23.0

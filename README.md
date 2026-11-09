@@ -31,6 +31,7 @@ Windows and Mac versions are on the site's download page.
 | Move | WASD | Left stick |
 | Look | Mouse | Right stick |
 | Jump (hold to charge) | Space | A |
+| Climb out of water | Move toward low shore + hold Space | Move toward low shore + hold A |
 | Descend | C | B |
 | Sprint / super speed | Shift | L3 or left bumper |
 | Toggle flight | F | Y |

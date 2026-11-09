@@ -48,9 +48,12 @@ var _air_time := 0.0
 var _web_cooldown := 0.0
 var _scare_cooldown := 0.0
 var _jump_handed_over := false
+## A water jump must keep its momentum until it clears the surface.
+var _water_leaping := false
 
 
 func enter(_previous: StringName) -> void:
+	_water_leaping = false
 	hero.motion_mode = CharacterBody3D.MOTION_MODE_GROUNDED
 	charging = _jump_handed_over
 	charge = 0.0
@@ -65,7 +68,8 @@ func physics_update(delta: float) -> StringName:
 	if _wants_web(delta) and (hero.get_mode(&"Swing") as SwingMode).try_attach():
 		return &"Swing"
 
-	if hero.is_in_water():
+	var swimming := hero.is_in_water()
+	if swimming:
 		_swim(delta)
 	elif hero.is_on_floor():
 		_run(delta)
@@ -73,6 +77,9 @@ func physics_update(delta: float) -> StringName:
 		_fall(delta)
 	var intended := hero.velocity
 	hero.move_and_slide()
+	if swimming and hero.input.jump_held and WaterExit.try_exit(hero, hero.input.move):
+		_water_leaping = false
+		return &""
 	var before := hero.global_position.y
 	if LedgeClimb.climb(hero, intended, delta):  # curbs
 		hero.eased_step(hero.global_position.y - before)
@@ -194,7 +201,11 @@ func _swim(delta: float) -> void:
 	var rise := (hero.water_level + float_height - hero.global_position.y) * 4.0
 	var vertical := lerpf(hero.velocity.y, rise, 1.0 - exp(-6.0 * delta))
 	if hero.jump_pressed:
+		_water_leaping = true
 		vertical = water_jump_speed
+	elif _water_leaping:
+		vertical = hero.velocity.y - Hero.GRAVITY * delta
+		_water_leaping = vertical > 0.0
 	hero.velocity = Vector3(horizontal.x, vertical, horizontal.z)
 	hero.face_toward(wish, 8.0 * delta)
 

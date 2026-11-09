@@ -36,6 +36,15 @@ Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
 the hero is driven by a plain input object per physics tick so a network
 peer can drive one later. Nearby tiles get collision.
 
+Swimming shows a persistent recovery hint. Move toward shore while holding
+Jump (Space / gamepad A / touch Jump) to pull onto walkable ledges up to 1 m
+above the local water surface. Full capsule sweeps require room above and
+across the lip; underwater shelves, overhangs and higher seawalls do not
+qualify. Use a water jump or flight for higher banks. Water jumps retain
+upward momentum through the surface rather than being damped by buoyancy.
+The exit uses the existing OnFoot mode, input and replicated position/velocity;
+there is no new network state or persistent world-position cache.
+
 ## 3. Street fights (done)
 
 - Pedestrians walk real sidewalk lanes (traced from street data), run from
@@ -2500,6 +2509,11 @@ deployed); in a computer's browser the co-op menu links to it.
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
   `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/water_exit_test.tscn` (low shores, high walls, headroom,
+  raised lakes, origin shifts and water-jump height, with synthetic collision),
+  `res://tests/water_exit_replay.tscn` (30 s of normal HeroInput in the real
+  reservoir for Movie Maker; solo, spawn `1614,38,-3100,90`, quality low or
+  medium; waits for tile loading before input; no state overrides),
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
