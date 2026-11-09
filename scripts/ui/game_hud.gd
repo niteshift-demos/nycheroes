@@ -95,6 +95,14 @@ func _draw() -> void:
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * health, bar.size.y)), fill)
 	_text(bar.position + Vector2(0.0, -8.0), "HEALTH", 14)
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
+	var dodge_label := "DODGE  Q / R3" if touch_controls == null else "DODGE"
+	if hero.mode.name == &"Dodge":
+		dodge_label += "  ·  STEP"
+	elif hero.dodge_cooldown > 0.0:
+		dodge_label += "  ·  %.1fs" % hero.dodge_cooldown
+	else:
+		dodge_label += "  ·  READY (ground)"
+	_text(bar.position + Vector2(0.0, -30.0 if touch_controls == null else 38.0), dodge_label, 14, Color(0.55, 0.9, 1.0))
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
 	_draw_coop_status()

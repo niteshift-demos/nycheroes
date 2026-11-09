@@ -54,6 +54,38 @@ peer can drive one later. Nearby tiles get collision.
   thugs ragdoll, bleed, and stay on the street while you're nearby.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
 
+### Combat dodge
+
+Q, gamepad R3, or touch DODGE commits a 0.36 s ground step in the movement
+direction (backward if stationary). The first 0.16 s avoids thug hits while
+grounded; recovery is vulnerable. The 1.2 s cooldown starts on entry, ticks
+in every mode, and requires a fresh press. Stagger, water, air, knockout and
+recovery prevent starting a dodge. Walls remain solid; stepping off a ledge
+ends avoidance. Dodging cancels a punch, but cannot itself be cancelled into
+attacks, jump or flight. The HUD shows the control and cooldown; Controls
+explains it. PlayerSync appends Dodge to the mode table and syncs the existing
+velocity/facing for the crouched lean on remote heroes. Mixed older clients
+need updating to display the new mode. No new tiles or assets.
+
+Native recording reproduction (input-only, AI timing varies):
+
+```sh
+godot --path . --resolution 1280x720 --write-movie /data/dodge/native-source.avi --fixed-fps 30 res://tests/dodge_replay.tscn -- --solo=1 --name=Dodge --quality=medium --peds=0 --traffic=0 --trains=0 --gangs=1 --tiles_url=http://localhost:8060/tiles/
+```
+
+The replay waits for initial tiles and feeds normal HeroInput. It approaches
+a naturally spawned gang, reacts to normal punches with dodge input, holds
+dodge to show it cannot repeat, then counters and tries an air dodge. It
+never moves the hero, changes health, places enemies or changes game time.
+Movie Maker records every frame at 30 FPS with the normal 60 Hz physics.
+The delivered clip cuts off initial loading only, without retiming. Medium
+quality renders at 720p; its preset currently results in two gangs despite
+`--gangs=1`, which the recording log discloses.
+
+Test: `godot --headless --path . res://tests/dodge_test.tscn` checks movement,
+avoidance, recovery damage, cooldown/hold rules, cancellation, collision,
+origin shifts and network mode roundtrip.
+
 ## 4. All five boroughs and bridges (done)
 
 - **Data:** citywide buildings (1.08M footprints), streets, parks, lakes and
@@ -2499,7 +2531,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/dodge_test.tscn`,
+  `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so

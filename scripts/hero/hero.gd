@@ -61,6 +61,9 @@ var _modes := {}
 var _prev_jump := false
 var _prev_web := false
 var _prev_attack := false
+var _prev_dodge := false
+## Counts down in every mode; holding dodge never repeats it.
+var dodge_cooldown := 0.0
 var _prev_position := Vector3.ZERO
 var _was_on_floor := false
 var _regen_delay := 0.0
@@ -95,10 +98,16 @@ func _physics_process(delta: float) -> void:
 	_prev_jump = input.jump_held
 	_prev_web = input.web_held
 	_prev_attack = input.attack_held
+	var dodge_pressed := input.dodge_held and not _prev_dodge
+	_prev_dodge = input.dodge_held
+	dodge_cooldown = maxf(0.0, dodge_cooldown - delta)
 	hurt_time = maxf(hurt_time - delta, 0.0)
 	_regen_delay -= delta
 	if _regen_delay <= 0.0:
 		health = minf(health + REGEN_RATE * delta, MAX_HEALTH)
+
+	if dodge_pressed and can_dodge():
+		set_mode(&"Dodge")
 
 	var fall_speed := -velocity.y
 	var next := mode.physics_update(delta)
@@ -179,6 +188,13 @@ func can_be_attacked() -> bool:
 	return not frozen and mode.name != &"KnockedOut"
 
 
+## Only grounded, unstaggered heroes can dodge; attacks can be cancelled,
+## but recovery and the cooldown cannot.
+func can_dodge() -> bool:
+	return not frozen and not is_remote() and is_on_floor() and not is_in_water() \
+		and hurt_time <= 0.0 and dodge_cooldown <= 0.0 and mode.name in [&"OnFoot", &"Melee"]
+
+
 ## Turns `facing` toward a horizontal direction, at most max_step radians.
 func face_toward(direction: Vector3, max_step := INF) -> void:
 	if Vector2(direction.x, direction.z).length_squared() < 0.0001:
@@ -187,9 +203,11 @@ func face_toward(direction: Vector3, max_step := INF) -> void:
 
 
 ## Hit by a thug: lose health, get knocked back, and go down at zero.
-func take_hit(damage: float, push: Vector3) -> void:
+func take_hit(damage: float, push: Vector3) -> bool:
 	if not can_be_attacked() or mode.name == &"Dive":
-		return
+		return false
+	if mode.name == &"Dodge" and (mode as DodgeMode).avoiding():
+		return false
 	health = maxf(health - damage, 0.0)
 	hurt_time = HURT_TIME
 	_regen_delay = REGEN_DELAY
@@ -197,6 +215,7 @@ func take_hit(damage: float, push: Vector3) -> void:
 	hurt.emit(damage)
 	if health <= 0.0:
 		set_mode(&"KnockedOut")
+	return true
 
 
 ## The surface of a raised lake just above or below the hero, else sea level.

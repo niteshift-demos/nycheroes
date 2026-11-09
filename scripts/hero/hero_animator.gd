@@ -84,6 +84,9 @@ func _target_up() -> Vector3:
 			# Superhero pose: lean head-first into the direction of travel.
 			var lean := clampf((speed - 8.0) / 25.0, 0.0, 0.92)
 			return Vector3.UP.lerp(hero.velocity / speed, lean).normalized()
+		&"Dodge":
+			var direction := Vector3(hero.velocity.x, 0.0, hero.velocity.z).normalized()
+			return Vector3.UP.lerp(direction, 0.35).normalized()
 		&"Swing":
 			var anchor := (hero.get_mode(&"Swing") as SwingMode).anchor
 			return Vector3.UP.lerp((anchor - hero.global_position).normalized(), 0.8).normalized()
@@ -114,6 +117,8 @@ func _choose_animation() -> Array:
 			return [&"Jump", 0.6] if hero.velocity.length() > 8.0 else [&"Idle", 0.6]
 		&"Swing", &"Dive":
 			return [&"Jump", 1.0]
+		&"Dodge":
+			return [&"Crouch_Idle", 1.0]
 		&"KnockedOut":
 			return [&"Death01", 1.0]
 		&"Melee":

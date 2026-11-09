@@ -114,9 +114,8 @@ func shockwave(center: Vector3, radius: float, damage: float, launch_speed: floa
 func hurt_hero(hero: Hero, damage: float, push: Vector3) -> void:
 	if hero.is_remote():
 		_hurt_our_hero.rpc_id(hero.remote_id, damage, push)
-	else:
-		hero.take_hit(damage, push)
-	show_hero_blood(hero, push.normalized(), 0.4)
+	elif hero.take_hit(damage, push):
+		show_hero_blood(hero, push.normalized(), 0.4)
 	raise_danger(hero.world_position(), 25.0)
 
 
@@ -249,8 +248,10 @@ func _thug_down(net_id: int, launch: Vector3) -> void:
 @rpc("any_peer", "call_remote", "reliable")
 func _hurt_our_hero(damage: float, push: Vector3) -> void:
 	var hero := _hero_of(Net.local_id())
-	if hero:
-		hero.take_hit(damage, push)
+	# The victim decides avoidance, including delayed co-op hits; only a
+	# confirmed hit creates blood on peers.
+	if hero and hero.take_hit(damage, push):
+		show_hero_blood(hero, push.normalized(), 0.4)
 
 
 @rpc("any_peer", "call_remote", "reliable")

@@ -32,7 +32,7 @@ const THUG_NEAR := 150.0
 const SHOW_DISTANCE := 800.0
 const ANIMATE_DISTANCE := 150.0
 ## Modes, in the order they're numbered when sent.
-const MODES: Array[StringName] = [&"OnFoot", &"Flight", &"Swing", &"Melee", &"Dive", &"KnockedOut"]
+const MODES: Array[StringName] = [&"OnFoot", &"Flight", &"Swing", &"Melee", &"Dive", &"KnockedOut", &"Dodge"]
 const GROUNDED := 1
 const FROZEN := 2
 const CHARGING := 4

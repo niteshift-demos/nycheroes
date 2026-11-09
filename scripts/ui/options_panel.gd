@@ -48,6 +48,7 @@ const KEYS: Array[Array] = [
 	["Left mouse", "punch; in the air, a dive attack (hold W to call it off)"],
 	["Space", "jump; hold for a super jump"],
 	["Shift", "super speed"],
+	["Q / gamepad R3", "ground dodge: steer or backstep; brief avoidance, 1.2s cooldown"],
 	["F", "fly; Space and C go up and down"],
 	["E, right mouse", "web swing (hold)"],
 	["M", "co-op"],
@@ -63,6 +64,7 @@ const DESKTOP_KEYS: Array[Array] = [
 const TOUCH_HELP: Array[Array] = [
 	["Left side", "move: the stick follows your thumb"],
 	["Drag elsewhere", "look around"],
+	["DODGE", "ground step: steer or backstep; brief avoidance, 1.2s cooldown"],
 	["PUNCH", "punch; DIVE in the air (push the stick up to call it off)"],
 	["JUMP", "hold for a super jump; UP while flying"],
 	["WEB", "hold to swing"],

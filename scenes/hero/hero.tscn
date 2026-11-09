@@ -12,6 +12,8 @@
 [ext_resource type="Script" path="res://scripts/hero/modes/knocked_out_mode.gd" id="10_knocked_out"]
 [ext_resource type="Script" path="res://scripts/audio/hero_sounds.gd" id="11_sounds"]
 
+[ext_resource type="Script" path="res://scripts/hero/modes/dodge_mode.gd" id="12_dodge"]
+
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.35
 height = 1.8
@@ -39,6 +41,9 @@ shape = SubResource("CapsuleShape3D_body")
 
 [node name="OnFoot" type="Node" parent="."]
 script = ExtResource("2_on_foot")
+
+[node name="Dodge" type="Node" parent="."]
+script = ExtResource("12_dodge")
 
 [node name="Flight" type="Node" parent="."]
 script = ExtResource("3_flight")
