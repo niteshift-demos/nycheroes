@@ -39,6 +39,7 @@ Windows and Mac versions are on the site's download page.
 | Co-op menu | M | |
 | Hero and options | O or Esc | |
 | Time of day | T | |
+| Restart rooftop trial (when enabled) | R or on-screen button | |
 
 Phones and tablets get touch controls.
 
@@ -80,7 +81,7 @@ Add them to the URL (`?quality=low&time=21:00`) or, on desktop, after
 `--` on the command line (`-- --quality=low`). A few useful ones:
 `?quality=low|medium|high`, `?time=HH:MM`, `?spawn=x,y,z,yaw`,
 `?peds=N`, `?traffic=N`, `?gangs=N`, `?solo=1`, `?host`, `?join=CODE`,
-`?stats`. The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
+`?stats`, `?rooftop_trial=1` (ordered rooftop circuit with timer and best time). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Tests
 

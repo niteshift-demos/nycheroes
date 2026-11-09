@@ -2398,6 +2398,29 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+### Rooftop circuit
+
+Opt in with `?rooftop_trial=1` (desktop: `-- --rooftop_trial=1`). The
+Times Square circuit uses an existing flat roof at world (12, 32.724, 76),
+with four corners and a return to the start. Gold rings identify the next
+checkpoint; pass them in order using ordinary WASD/stick movement and jumps.
+`R` or the on-screen Restart button returns to the start. A local stopwatch
+and best time persist through Settings; the circuit is personal, with no
+shared leaderboard. Flight, webs, diving, knockout, and falling below the
+roof end a run. Powers remain available for free play after a run ends.
+
+The course validates a static roof rectangle against streamed collision
+before enabling runs. If city data changes the roof, the HUD reports the
+course unavailable. It creates only visual rings, with no generated tiles
+or replacement rooftop collision. This is a compact single-roof traversal
+circuit, rather than a multi-building parkour route. Combine with `?solo=1`
+for private practice. Explicit `?spawn=` still overrides its default start.
+
+`res://tests/rooftop_trial_test.tscn` checks ordered gates, elapsed time,
+completion, invalid flight/falls, and restart. Gates use world coordinates
+and visual markers join the floating-origin group. The timer runs on normal
+physics time, including time spent in menus during a run.
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2524,7 +2547,7 @@ deployed); in a computer's browser the co-op menu links to it.
   with the trains surface around the 7, the 4 on Jerome Avenue and
   Woodlawn; `TRAINS_TERMINAL_ONLY=1` goes straight to Woodlawn).
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
-  free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
+  free camera, `?rooftop_trial=1` rooftop circuit, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no

@@ -76,6 +76,8 @@ var _loading: LoadingScreen
 func _enter_tree() -> void:
 	# Before the city and crowd start and read their launch options.
 	Quality.set_launch_defaults()
+	if LaunchOptions.has("rooftop_trial"):
+		LaunchOptions.set_default("spawn", "12,32.774,79,0")
 
 
 func _ready() -> void:
@@ -85,6 +87,11 @@ func _ready() -> void:
 		place_hero(Vector3(spawn[0], spawn[1], spawn[2]), facing)
 	else:
 		place_hero(DEFAULT_SPAWN, facing, true)
+	if LaunchOptions.has("rooftop_trial"):
+		var trial := RooftopTrial.new()
+		trial.name = "RooftopTrial"
+		trial.game = self
+		add_child(trial)
 	_set_free_camera(LaunchOptions.has("cam"))
 	players.placed_by_host.connect(place_hero)
 	coop_panel.toggled.connect(func(_open: bool) -> void: _update_controls())
