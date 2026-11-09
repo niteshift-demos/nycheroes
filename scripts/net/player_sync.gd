@@ -37,6 +37,10 @@ const GROUNDED := 1
 const FROZEN := 2
 const CHARGING := 4
 const IN_WATER := 8
+## The hero's combo count (ComboChain) rides in the flags' bits from here up
+## (capped at COMBO_MAX), so games from before it still read the state.
+const COMBO_SHIFT := 8
+const COMBO_MAX := 255
 ## Joining players appear this far to the side of the host's hero (meters).
 const JOIN_SPACING := 3.0
 
@@ -111,7 +115,8 @@ func _encode(source: Hero) -> Array:
 	var melee := source.get_mode(&"Melee") as MeleeMode
 	var swing := source.get_mode(&"Swing") as SwingMode
 	var flags := (GROUNDED if source.is_on_floor() else 0) | (FROZEN if source.frozen else 0) \
-		| (CHARGING if on_foot.charging else 0) | (IN_WATER if source.is_in_water() else 0)
+		| (CHARGING if on_foot.charging else 0) | (IN_WATER if source.is_in_water() else 0) \
+		| (mini(source.combo.count, COMBO_MAX) << COMBO_SHIFT)
 	return [Time.get_ticks_msec(), source.world_position(), source.velocity, source.facing,
 		MODES.find(source.mode.name), flags, on_foot.charge, source.health, source.hurt_time,
 		melee.step, melee.punch_id, WorldOrigin.to_world(swing.anchor), WorldOrigin.to_world(swing.web_point)]
@@ -136,6 +141,8 @@ func _follow(copy: Hero, snapshots: SnapshotBuffer) -> void:
 	copy.remote_grounded = flags & GROUNDED != 0
 	copy.frozen = flags & FROZEN != 0
 	copy.remote_in_water = flags & IN_WATER != 0
+	copy.combo.set_remote_count((flags >> COMBO_SHIFT) & COMBO_MAX)
+	_show_combo(copy)
 	var on_foot := copy.get_mode(&"OnFoot") as OnFootMode
 	on_foot.charging = flags & CHARGING != 0
 	on_foot.charge = latest[6]
@@ -222,6 +229,18 @@ func _player_name(value: String) -> void:
 	Net.set_remote_name(multiplayer.get_remote_sender_id(), value)
 
 
+## A copy's name tag reads "Ana  ·  6 HITS" while that player's chain is going.
+func _show_combo(copy: Hero) -> void:
+	var tag := copy.get_node_or_null("NameTag") as Label3D
+	if tag == null:
+		return
+	var label := Net.player_name(copy.remote_id)
+	if copy.combo.count >= ComboChain.MIN_REPORTED:
+		label = "%s  ·  %d HITS" % [label, copy.combo.count]
+	if tag.text != label:
+		tag.text = label
+
+
 func _on_player_named(id: int) -> void:
 	if id == Net.local_id():
 		if Net.is_online():
@@ -230,7 +249,7 @@ func _on_player_named(id: int) -> void:
 		return
 	var copy: Hero = remote_heroes.get(id)
 	if copy:
-		(copy.get_node("NameTag") as Label3D).text = Net.player_name(id)
+		_show_combo(copy)
 
 
 func _on_appearance_changed(key: String) -> void:

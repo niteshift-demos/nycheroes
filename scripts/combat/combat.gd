@@ -90,8 +90,9 @@ func strike(center: Vector3, radius: float, damage: float, push: Vector3, launch
 
 
 ## Our hero's ground slam: launches standing thugs away from `center`, harder
-## the closer they are.
-func shockwave(center: Vector3, radius: float, damage: float, launch_speed: float) -> void:
+## the closer they are. Returns how many thugs it hurt (none when `damage` is
+## 0: getting up only shoves them back).
+func shockwave(center: Vector3, radius: float, damage: float, launch_speed: float) -> int:
 	var hits: Array = []
 	for thug: Thug in thugs:
 		if thug.is_down():
@@ -108,6 +109,7 @@ func shockwave(center: Vector3, radius: float, damage: float, launch_speed: floa
 	show_shockwave(WorldOrigin.to_world(center), radius)
 	raise_danger(WorldOrigin.to_world(center), radius * 6.0)
 	impact.emit(center, clampf(radius / 10.0, 0.3, 1.0))
+	return hits.size() if damage > 0.0 else 0
 
 
 ## A thug's punch landing on a hero (decided by the game running the thug).

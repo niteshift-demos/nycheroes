@@ -73,7 +73,9 @@ func physics_update(delta: float) -> StringName:
 		_struck = true
 		var forward := hero.forward()
 		var push: Vector3 = forward * punch.push + Vector3.UP * (punch.push * 0.4 if punch.launch else 1.5)
-		Combat.strike(hero.global_position + forward + Vector3.UP * 1.1, hit_radius, punch.damage, push, punch.launch)
+		var hits := Combat.strike(hero.global_position + forward + Vector3.UP * 1.1, hit_radius, punch.damage, push, punch.launch)
+		hero.combo.punch(step, hits)
+		hero.combo.land(hits, punch.launch)
 	if _time >= punch.length:
 		if _queued and step < COMBO.size() - 1:
 			step += 1

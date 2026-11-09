@@ -53,6 +53,23 @@ peer can drive one later. Nearby tiles get collision.
 - Punch combos, dive attacks, landing slams and super speed rams; defeated
   thugs ragdoll, bleed, and stay on the street while you're nearby.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
+- **Combo counter (2026-11-09):** the HUD counts hits landed in a row
+  (`ComboChain`, on the hero): "5 HITS", popping at each new hit and warming
+  from gold to orange as the chain grows, with "LAUNCH!" on a finisher, ram
+  or slam. Only hits that land count, one per thug caught: a punch that
+  whiffs, or a ram or slam that catches nobody, adds nothing (and the
+  getting-up shove after a knockout isn't an attack). A bar under the count
+  shows the 2.5 s left before the chain drops, flashing red near the end;
+  a thug's hit landing on the hero (or a knockout) breaks it at once. Under
+  the bar, the current punch string's JAB, CROSS and FINISHER light up as
+  they land and are crossed out when they whiff. When a chain of two or
+  more ends, "8-HIT CHAIN DROPPED" (grey) or "6-HIT CHAIN BROKEN" (red)
+  fades out, with "BEST YET" for a session best (and "BEST 8" beside the
+  count). Damage, targeting and who can be hit are as before (Combat only
+  ever strikes thugs, never pedestrians). In co-op the count rides in the
+  hero state's flags (bits 8 and up, so older games still read it) and
+  shows on the player's name tag ("Ana · 6 HITS"). `tests/combo_test.tscn`
+  checks it in the city; `?demo=combo` films it with the HUD showing.
 
 ## 4. All five boroughs and bridges (done)
 
@@ -657,6 +674,9 @@ REFERENCE.md's backlog (#32-41), left for after step 9. Step 6 is done.
   same as by day.
 - `?demo=city` flies the camera over the city, day into night, for videos
   (with "[demo] pause"/"resume" around loading, so recordings skip it).
+  `?demo=combo` (2026-11-09) plays a street fight with the HUD's combo
+  counter showing: a chain built from landed punches, whiffs that add
+  nothing while it drops, and a thug's hit breaking the next.
 
 **Times Square's signs (done):**
 - Street walls in the sign district (42nd to about 50th Street around
@@ -2499,7 +2519,9 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/combo_test.tscn` (the
+  combo counter: landed hits chain, whiffs don't, drops and breaks; exits
+  non-zero on failure), `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
@@ -2526,7 +2548,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` / `?demo=combo` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

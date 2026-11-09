@@ -1,6 +1,6 @@
 class_name GameHud
 extends Control
-## Player HUD: health bar, thugs taken down, a marker pointing to the nearest
+## Player HUD: health bar, thugs taken down, the combo counter, a marker pointing to the nearest
 ## thug, and in co-op a marker for each other player (markers sit at the
 ## screen edge when what they point at is off screen), the game's status and
 ## short notices ("Player 2 is now the host"), plus the aerial photos' credit
@@ -25,6 +25,14 @@ const NOTICE_TIME := 6.0
 ## "Player joined" waits this long for their name (seconds).
 const NAME_WAIT := 1.0
 const NOTICE_COLOR := Color(1.0, 0.9, 0.45)
+## The combo counter: how long a dropped or broken chain's line shows (s),
+## how long a new hit makes the count pop (s), and the punches' names.
+const CHAIN_END_TIME := 1.8
+const COMBO_POP_TIME := 0.18
+const PUNCH_NAMES: Array[String] = ["JAB", "CROSS", "FINISHER"]
+const COMBO_COLOR := Color(1.0, 0.85, 0.3)
+const COMBO_HOT_COLOR := Color(1.0, 0.45, 0.15)
+const MISS_COLOR := Color(1.0, 0.3, 0.25)
 ## The license (CC BY 4.0) asks for this whenever the photos are shown.
 const AERIAL_CREDIT := "Aerial imagery: NYC OTI / NYS Orthoimagery Program 2024 (CC BY 4.0)"
 
@@ -95,6 +103,8 @@ func _draw() -> void:
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * health, bar.size.y)), fill)
 	_text(bar.position + Vector2(0.0, -8.0), "HEALTH", 14)
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
+	_draw_combo(Vector2(bar.position.x, bar.position.y - 120.0) if not touch_controls
+		else Vector2(bar.position.x, bar.end.y + 52.0))
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
 	_draw_coop_status()
@@ -118,6 +128,65 @@ func _draw() -> void:
 		var other: Hero = players.remote_heroes[id]
 		_draw_marker(other.global_position + Vector3.UP * 2.6, Net.player_name(id).to_upper(),
 			Net.player_color(id).lightened(0.35), PLAYER_NEAR_ENOUGH)
+
+
+## The combo counter, with its top left at `at`: the hits landed in a row
+## ("5 HITS", popping bigger at each new one and warming from gold to orange
+## as the chain grows), a bar for the time left before it drops, and the
+## punches of the current string (filled when they landed, crossed out when
+## they whiffed). When a chain ends, a line says how long it was and whether it
+## dropped (time ran out) or broke (a thug hit the hero), fading out.
+func _draw_combo(at: Vector2) -> void:
+	var combo := hero.combo
+	if combo.count > 0:
+		var pop := clampf(1.0 - combo.since_hit / COMBO_POP_TIME, 0.0, 1.0)
+		var color := COMBO_COLOR.lerp(COMBO_HOT_COLOR, clampf((combo.count - 2) / 10.0, 0.0, 1.0))
+		color = color.lerp(Color.WHITE, pop * 0.6)
+		var size_now := int(30.0 + 12.0 * pop)
+		var count_text := "%d" % combo.count
+		_text(at + Vector2(0.0, 34.0), count_text, size_now, color)
+		var width := _font.get_string_size(count_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, size_now).x
+		_text(at + Vector2(width + 8.0, 34.0), "HIT" if combo.count == 1 else "HITS", 18, color)
+		if combo.last_heavy and pop > 0.0:
+			_text(at + Vector2(width + 60.0, 34.0), "LAUNCH!", 18, Color(1.0, 1.0, 1.0, pop))
+		var timer := Rect2(at + Vector2(0.0, 44.0), Vector2(150.0, 6.0))
+		draw_rect(timer.grow(2.0), Color(0.0, 0.0, 0.0, 0.55))
+		var left := combo.remaining()
+		var urgent := left < 0.3
+		var timer_color := MISS_COLOR if urgent and fmod(combo.time_left, 0.2) < 0.1 else color
+		draw_rect(Rect2(timer.position, Vector2(timer.size.x * left, timer.size.y)), timer_color)
+	elif combo.since_end < CHAIN_END_TIME:
+		var fade := clampf(1.0 - (combo.since_end - CHAIN_END_TIME * 0.6) / (CHAIN_END_TIME * 0.4), 0.0, 1.0)
+		var broken := combo.last_end == ComboChain.End.BROKEN
+		var line := "%d-HIT CHAIN %s" % [combo.last_count, "BROKEN" if broken else "DROPPED"]
+		var color := MISS_COLOR if broken else Color(0.8, 0.8, 0.8)
+		color.a = fade
+		_text(at + Vector2(0.0, 34.0), line, 20, color)
+		if combo.last_count >= combo.best:
+			_text(at + Vector2(0.0, 52.0), "BEST YET", 13, Color(COMBO_COLOR, fade))
+	if combo.best >= ComboChain.MIN_REPORTED:
+		_text(at + Vector2(160.0, 52.0), "BEST %d" % combo.best, 13, Color(1.0, 1.0, 1.0, 0.7))
+	# The current punch string, while punching or while the chain lasts.
+	if hero.mode.name != &"Melee" and combo.count == 0:
+		return
+	var x := at.x
+	var y := at.y + 70.0
+	for k in combo.punches.size():
+		var state: int = combo.punches[k]
+		var dot := Vector2(x + 6.0, y - 5.0)
+		match state:
+			ComboChain.Punch.LANDED:
+				draw_circle(dot, 6.0, COMBO_COLOR)
+			ComboChain.Punch.MISSED:
+				draw_arc(dot, 6.0, 0.0, TAU, 16, MISS_COLOR, 2.0)
+				draw_line(dot - Vector2(4.0, 4.0), dot + Vector2(4.0, 4.0), MISS_COLOR, 2.0)
+			_:
+				draw_arc(dot, 6.0, 0.0, TAU, 16, Color(1.0, 1.0, 1.0, 0.5), 1.5)
+		var name_color := {ComboChain.Punch.LANDED: COMBO_COLOR, ComboChain.Punch.MISSED: MISS_COLOR}.get(
+			state, Color(1.0, 1.0, 1.0, 0.55)) as Color
+		var punch_name := PUNCH_NAMES[k] if k < PUNCH_NAMES.size() else str(k + 1)
+		_text(Vector2(x + 16.0, y), punch_name, 13, name_color)
+		x += 22.0 + _font.get_string_size(punch_name, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13).x + 10.0
 
 
 func _draw_coop_status() -> void:

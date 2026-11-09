@@ -2,7 +2,9 @@ class_name DemoDirector
 extends Node
 ## Plays a scripted tour for recording videos: ?demo shows off the hero's
 ## powers, ?demo=fight a street fight, ?demo=city flies the free camera over
-## the city, ?demo=new over what's new lately. Drives the hero's input and the camera and captions each part.
+## the city, ?demo=new over what's new lately, ?demo=combo the combo counter
+## (with the HUD showing): a chain built from landed punches, whiffs that add
+## nothing while it runs out and drops, and a thug's hit breaking the next. Drives the hero's input and the camera and captions each part.
 ## Prints "[demo] start" and "[demo] finished" so a recorder can follow, and
 ## "[demo] pause" / "[demo] resume" around waits for the city to load (a
 ## recorder can pause, so the video has no loading pop-in).
@@ -89,6 +91,19 @@ func _ready() -> void:
 			_flight_shot("Times Square at night", 7.0, [13, 16.1, -67, 159.5, 6], [5, 16.1, -45, 159.5, 6], false,
 					[21.5, 21.5]),
 			_shot("", 0.5),
+		]
+	elif LaunchOptions.get_string("demo") == "combo":
+		_yaw = _avenue_yaw
+		camera.yaw = _yaw
+		_shots = [
+			_shot("Street thugs", 2.5, Callable(), _fight_camera, _spawn_gang_ahead.bind(10.0, 4)),
+			_shot("Every punch that lands adds to the chain", 6.0, _combo_punch_input, _punch_camera),
+			_shot("Punches that hit nobody add nothing...", 2.6, _punch_input, _combo_whiff_camera),
+			_shot("...and the chain drops", 2.4, Callable(), _combo_whiff_camera),
+			_shot("A new gang", 2.5, Callable(), _fight_camera, _spawn_gang_ahead.bind(9.0, 3)),
+			_shot("Build a chain...", 3.0, _combo_punch_input, _punch_camera),
+			_shot("...stop punching, and a thug's hit breaks it", 5.0, Callable(), _punch_camera),
+			_shot("", 1.5),
 		]
 	elif LaunchOptions.get_string("demo") == "fight":
 		_yaw = _avenue_yaw
@@ -244,6 +259,21 @@ func _fight_camera(_t: float) -> void:
 
 func _punch_input(input: HeroInput, t: float) -> void:
 	input.attack_held = t < 5.8 and fmod(t, 0.3) < 0.12
+
+
+## Combo tour: punches only while a thug stands near, so the chain counts
+## landed hits and the next shots show whiffs on their own.
+func _combo_punch_input(input: HeroInput, t: float) -> void:
+	var near := false
+	for thug: Thug in Combat.thugs:
+		if not thug.is_down() and thug.global_position.distance_to(hero.global_position) < 8.0:
+			near = true
+	input.attack_held = near and fmod(t, 0.3) < 0.12
+
+
+func _combo_whiff_camera(t: float) -> void:
+	_yaw = _avenue_yaw + 0.8 - 0.3 * smoothstep(0.0, 5.0, t)
+	_pitch = -0.3
 
 
 func _punch_camera(t: float) -> void:

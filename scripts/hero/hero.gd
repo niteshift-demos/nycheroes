@@ -51,6 +51,9 @@ var remote_grounded := false
 var remote_in_water := false
 ## Height of the water surface around the hero: a raised lake's, or sea level (0).
 var water_level := 0.0
+## Hits landed in a row, for the HUD's combo counter (a copy's count comes
+## from its player's game through PlayerSync).
+var combo := ComboChain.new()
 
 # Input edges for this tick, worked out from `input`.
 var jump_pressed := false
@@ -96,6 +99,7 @@ func _physics_process(delta: float) -> void:
 	_prev_web = input.web_held
 	_prev_attack = input.attack_held
 	hurt_time = maxf(hurt_time - delta, 0.0)
+	combo.update(delta)
 	_regen_delay -= delta
 	if _regen_delay <= 0.0:
 		health = minf(health + REGEN_RATE * delta, MAX_HEALTH)
@@ -192,6 +196,7 @@ func take_hit(damage: float, push: Vector3) -> void:
 		return
 	health = maxf(health - damage, 0.0)
 	hurt_time = HURT_TIME
+	combo.break_chain()
 	_regen_delay = REGEN_DELAY
 	velocity += push
 	hurt.emit(damage)
@@ -210,7 +215,8 @@ func _find_water_level() -> float:
 ## A hard landing: the faster the fall, the wider the blast.
 func _slam(impact_speed: float) -> void:
 	var power := clampf(inverse_lerp(SLAM_SPEED, MAX_FALL_SPEED, impact_speed), 0.0, 1.0)
-	Combat.shockwave(global_position, lerpf(5.0, 11.0, power), 100.0, lerpf(14.0, 26.0, power))
+	var hits := Combat.shockwave(global_position, lerpf(5.0, 11.0, power), 100.0, lerpf(14.0, 26.0, power))
+	combo.land(hits, true)
 
 
 func _on_origin_shifted(delta: Vector3) -> void:
