@@ -68,6 +68,7 @@ func _validate_roof(_seconds: float) -> void:
 	if not _ready_course:
 		state.message = "Course unavailable: roof data changed or has not loaded"
 	print("[rooftop] roof validated: ", _ready_course)
+	_update_display()
 
 
 func restart_run() -> void:
