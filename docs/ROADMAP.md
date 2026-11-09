@@ -36,6 +36,18 @@ Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
 the hero is driven by a plain input object per physics tick so a network
 peer can drive one later. Nearby tiles get collision.
 
+Web swinging shows a cyan ring on a reachable collision surface and its
+hand-to-wall distance against the 120 m range. Hold Web (E/right mouse,
+right trigger or touch WEB) to attach; the ring turns gold while attached,
+and releasing retains the existing momentum. A denser forward/upward fan
+helps catch narrow walls between aim rays. Empty air, low surfaces and
+out-of-range walls still cannot attach; the HUD explains when no suitable
+wall is in reach. The ring marks the visible wall attachment, while the
+existing street-centered pendulum physics stays unchanged. Feedback checks
+at most once per 0.15 s; attachment always checks current collision again.
+The feedback is local only, scales with the viewport, and clears cached
+candidates when the floating origin shifts.
+
 ## 3. Street fights (done)
 
 - Pedestrians walk real sidewalk lanes (traced from street data), run from
@@ -2499,6 +2511,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+  `res://tests/swing_assist_test.tscn` (synthetic narrow-wall selection,
+  empty air, height/range limits, stale previews and origin shifts),
   `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
@@ -2523,6 +2537,16 @@ deployed); in a computer's browser the co-op menu links to it.
   out onto the other track, alone on the terminal's track; it needs tiles
   with the trains surface around the 7, the 4 on Jerome Avenue and
   Woodlawn; `TRAINS_TERMINAL_ONLY=1` goes straight to Woodlawn).
+- Swing evidence replay: `res://tests/swing_assist_replay.tscn` drives only
+  normal HeroInput in the real streamed city: three swings/releases, then
+  ordinary upward flight and an empty-air attachment attempt. Use
+  `-- --solo=1 --spawn=420,30,-220,-29 --quality=low --name=SwingTester
+  --peds=0 --traffic=0 --gangs=0 --tiles_url=http://localhost:8060/tiles/`.
+  It waits for initial loading and three seconds to settle, then runs for
+  30 seconds. Native Movie Maker: add `--resolution 1280x720 --fixed-fps 30
+  --write-movie /data/swing-assist/native.avi`; leave normal physics ticks
+  and game time unchanged. Its log identifies the useful footage's start
+  and end frames; leading loading footage may be trimmed without retiming.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,

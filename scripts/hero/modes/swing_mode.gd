@@ -32,24 +32,53 @@ const MIN_ROPE := 8.0
 var anchor := Vector3.ZERO
 var web_point := Vector3.ZERO
 var rope_length := 0.0
+## Local aiming feedback only; attachment always performs a fresh collision query.
+var preview: Dictionary = {}
+var _preview_wait := 0.0
 
 
 func _ready() -> void:
 	WorldOrigin.shifted.connect(func(delta: Vector3) -> void:
 		anchor -= delta
-		web_point -= delta)
+		web_point -= delta
+		preview.clear())
+	var feedback := preload("res://scripts/hero/swing_feedback.gd").new()
+	feedback.swing = self
+	add_child(feedback)
 
 
 ## Looks for a building ahead and above to stick a web to. Returns true if found.
 func try_attach() -> bool:
+	var found := find_anchor()
+	preview = found
+	if found.is_empty():
+		return false
+	web_point = found.point
+	anchor = found.pivot
+	rope_length = found.rope
+	return true
+
+
+func _physics_process(delta: float) -> void:
+	if not hero or hero.frozen or hero.is_remote() or hero.mode.name != &"OnFoot":
+		preview.clear()
+		return
+	_preview_wait -= delta
+	if _preview_wait <= 0.0:
+		_preview_wait = 0.15
+		preview = find_anchor()
+
+
+## A denser fan forgives imperfect aim, but every candidate must hit real
+## world collision within range and leave room for the existing pendulum.
+func find_anchor() -> Dictionary:
 	var space := hero.get_world_3d().direct_space_state
 	var hand := hero.global_position + Vector3.UP * HAND_HEIGHT
 	var forward := _swing_direction()
 	var best_score := -INF
-	# A wide fan: real buildings step back as they rise, so walls high enough
-	# to swing from are often off to the side.
-	for elevation: float in [55.0, 40.0, 70.0, 30.0]:
-		for side: float in [0.0, -25.0, 25.0, -45.0, 45.0]:
+	var found: Dictionary = {}
+	for elevation: float in [55.0, 40.0, 70.0, 30.0, 20.0, 47.5, 62.5]:
+		for side: float in [0.0, -12.5, 12.5, -25.0, 25.0, -37.5, 37.5, -45.0, 45.0, -60.0, 60.0]:
 			var flat := forward.rotated(Vector3.UP, deg_to_rad(side))
 			var direction := flat * cos(deg_to_rad(elevation)) + Vector3.UP * sin(deg_to_rad(elevation))
 			var query := PhysicsRayQueryParameters3D.create(hand, hand + direction * max_web_length, Hero.WORLD_LAYER)
@@ -63,19 +92,15 @@ func try_attach() -> bool:
 				continue
 			var sideways := Vector3(offset.x, 0.0, offset.z) - forward * ahead
 			var pivot := hand + forward * ahead + sideways * sideways_keep + Vector3.UP * offset.y
-			# The bottom of the swing has to clear whatever is under the pivot.
 			var longest := pivot.y - _floor_below(space, pivot) - HAND_HEIGHT - GROUND_CLEARANCE
 			var rope := minf(hand.distance_to(pivot) * initial_reel, longest)
 			if rope < MIN_ROPE:
 				continue
-			# Prefer webs about 50 m long, straight ahead, at a medium angle.
 			var score := -absf(offset.length() - 50.0) * 0.5 - absf(side) * 0.3 - absf(elevation - 55.0) * 0.2
 			if score > best_score:
 				best_score = score
-				web_point = point
-				anchor = pivot
-				rope_length = rope
-	return best_score > -INF
+				found = {point = point, pivot = pivot, rope = rope}
+	return found
 
 
 func _floor_below(space: PhysicsDirectSpaceState3D, from: Vector3) -> float:

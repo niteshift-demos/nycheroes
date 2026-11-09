@@ -42,6 +42,10 @@ Windows and Mac versions are on the site's download page.
 
 Phones and tablets get touch controls.
 
+Web swinging shows a cyan wall marker and distance when a real surface is
+in reach (120 m). Hold Web to attach; gold means attached. Release to
+keep your momentum. If no wall is in reach, face taller nearby buildings.
+
 ## Running it locally
 
 You need [Godot 4.7.2](https://godotengine.org/) (the project uses the
