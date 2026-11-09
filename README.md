@@ -18,7 +18,7 @@ Windows and Mac versions are on the site's download page.
 - **Life on the streets:** pedestrians on real sidewalk lanes, traffic that
   obeys signals, subway trains on the elevated lines, day and night, and a
   city soundscape.
-- **The hero:** running, super speed, charged super jumps, flight, web
+- **The hero:** running, super speed, charged super jumps, wall kicks, flight, web
   swinging, swimming, punch combos, dive attacks and landing slams; a
   customizable look and outfit.
 - **Co-op:** one big public game by default, or a private game with a code.
@@ -30,7 +30,7 @@ Windows and Mac versions are on the site's download page.
 |---|---|---|
 | Move | WASD | Left stick |
 | Look | Mouse | Right stick |
-| Jump (hold to charge) | Space | A |
+| Jump (hold to charge; in the air beside a wall, wall kick) | Space | A |
 | Descend | C | B |
 | Sprint / super speed | Shift | L3 or left bumper |
 | Toggle flight | F | Y |

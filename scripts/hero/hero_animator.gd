@@ -17,6 +17,9 @@ var _up := Vector3.UP
 var _land_timer := 0.0
 var _hard_landing := false
 var _punch_id := -1
+var _wall_kick_id := 0
+## Seconds left of the wall kick pose.
+var _kick_timer := 0.0
 var outfit: HeroOutfit
 var appearance: Dictionary = {}
 
@@ -62,6 +65,7 @@ func _process(delta: float) -> void:
 	if outfit:
 		outfit.set_motion(hero.velocity.length())
 	_land_timer -= delta
+	_kick_timer -= delta
 	_yaw = lerp_angle(_yaw, hero.facing, 1.0 - exp(-14.0 * delta))
 	# Blend and renormalize (Vector3.slerp errors when the vectors are nearly equal).
 	var target_up := _target_up()
@@ -123,12 +127,17 @@ func _choose_animation() -> Array:
 			_punch_id = melee.punch_id
 			return [punch.animation, punch.speed, new_punch]
 	var on_foot := hero.mode as OnFootMode
+	if on_foot.wall_kick_id != _wall_kick_id:
+		# A wall kick (ours, or another player's from PlayerSync): spring off.
+		_wall_kick_id = on_foot.wall_kick_id
+		_kick_timer = 0.35
+		return [&"Jump_Start", 1.6, true]
 	if hero.is_in_water():
 		return [&"Swim_Fwd", 1.0] if speed > 1.0 else [&"Swim_Idle", 1.0]
 	if hero.hurt_time > 0.0:
 		return [&"Hit_Chest", 1.0]
 	if not hero.grounded():
-		return [&"Jump", 1.0]
+		return [&"Jump_Start", 1.6] if _kick_timer > 0.0 else [&"Jump", 1.0]
 	if (on_foot.charging and on_foot.charge > 0.0) or (_land_timer > 0.0 and _hard_landing):
 		return [&"Crouch_Idle", 1.0]
 	if _land_timer > 0.0:

@@ -39,6 +39,7 @@ var _mode := &""
 var _grounded := true
 var _in_water := false
 var _punch_id := 0
+var _wall_kick_id := 0
 var _hurt_time := 0.0
 var _step_animation := &""
 var _step_phase := 0.0
@@ -88,12 +89,14 @@ func _update() -> void:
 	var grounded := hero.grounded()
 	var in_water := hero.is_in_water()
 	var melee := hero.get_mode(&"Melee") as MeleeMode
+	var on_foot := hero.get_mode(&"OnFoot") as OnFootMode
 	if hero.frozen or not GameAudio.can_play():
 		# Nothing happens while frozen (or silent); catch up without sounds.
 		_mode = mode
 		_grounded = grounded
 		_in_water = in_water
 		_punch_id = melee.punch_id
+		_wall_kick_id = on_foot.wall_kick_id
 		_hurt_time = hero.hurt_time
 		for loop in _loops:
 			loop.target = 0.0
@@ -119,6 +122,12 @@ func _update() -> void:
 		GameAudio.play(&"splash", at, -6.0, 1.2)
 	_grounded = grounded
 	_in_water = in_water
+	# A wall kick: a foot slapping the wall, and the spring off it.
+	if on_foot.wall_kick_id != _wall_kick_id:
+		_wall_kick_id = on_foot.wall_kick_id
+		GameAudio.play(&"jump", at, 0.0, 0.85)
+		if randf() < 0.4:
+			GameAudio.play(&"hero_effort", at + Vector3.UP * 1.5)
 
 	# Each punch whooshes; the last of a combo is heavier.
 	if melee.punch_id != _punch_id:

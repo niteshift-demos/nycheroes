@@ -36,6 +36,29 @@ Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
 the hero is driven by a plain input object per physics tick so a network
 peer can drive one later. Nearby tiles get collision.
 
+- **Wall kick** (added 2026-11-09): pressing jump in the air with a wall
+  within 0.9 m of the body's middle (`OnFootMode.find_wall`, eight flat
+  rays) springs off it: 11 m/s straight out, 13 m/s up, keeping up to running
+  speed along the wall; the stick steers it a little, but holding into the
+  wall doesn't blunt it. It's no ladder: three kicks per trip through the
+  air (landing or swimming gives them back), 0.3 s
+  between kicks, and each kick off the same wall as the last lifts 0.45
+  times the one before (13, 5.9, 2.6 m/s), while the push out carries the
+  hero ~4 m off a lone wall before steering can bring it back. So it links
+  the walls of a narrow gap (three kicks up a 6.7 m Midtown gap reach about
+  9 m) but never climbs a tower. Coyote time (a jump just after running off
+  a ledge) now needs the hero not to be rising, so a quick second press is
+  a kick rather than a fresh jump. Copies of other players' heroes see it
+  through `wall_kick_id` (PlayerSync's 14th state field, so `NET_VERSION`
+  4: older games are matched apart): the animator plays
+  Jump_Start and the hero thumps off the wall (the jump sound, lower).
+  A cornice, awning or scaffolding over the wall still stops the rise, as
+  any ceiling does.
+  Its video is recorded with Godot's Movie Maker from
+  `tools/capture/wall_kick_capture.tscn` (ordinary per-tick input in the
+  real city; the command is in its header), at a gap found by
+  `tools/capture/alley_scan.tscn`.
+
 ## 3. Street fights (done)
 
 - Pedestrians walk real sidewalk lanes (traced from street data), run from
@@ -2499,6 +2522,9 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+  `res://tests/wall_kick_test.tscn` (wall kicks against a real Midtown
+  facade: kick off it, the cooldown, the same wall weaker each time and only
+  three kicks before landing, none in open air),
   `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and

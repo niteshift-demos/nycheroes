@@ -1,6 +1,7 @@
 class_name OnFootMode
 extends HeroMode
-## Running, super speed, jumps and charged super jumps, falling, and swimming.
+## Running, super speed, jumps and charged super jumps, wall kicks, falling,
+## and swimming.
 
 @export_group("Running")
 @export var run_speed := 9.0
@@ -27,6 +28,21 @@ extends HeroMode
 ## Grace period for jumping just after running off a ledge.
 @export var coyote_time := 0.12
 
+@export_group("Wall kick")
+## Pressing jump in the air with a wall within this reach (m, from the body's
+## middle; the capsule's radius is 0.25) kicks off it.
+@export var wall_kick_reach := 0.9
+## Speed straight out from the wall, and upward, of a kick.
+@export var wall_kick_push := 11.0
+@export var wall_kick_lift := 13.0
+## Kicks per trip through the air: a short wall-to-wall chain, not a ladder.
+@export var wall_kicks_per_jump := 3
+## Each kick off the same wall as the last lifts this much less (multiplied),
+## so bouncing back to one wall loses height instead of climbing it.
+@export var same_wall_lift_scale := 0.45
+## Shortest time between kicks (s).
+@export var wall_kick_cooldown := 0.3
+
 @export_group("Super speed ram")
 ## Running faster than this bowls over any thug in the way.
 @export var ram_speed := 25.0
@@ -48,6 +64,14 @@ var _air_time := 0.0
 var _web_cooldown := 0.0
 var _scare_cooldown := 0.0
 var _jump_handed_over := false
+## Counts every wall kick (network-visible, like MeleeMode.punch_id): the
+## animator and sounds kick when it changes, for copies of other players too.
+var wall_kick_id := 0
+## Kicks left before touching down again.
+var wall_kicks_left := 3
+var _kick_cooldown := 0.0
+var _kick_normal := Vector3.ZERO  # the wall last kicked off, this trip through the air
+var _kick_lift_scale := 1.0
 
 
 func enter(_previous: StringName) -> void:
@@ -65,9 +89,12 @@ func physics_update(delta: float) -> StringName:
 	if _wants_web(delta) and (hero.get_mode(&"Swing") as SwingMode).try_attach():
 		return &"Swing"
 
+	_kick_cooldown -= delta
 	if hero.is_in_water():
+		_reset_wall_kicks()
 		_swim(delta)
 	elif hero.is_on_floor():
+		_reset_wall_kicks()
 		_run(delta)
 	else:
 		_fall(delta)
@@ -169,8 +196,13 @@ func _fall(delta: float) -> void:
 	_air_time += delta
 	charging = false
 	charge = 0.0
-	if hero.jump_pressed and _air_time < coyote_time:
-		hero.velocity.y = jump_speed
+	if hero.jump_pressed:
+		# Coyote time is for running off a ledge, not a second press while
+		# already jumping up (which can be a wall kick).
+		if _air_time < coyote_time and hero.velocity.y <= 0.0:
+			hero.velocity.y = jump_speed
+		elif _try_wall_kick():
+			return
 
 	# Steer a little, but never slow a fast jump down below its own speed.
 	var horizontal := Vector3(hero.velocity.x, 0.0, hero.velocity.z)
@@ -180,6 +212,68 @@ func _fall(delta: float) -> void:
 	hero.velocity.z = horizontal.z
 	hero.velocity.y = maxf(hero.velocity.y - Hero.GRAVITY * delta, -Hero.MAX_FALL_SPEED)
 	hero.face_toward(horizontal, 10.0 * delta)
+
+
+func _reset_wall_kicks() -> void:
+	wall_kicks_left = wall_kicks_per_jump
+	_kick_normal = Vector3.ZERO
+	_kick_lift_scale = 1.0
+
+
+## Jump pressed in the air beside a wall: spring off it, up and away. Limited
+## per trip through the air, with a cooldown, and weaker off the same wall
+## twice, so it links walls across an alley but can't climb a tower.
+func _try_wall_kick() -> bool:
+	if wall_kicks_left <= 0 or _kick_cooldown > 0.0 or hero.hurt_time > 0.0:
+		return false
+	var normal := find_wall()
+	if normal == Vector3.ZERO:
+		return false
+	if _kick_normal != Vector3.ZERO and normal.dot(_kick_normal) > 0.7:
+		_kick_lift_scale *= same_wall_lift_scale
+	else:
+		_kick_lift_scale = 1.0
+	_kick_normal = normal
+	wall_kicks_left -= 1
+	_kick_cooldown = wall_kick_cooldown
+	wall_kick_id += 1
+	# Keep the speed along the wall (capped), swap the speed into it for a push out.
+	var horizontal := Vector3(hero.velocity.x, 0.0, hero.velocity.z)
+	var along := (horizontal - normal * horizontal.dot(normal)).limit_length(run_speed)
+	# The stick steers the kick a little, but holding into the wall doesn't blunt it.
+	var steer := hero.input.move.limit_length(1.0)
+	steer -= normal * minf(steer.dot(normal), 0.0)
+	var out := normal * wall_kick_push + steer * 3.0
+	hero.velocity = Vector3(along.x + out.x, wall_kick_lift * _kick_lift_scale, along.z + out.z)
+	hero.face_toward(normal)
+	return true
+
+
+## The outward normal (flat, unit) of the nearest wall within reach of the
+## body's middle, or zero. Probes the way the hero moves first, then all round.
+func find_wall() -> Vector3:
+	var space := hero.get_world_3d().direct_space_state
+	var center := hero.global_position + Vector3.UP * 0.9
+	var best := Vector3.ZERO
+	var best_distance := INF
+	var heading := Vector3(hero.velocity.x, 0.0, hero.velocity.z)
+	var base := atan2(-heading.x, -heading.z) if heading.length_squared() > 0.25 else hero.facing
+	for k in 8:
+		var yaw := base + k * TAU / 8.0
+		var direction := Vector3(-sin(yaw), 0.0, -cos(yaw))
+		var query := PhysicsRayQueryParameters3D.create(center, center + direction * wall_kick_reach, Hero.WORLD_LAYER)
+		query.exclude = [hero.get_rid()]
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			continue
+		var normal: Vector3 = hit.normal
+		if absf(normal.y) > 0.35:
+			continue  # a roof or a slope, not a wall
+		var distance := center.distance_to(hit.position)
+		if distance < best_distance:
+			best_distance = distance
+			best = Vector3(normal.x, 0.0, normal.z).normalized()
+	return best
 
 
 func _swim(delta: float) -> void:
