@@ -34,13 +34,14 @@ Windows and Mac versions are on the site's download page.
 | Descend | C | B |
 | Sprint / super speed | Shift | L3 or left bumper |
 | Toggle flight | F | Y |
+| Air brake / precision hover (flying) | Q | Left trigger |
 | Web | E or right mouse | Right trigger |
 | Attack | Left mouse | X |
 | Co-op menu | M | |
 | Hero and options | O or Esc | |
 | Time of day | T | |
 
-Phones and tablets get touch controls.
+Phones and tablets get touch controls (BRAKE takes WEB's place while flying).
 
 ## Running it locally
 

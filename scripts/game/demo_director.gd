@@ -2,7 +2,9 @@ class_name DemoDirector
 extends Node
 ## Plays a scripted tour for recording videos: ?demo shows off the hero's
 ## powers, ?demo=fight a street fight, ?demo=city flies the free camera over
-## the city, ?demo=new over what's new lately. Drives the hero's input and the camera and captions each part.
+## the city, ?demo=new over what's new lately, ?demo=brake the flight air brake
+## (with a speed readout: boost, brake to a dead stop, precision hover, and a
+## stop left too late before a building). Drives the hero's input and the camera and captions each part.
 ## Prints "[demo] start" and "[demo] finished" so a recorder can follow, and
 ## "[demo] pause" / "[demo] resume" around waits for the city to load (a
 ## recorder can pause, so the video has no loading pop-in).
@@ -13,6 +15,9 @@ const AVENUE := Vector3(0.485, 0.0, -0.875)
 ## meters; dropped onto the street).
 const START := Vector3(420.0, 30.0, -220.0)
 const SETTLE_TIME := 1.0
+## Brake tour: the hero presses the brake once the building it's boosting at
+## is this close (m) along its path: too late at that speed, on purpose.
+const LATE_BRAKE_DISTANCE := 10.0
 ## City tour: after a jump, the camera holds still this long once every tile
 ## has loaded, before the shot rolls.
 const LOADED_SETTLE := 0.6
@@ -41,6 +46,11 @@ var _caption: Label
 var _flight := {}
 var _holding := false
 var _loaded_time := 0.0
+## Brake tour: live speed under the caption, and where the stop began.
+var _readout: Label
+var _brake_from := Vector3.INF
+var _brake_speed := 0.0
+var _brake_report := ""
 
 
 func _ready() -> void:
@@ -90,6 +100,21 @@ func _ready() -> void:
 					[21.5, 21.5]),
 			_shot("", 0.5),
 		]
+	elif LaunchOptions.get_string("demo") == "brake":
+		_yaw = _avenue_yaw
+		camera.yaw = _yaw
+		_pitch = -0.15
+		_shots = [
+			_shot("", 1.5, Callable(), _brake_intro_camera),
+			_shot("Take off up 6th Avenue", 3.0, _brake_takeoff_input, _brake_chase_camera),
+			_shot("Boost", 3.0, _brake_boost_input, _brake_chase_camera),
+			_shot("Air brake (Q, left trigger, BRAKE)", 3.0, _brake_hold_input, _brake_side_camera),
+			_shot("Precision hover: 4 m/s while held", 4.5, _brake_hover_input, _brake_hover_camera),
+			_shot("Limit: ~20 m to stop from full speed", 1.0, _brake_aim_input, _brake_limit_camera),
+			_shot("Limit: ~20 m to stop from full speed", 2.8, _brake_late_input, _brake_limit_camera),
+			_shot("", 1.0, _brake_hold_input, _brake_limit_camera),
+		]
+		_make_readout()
 	elif LaunchOptions.get_string("demo") == "fight":
 		_yaw = _avenue_yaw
 		camera.yaw = _yaw
@@ -124,7 +149,9 @@ func _physics_process(delta: float) -> void:
 			return
 		_settle -= delta
 		if _settle <= 0.0:
-			print("[demo] start")
+			# (With the frame number, so a Movie Maker recording can be trimmed
+			# to the tour.)
+			print("[demo] start (frame %d)" % Engine.get_frames_drawn())
 			_begin(0)
 		return
 	if _index >= _shots.size():
@@ -146,6 +173,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	if _readout:
+		_update_readout()
 	var blend := 1.0 - exp(-3.0 * delta)
 	camera.yaw = lerp_angle(camera.yaw, _yaw, blend)
 	camera.pitch = lerpf(camera.pitch, _pitch, blend)
@@ -277,6 +306,132 @@ func _ram_camera(_t: float) -> void:
 func _aftermath_camera(t: float) -> void:
 	_yaw = _avenue_yaw + 2.6 * smoothstep(0.0, 3.0, t)
 	_pitch = -0.35
+
+
+# --- Brake tour ---
+
+func _brake_intro_camera(_t: float) -> void:
+	_yaw = _avenue_yaw
+	_pitch = -0.15
+
+
+func _brake_takeoff_input(input: HeroInput, t: float) -> void:
+	input.fly_toggle_pressed = t < 0.02
+	input.stick = Vector2(0.0, -1.0)
+	input.vertical = 1.0 if t < 1.6 else 0.0
+
+
+func _brake_chase_camera(_t: float) -> void:
+	_yaw = _avenue_yaw
+	_pitch = -0.12
+
+
+func _brake_boost_input(input: HeroInput, _t: float) -> void:
+	input.stick = Vector2(0.0, -1.0)
+	input.sprint_held = true
+
+
+## Holding the brake (and nothing else): stops dead and stays.
+func _brake_hold_input(input: HeroInput, _t: float) -> void:
+	_note_brake()
+	input.brake_held = true
+
+
+func _brake_side_camera(t: float) -> void:
+	_yaw = _avenue_yaw + 1.1 * smoothstep(0.0, 1.2, t)
+	_pitch = -0.2
+
+
+func _brake_hover_input(input: HeroInput, t: float) -> void:
+	_brake_from = Vector3.INF
+	input.brake_held = true
+	# Nudges: sideways, up, then forward, at the precision hover's speed.
+	if t > 0.5 and t < 1.7:
+		input.stick = Vector2(1.0, 0.0)
+	elif t > 1.9 and t < 3.0:
+		input.vertical = 1.0
+	elif t > 3.2 and t < 4.3:
+		input.stick = Vector2(0.0, -1.0)
+
+
+func _brake_hover_camera(t: float) -> void:
+	_yaw = _avenue_yaw + 1.1 - 0.6 * smoothstep(0.0, 4.5, t)
+	_pitch = -0.25
+
+
+## Turns toward the buildings on the avenue's east side, a long block ahead.
+func _brake_aim_input(input: HeroInput, _t: float) -> void:
+	input.aim = _limit_aim()
+	input.brake_held = true
+
+
+func _limit_aim() -> Vector3:
+	return AVENUE.rotated(Vector3.UP, -0.2)
+
+
+## Boosts at the buildings and only brakes once they're LATE_BRAKE_DISTANCE
+## ahead: at that speed the brake needs about twice that.
+func _brake_late_input(input: HeroInput, _t: float) -> void:
+	input.aim = _limit_aim()
+	if _brake_from != Vector3.INF:
+		_note_brake()
+		input.brake_held = true
+		return
+	input.stick = Vector2(0.0, -1.0)
+	input.sprint_held = true
+	var speed := hero.velocity.length()
+	if speed < 5.0:
+		return
+	var from := hero.global_position + Vector3.UP
+	var query := PhysicsRayQueryParameters3D.create(from,
+			from + hero.velocity / speed * (LATE_BRAKE_DISTANCE + speed * hero.get_physics_process_delta_time()), 1)
+	query.exclude = [hero.get_rid()]
+	if not hero.get_world_3d().direct_space_state.intersect_ray(query).is_empty():
+		_note_brake()
+		input.brake_held = true
+		input.stick = Vector2.ZERO
+		input.sprint_held = false
+
+
+func _brake_limit_camera(_t: float) -> void:
+	_yaw = atan2(-_limit_aim().x, -_limit_aim().z) + 0.9
+	_pitch = -0.2
+
+
+## Remembers where and how fast a stop began, for the readout.
+func _note_brake() -> void:
+	if _brake_from == Vector3.INF:
+		_brake_from = hero.world_position()
+		_brake_speed = hero.velocity.length()
+		_brake_report = ""
+
+
+func _update_readout() -> void:
+	var flight := hero.get_mode(&"Flight") as FlightMode
+	var speed := hero.velocity.length()
+	var text := "%3.0f m/s" % speed
+	if hero.mode == flight and flight.braking:
+		text += "   AIR BRAKE"
+		if _brake_from != Vector3.INF:
+			var distance := hero.world_position().distance_to(_brake_from)
+			if speed < 0.05 and _brake_report.is_empty():
+				_brake_report = "   stopped from %.0f m/s in %.0f m" % [_brake_speed, distance]
+			if hero.is_on_wall() and _brake_report.is_empty():
+				_brake_report = "   hit the wall at %.0f m/s, %.0f m in" % [speed, distance]
+			text += _brake_report
+	_readout.text = text
+
+
+func _make_readout() -> void:
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	_readout = Label.new()
+	_readout.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	_readout.position = Vector2(40.0, 30.0)
+	_readout.add_theme_font_size_override("font_size", 30)
+	_readout.add_theme_color_override("font_outline_color", Color.BLACK)
+	_readout.add_theme_constant_override("outline_size", 8)
+	layer.add_child(_readout)
 
 
 # --- Powers tour ---

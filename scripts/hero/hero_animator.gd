@@ -79,6 +79,13 @@ func _target_up() -> Vector3:
 	match hero.mode.name:
 		&"Flight", &"Dive":
 			var speed := hero.velocity.length()
+			if hero.mode.name == &"Flight" and (hero.mode as FlightMode).braking:
+				# Air brake: flare upright, chest into the wind, leaning back
+				# against the way the hero is still going.
+				if speed < 2.0:
+					return Vector3.UP
+				var flare := clampf(speed / 60.0, 0.0, 1.0) * 0.45
+				return Vector3.UP.lerp(-hero.velocity / speed, flare).normalized()
 			if speed < 8.0:
 				return Vector3.UP
 			# Superhero pose: lean head-first into the direction of travel.
@@ -111,6 +118,8 @@ func _choose_animation() -> Array:
 	var speed := hero.horizontal_speed()
 	match hero.mode.name:
 		&"Flight":
+			if (hero.mode as FlightMode).braking:
+				return [&"Crouch_Idle", 1.0] if hero.velocity.length() > 8.0 else [&"Idle", 0.6]
 			return [&"Jump", 0.6] if hero.velocity.length() > 8.0 else [&"Idle", 0.6]
 		&"Swing", &"Dive":
 			return [&"Jump", 1.0]

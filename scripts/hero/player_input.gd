@@ -26,5 +26,6 @@ func _physics_process(_delta: float) -> void:
 	input.sprint_held = Input.is_action_pressed("sprint")
 	input.web_held = Input.is_action_pressed("web")
 	input.attack_held = Input.is_action_pressed("attack")
+	input.brake_held = Input.is_action_pressed("air_brake")
 	if Input.is_action_just_pressed("fly_toggle"):
 		input.fly_toggle_pressed = true

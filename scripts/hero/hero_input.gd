@@ -15,6 +15,8 @@ var jump_held := false
 var sprint_held := false
 var web_held := false
 var attack_held := false
+## Air brake while flying: stop fast, then hover slowly (FlightMode).
+var brake_held := false
 ## One-shot: set by the input source, cleared by the hero after it's handled.
 var fly_toggle_pressed := false
 
@@ -27,4 +29,5 @@ func clear() -> void:
 	sprint_held = false
 	web_held = false
 	attack_held = false
+	brake_held = false
 	fly_toggle_pressed = false

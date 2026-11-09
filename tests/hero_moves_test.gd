@@ -53,6 +53,14 @@ func _ready() -> void:
 			i.stick = Vector2(0.0, -1.0)
 			i.aim = AVENUE
 			i.sprint_held = true),
+		# The air brake from full boost: a dead stop ~20 m on (speed 0.0).
+		_step("air brake", 1.5, func(i: HeroInput, _t: float) -> void:
+			i.aim = AVENUE
+			i.brake_held = true),
+		_step("fly forward, boosting again", 3.0, func(i: HeroInput, _t: float) -> void:
+			i.stick = Vector2(0.0, -1.0)
+			i.aim = AVENUE
+			i.sprint_held = true),
 		_step("hover", 2.0, func(i: HeroInput, _t: float) -> void: i.aim = AVENUE),
 		_step("boost up into the ceiling", 9.0, func(i: HeroInput, _t: float) -> void:
 			i.aim = AVENUE

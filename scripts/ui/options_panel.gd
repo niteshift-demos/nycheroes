@@ -49,6 +49,7 @@ const KEYS: Array[Array] = [
 	["Space", "jump; hold for a super jump"],
 	["Shift", "super speed"],
 	["F", "fly; Space and C go up and down"],
+	["Q", "air brake while flying: stop fast, then hover slowly"],
 	["E, right mouse", "web swing (hold)"],
 	["M", "co-op"],
 	["O", "options (this menu)"],
@@ -67,6 +68,7 @@ const TOUCH_HELP: Array[Array] = [
 	["JUMP", "hold for a super jump; UP while flying"],
 	["WEB", "hold to swing"],
 	["FLY", "fly; DOWN goes down"],
+	["BRAKE", "while flying (in WEB's place): stop fast, then hover slowly"],
 	["SPEED", "super speed, on and off"],
 	["CO-OP", "play with friends"],
 ]

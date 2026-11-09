@@ -36,6 +36,24 @@ Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
 the hero is driven by a plain input object per physics tick so a network
 peer can drive one later. Nearby tiles get collision.
 
+**Flight air brake (added 2026-11-09):** holding the air brake while flying
+(Q, a gamepad's left trigger, or BRAKE on touch screens, which takes WEB's
+place while flying) sheds speed like drag (`FlightMode.brake_damping`,
+8/s, plus a constant 12 m/s² so it ends in a dead stop instead of
+creeping), and while it's held the stick and climb/descend move the hero
+at a slow precision hover (`precision_speed`, 4 m/s; boost does nothing).
+Measured (`tests/air_brake_test.tscn`): from full sustained boost
+(187.5 m/s) the brake stops dead in about 21 m and 0.6 s, against about
+73 m and 2.4 s of drift from letting go; from cruise (33 m/s) about 3 m.
+The limit: braking only 12 m before a wall at full boost still hits it,
+45 m before stops about 21 m short. The hero flares upright and leans back
+while braking, with a heavy whoosh when it bites above 20 m/s; `braking` is
+plain hero state that PlayerSync sends (flag 16), so other players see the
+pose and hear the whoosh. Not on foot, swinging or diving (falls after a
+super jump still need flight to stop). `?demo=brake` records it: boost up
+6th Avenue, brake, precision hover, then a stop left too late before a
+building.
+
 ## 3. Street fights (done)
 
 - Pedestrians walk real sidewalk lanes (traced from street data), run from
@@ -1857,8 +1875,8 @@ phone, in the phone's browser, at https://nycheroes.party.
   floating stick on the left 42% of the screen (it follows the thumb past
   its rim; walking speed follows how far it's pushed), dragging anywhere
   else turns the camera, and buttons on the right: PUNCH (DIVE in the air),
-  JUMP (hold for a super jump; UP while flying), DOWN (flying), WEB (hold),
-  FLY, SPEED (a toggle, off 0.8 s after the stick is let go), and along the
+  JUMP (hold for a super jump; UP while flying), DOWN (flying), WEB (hold;
+  BRAKE in its place while flying, the air brake), FLY, SPEED (a toggle, off 0.8 s after the stick is let go), and along the
   top the speaker, fullscreen, CO-OP and a gear for the options menu.
   Holding WEB or JUMP and sliding also turns the camera (at the options
   menu's look speed). They
@@ -2499,6 +2517,9 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+  `res://tests/air_brake_test.tscn` (pass/fail: the flight air brake's
+  stopping distances and times, precision hover, braking too late before a
+  wall, on foot, and the co-op flag; a bare hero in empty air, no tiles),
   `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
@@ -2526,7 +2547,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` / `?demo=brake` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

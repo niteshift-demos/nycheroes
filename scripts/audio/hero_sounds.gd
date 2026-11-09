@@ -3,8 +3,8 @@ extends Node3D
 ## A hero's sounds (a child of every hero: ours, and the copies of other
 ## players' heroes): footsteps in step with the run animation (on grass in
 ## parks, on boards on the piers), jumps and super jump launches, landings
-## as heavy as the fall, the rush of air while flying, falling and swinging,
-## super speed, webs, punches and dives, swimming, and getting hit. All of
+## as heavy as the fall, the rush of air while flying, falling and swinging
+## (and a heavy whoosh when the air brake bites at speed), super speed, webs, punches and dives, swimming, and getting hit. All of
 ## it is worked out from the hero's state, which copies get from the
 ## network too, so other players sound the same, from where they are (3-D,
 ## fading with distance). One-off sounds go through GameAudio; the loops
@@ -44,6 +44,7 @@ var _step_animation := &""
 var _step_phase := 0.0
 var _swing_rise := 0.0
 var _zoom_ready := true
+var _braking := false
 var _surface := &"step_concrete"
 var _odd_step := false
 var _surface_cooldown := 0.0
@@ -145,6 +146,12 @@ func _update() -> void:
 			if randf() < 0.4:
 				GameAudio.play(&"creak", at + Vector3.UP * 1.5)
 		_swing_rise = rise
+
+	# The air brake biting at speed (flight, see FlightMode.braking).
+	var braking := mode == &"Flight" and (hero.get_mode(&"Flight") as FlightMode).braking
+	if braking and not _braking and speed > 20.0:
+		GameAudio.play(&"whoosh_heavy", at + Vector3.UP, lerpf(-8.0, 0.0, clampf((speed - 20.0) / 120.0, 0.0, 1.0)), 0.7)
+	_braking = braking
 
 	# Breaking into super speed.
 	var flat_speed := hero.horizontal_speed()
