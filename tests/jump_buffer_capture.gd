@@ -6,8 +6,8 @@ extends Node
 ## game is changed: the driver only presses and releases jump, and measures.
 ## It prints "[capture] start frame N" once the city has loaded, so the
 ## loading can be trimmed off the front of the movie.
-## Run (Linux, under Xvfb):
-##   xvfb-run -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 \
+## Run (Linux, under Xvfb on a free display; :99 may be the sandbox desktop):
+##   xvfb-run -n 120 -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 \
 ##     --resolution 1280x720 --fixed-fps 30 --write-movie /tmp/jb/movie.avi \
 ##     res://tests/jump_buffer_capture.tscn -- --tiles_url=https://nycheroes.party/tiles/ \
 ##     --name=Hero --solo=1 --gangs=0
