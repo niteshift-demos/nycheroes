@@ -45,15 +45,19 @@ screen has gone, and `[rec] end frame M`; the video keeps frames N..M-1,
 every one of them, at 30 fps:
 
 ```sh
-ffmpeg -framerate 30 -start_number N -i /tmp/rec/frames/trial%08d.png \
-  -frames:v $((M-N)) -c:v libx264 -pix_fmt yuv420p -crf 18 -preset slow \
-  -r 30 -movflags +faststart time_trial.mp4
+# Two passes at 4.8 Mbit/s keep the file under 25 MB (CRF 18 made 33 MB).
+for pass in 1 2; do
+  ffmpeg -y -framerate 30 -start_number N -i /tmp/rec/frames/trial%08d.png \
+    -frames:v $((M-N)) -c:v libx264 -pix_fmt yuv420p -b:v 4800k -maxrate 6000k \
+    -bufsize 9600k -preset slow -pass $pass -r 30 -movflags +faststart \
+    $([ $pass = 1 ] && echo "-an -f mp4 /dev/null" || echo time_trial.mp4)
+done
 ```
 
 The video has no sound: in this sandbox the game ran on Godot's Dummy audio
 driver and Movie Maker's WAV came out silent (-91 dB), so it was left out.
 
 The 2026-11-09 take: `[rec] start frame 184`, `[rec] end frame 1322`, 1138
-frames, 37.93 s at 30 fps, 1280x720 H.264; the run finished in 0:20.03
+frames, 37.93 s at 30 fps, 1280x720 H.264 (22.3 MB); the run finished in 0:20.03
 (splits 5.02, 9.73, 15.32, 20.03 s) after flying over checkpoint 1 at 44 m.
 Check with `ffprobe` (1280x720, 30/1 fps, frame count M-N).
