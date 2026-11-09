@@ -56,11 +56,14 @@ var water_level := 0.0
 var jump_pressed := false
 var web_pressed := false
 var attack_pressed := false
+## Sprint was pressed this tick (a swim surge's trigger).
+var sprint_pressed := false
 
 var _modes := {}
 var _prev_jump := false
 var _prev_web := false
 var _prev_attack := false
+var _prev_sprint := false
 var _prev_position := Vector3.ZERO
 var _was_on_floor := false
 var _regen_delay := 0.0
@@ -92,9 +95,11 @@ func _physics_process(delta: float) -> void:
 	jump_pressed = input.jump_held and not _prev_jump
 	web_pressed = input.web_held and not _prev_web
 	attack_pressed = input.attack_held and not _prev_attack
+	sprint_pressed = input.sprint_held and not _prev_sprint
 	_prev_jump = input.jump_held
 	_prev_web = input.web_held
 	_prev_attack = input.attack_held
+	_prev_sprint = input.sprint_held
 	hurt_time = maxf(hurt_time - delta, 0.0)
 	_regen_delay -= delta
 	if _regen_delay <= 0.0:

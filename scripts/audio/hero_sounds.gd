@@ -38,6 +38,7 @@ var _loops: Array[LoopVoice] = []
 var _mode := &""
 var _grounded := true
 var _in_water := false
+var _surging := false
 var _punch_id := 0
 var _hurt_time := 0.0
 var _step_animation := &""
@@ -88,11 +89,13 @@ func _update() -> void:
 	var grounded := hero.grounded()
 	var in_water := hero.is_in_water()
 	var melee := hero.get_mode(&"Melee") as MeleeMode
+	var surging := in_water and (hero.get_mode(&"OnFoot") as OnFootMode).surge_time > 0.0
 	if hero.frozen or not GameAudio.can_play():
 		# Nothing happens while frozen (or silent); catch up without sounds.
 		_mode = mode
 		_grounded = grounded
 		_in_water = in_water
+		_surging = surging
 		_punch_id = melee.punch_id
 		_hurt_time = hero.hurt_time
 		for loop in _loops:
@@ -117,8 +120,12 @@ func _update() -> void:
 		GameAudio.play(&"splash", at, lerpf(-6.0, 2.0, clampf(-hero.velocity.y / 60.0, 0.0, 1.0)))
 	elif _in_water and not in_water and hero.velocity.y > 5.0:
 		GameAudio.play(&"splash", at, -6.0, 1.2)
+	# A swim surge's kick: a sharp, high splash.
+	if surging and not _surging:
+		GameAudio.play(&"splash", at, -2.0, 1.35)
 	_grounded = grounded
 	_in_water = in_water
+	_surging = surging
 
 	# Each punch whooshes; the last of a combo is heavier.
 	if melee.punch_id != _punch_id:

@@ -19,7 +19,8 @@ Windows and Mac versions are on the site's download page.
   obeys signals, subway trains on the elevated lines, day and night, and a
   city soundscape.
 - **The hero:** running, super speed, charged super jumps, flight, web
-  swinging, swimming, punch combos, dive attacks and landing slams; a
+  swinging, swimming (sprint to super swim; tap sprint again to surge),
+  punch combos, dive attacks and landing slams; a
   customizable look and outfit.
 - **Co-op:** one big public game by default, or a private game with a code.
   Peers connect over WebRTC (relayed through TURN when they must).

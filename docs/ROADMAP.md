@@ -36,6 +36,34 @@ Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
 the hero is driven by a plain input object per physics tick so a network
 peer can drive one later. Nearby tiles get collision.
 
+**Super swimming (done):** sprint in the water used to jump straight to
+25 m/s and turn on the spot. Now (`OnFootMode._swim`):
+- Holding sprint builds up from the 5 m/s paddle to 25 m/s at 10 m/s²,
+  and letting go lets the water slow the hero (20 m/s²), as after diving in
+  at super speed.
+- The turn rate falls from 8 rad/s paddling to 2 rad/s at full super
+  swimming, so a fast swimmer carves wide arcs.
+- A fresh press of sprint while swimming is a **surge**: +14 m/s at once
+  (up to 38 m/s), held for 0.6 s with the hero skimming higher in the water
+  (feet 0.8 m under instead of 1.2 m, still below the 0.6 m water line, so
+  the hero never pops out), then easing back. The next surge is ready
+  2.5 s after the last one started; a press before that does nothing. The
+  first press of a sprint surges too, which kicks a paddle off to ~19 m/s.
+- Letting go of the stick, jumping out, leaving the water or leaving the
+  OnFoot mode ends a surge (its speed carries on through a jump).
+- Walls, piers and breakwaters stop a super swimmer like anything else:
+  head-on, dead; at an angle, sliding along.
+- Each surge starts with a sharp splash (HeroSounds); the swim animation
+  strokes faster with speed (up to 2.2x in a surge).
+- Co-op: `PlayerSync` sends a SURGING flag (16) with the other flags, so
+  copies of other players' heroes surge, splash and stroke the same way.
+- **Tested:** `tests/swim_sprint_test.tscn` (in the Hudson: paddle speed,
+  the kick and gradual build-up, the 38 m/s cap, no surge during the
+  cooldown, the wide arc, drifting to a stop, jumping out ending a surge,
+  never leaving the water in a surge, and a co-op copy seeing it).
+  `tests/swim_sprint_recording.tscn` plays the same moves through the real
+  input actions for a Movie Maker video (recipe in its header).
+
 ## 3. Street fights (done)
 
 - Pedestrians walk real sidewalk lanes (traced from street data), run from
@@ -2499,6 +2527,7 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+  `res://tests/swim_sprint_test.tscn` (super swimming in the Hudson),
   `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and

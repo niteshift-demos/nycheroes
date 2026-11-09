@@ -34,7 +34,29 @@ extends HeroMode
 
 @export_group("Swimming")
 @export var swim_speed := 5.0
+## Holding sprint in the water builds up to this, at swim_super_acceleration:
+## a couple of seconds from a paddle to full super swimming.
 @export var swim_super_speed := 25.0
+@export var swim_acceleration := 30.0
+@export var swim_super_acceleration := 10.0
+## How fast the water slows a hero going faster than they're swimming for:
+## after a dive in at super speed, or once a surge runs out.
+@export var swim_drag := 20.0
+## Turn rate in rad/s at paddling speed and at full super swimming speed:
+## at speed the hero carves wide arcs instead of turning on the spot.
+@export var swim_turn_rate := 8.0
+@export var swim_super_turn_rate := 2.0
+## A fresh press of sprint while swimming kicks the hero forward this much
+## faster (m/s), up to swim_surge_speed, and holds that speed for
+## swim_surge_time with the hero skimming high in the water. The next surge
+## is ready swim_surge_cooldown after the last one started.
+@export var swim_surge_kick := 14.0
+@export var swim_surge_speed := 38.0
+@export var swim_surge_time := 0.6
+@export var swim_surge_cooldown := 2.5
+## Feet height under the surface while surging: higher than float_height,
+## but still below Hero.WATER_LINE so the hero stays in the water.
+@export var surge_float_height := -0.8
 @export var water_jump_speed := 16.0
 ## How far below the water's surface the hero's feet float.
 @export var float_height := -1.2
@@ -42,6 +64,11 @@ extends HeroMode
 ## True while jump is held on the ground; charge goes 0..1 once it's a super jump.
 var charging := false
 var charge := 0.0
+## Seconds left of a swim surge (> 0 while surging). Network-visible: copies
+## of other players' heroes get it as PlayerSync's SURGING flag.
+var surge_time := 0.0
+## Seconds until the next swim surge is ready.
+var surge_cooldown := 0.0
 
 var _hold_time := 0.0
 var _air_time := 0.0
@@ -55,9 +82,11 @@ func enter(_previous: StringName) -> void:
 	charging = _jump_handed_over
 	charge = 0.0
 	_jump_handed_over = false
+	surge_time = 0.0
 
 
 func physics_update(delta: float) -> StringName:
+	surge_cooldown = maxf(surge_cooldown - delta, 0.0)
 	if hero.input.fly_toggle_pressed:
 		return &"Flight"
 	if hero.attack_pressed and hero.hurt_time <= 0.0 and not hero.is_in_water():
@@ -65,6 +94,8 @@ func physics_update(delta: float) -> StringName:
 	if _wants_web(delta) and (hero.get_mode(&"Swing") as SwingMode).try_attach():
 		return &"Swing"
 
+	if not hero.is_in_water():
+		surge_time = 0.0  # out of the water a surge ends (its speed carries on)
 	if hero.is_in_water():
 		_swim(delta)
 	elif hero.is_on_floor():
@@ -186,17 +217,46 @@ func _swim(delta: float) -> void:
 	charging = false
 	charge = 0.0
 	var input := hero.input
+	var horizontal := Vector3(hero.velocity.x, 0.0, hero.velocity.z)
+	var speed := horizontal.length()
 	var wish := input.move.limit_length(1.0)
-	var top_speed := swim_super_speed if input.sprint_held else swim_speed
-	var horizontal := Vector3(hero.velocity.x, 0.0, hero.velocity.z).move_toward(wish * top_speed, 30.0 * delta)
+	if hero.hurt_time > 0.0:
+		wish = Vector3.ZERO
+	var direction := horizontal / speed if speed > 0.5 else wish.normalized()
 
-	# Bob back up to the surface, and leap out with jump.
-	var rise := (hero.water_level + float_height - hero.global_position.y) * 4.0
+	if wish.length() > 0.05:
+		var wish_dir := wish.normalized()
+		var fast := clampf(inverse_lerp(swim_speed, swim_super_speed, speed), 0.0, 1.0)
+		direction = _turn(direction, wish_dir, lerpf(swim_turn_rate, swim_super_turn_rate, fast) * delta)
+		# A fresh sprint press kicks off a surge, if one is ready.
+		if hero.sprint_pressed and surge_cooldown <= 0.0:
+			surge_time = swim_surge_time
+			surge_cooldown = swim_surge_cooldown
+			speed = minf(maxf(speed, swim_speed) + swim_surge_kick, swim_surge_speed)
+		var target := (swim_super_speed if input.sprint_held else swim_speed) * wish.length()
+		if surge_time > 0.0:
+			target = maxf(target, speed)  # a surge holds its speed while it lasts
+		var rate := swim_acceleration
+		if target < speed:
+			rate = swim_drag
+		elif speed >= swim_speed:
+			rate = swim_super_acceleration
+		speed = move_toward(speed, target, rate * delta)
+	else:
+		surge_time = 0.0  # letting go of the stick ends a surge
+		speed = move_toward(speed, 0.0, swim_drag * delta)
+	surge_time = maxf(surge_time - delta, 0.0)
+	horizontal = direction * speed if direction.length() > 0.5 else Vector3.ZERO
+
+	# Bob back up to the surface (riding higher in a surge), and leap out with jump.
+	var floating := surge_float_height if surge_time > 0.0 else float_height
+	var rise := (hero.water_level + floating - hero.global_position.y) * 4.0
 	var vertical := lerpf(hero.velocity.y, rise, 1.0 - exp(-6.0 * delta))
 	if hero.jump_pressed:
 		vertical = water_jump_speed
+		surge_time = 0.0
 	hero.velocity = Vector3(horizontal.x, vertical, horizontal.z)
-	hero.face_toward(wish, 8.0 * delta)
+	hero.face_toward(direction if speed > 0.5 else wish, 8.0 * delta)
 
 
 static func _turn(from: Vector3, to: Vector3, max_angle: float) -> Vector3:

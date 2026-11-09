@@ -124,7 +124,9 @@ func _choose_animation() -> Array:
 			return [punch.animation, punch.speed, new_punch]
 	var on_foot := hero.mode as OnFootMode
 	if hero.is_in_water():
-		return [&"Swim_Fwd", 1.0] if speed > 1.0 else [&"Swim_Idle", 1.0]
+		# Faster strokes the faster the hero swims, up to twice as fast in a surge.
+		var strokes := clampf(remap(speed, on_foot.swim_speed, on_foot.swim_surge_speed, 1.0, 2.2), 1.0, 2.2)
+		return [&"Swim_Fwd", strokes] if speed > 1.0 else [&"Swim_Idle", 1.0]
 	if hero.hurt_time > 0.0:
 		return [&"Hit_Chest", 1.0]
 	if not hero.grounded():
