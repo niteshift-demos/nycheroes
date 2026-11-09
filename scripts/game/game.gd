@@ -363,7 +363,7 @@ func _add_touch_controls(started_by_touch: bool) -> void:
 		_loading.use_touch_layout()
 	var debug_label := hud.get_node_or_null("DebugLabel") as Label
 	if debug_label:
-		# Small, under the health bar (shown with ?stats or the options menu's switch).
+		# Small, below health and dodge cooldown (shown with ?stats or the options menu's switch).
 		debug_label.add_theme_font_size_override("font_size", 10)
-		debug_label.position = Vector2(_touch_controls.safe_insets.x + 20.0, _touch_controls.safe_insets.y + 56.0)
+		debug_label.position = Vector2(_touch_controls.safe_insets.x + 20.0, _touch_controls.safe_insets.y + 88.0)
 	Device.set_page_touch_mode(true)
