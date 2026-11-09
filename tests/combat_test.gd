@@ -1,7 +1,9 @@
 extends Node
 ## Headless check of fights: thugs attacking, punch combos, dive slams, super
 ## speed rams, panicking pedestrians, getting knocked out, and ragdolls holding
-## still through a world origin shift. Prints what happened at each step.
+## still through a world origin shift. Prints what happened at each step, and
+## fails (exit 1) if the combat streak doesn't count the punches that land or
+## isn't broken by the hero getting hurt.
 ## Run: godot --headless --path . res://tests/combat_test.tscn
 
 const AVENUE := Vector3(0.485, 0.0, -0.875)
@@ -17,6 +19,8 @@ var _index := -1
 var _time := 0.0
 var _gang: Array[Thug] = []
 var _hips_before := Vector3.ZERO
+var _streak_ends: Array = []  # [count, reason] each
+var _failures: PackedStringArray = []
 
 
 func _ready() -> void:
@@ -27,6 +31,7 @@ func _ready() -> void:
 	_hero = _world.get_node("Hero")
 	_city = _world.get_node("City")
 	process_physics_priority = -20
+	Combat.streak.ended.connect(func(count: int, reason: StringName) -> void: _streak_ends.append([count, reason]))
 	_steps = [
 		_step("wait for the city to load", 30.0, Callable(), func() -> bool:
 			return not _hero.frozen and _city.pending_count() == 0),
@@ -82,7 +87,10 @@ func _physics_process(delta: float) -> void:
 	_index += 1
 	_time = 0.0
 	if _index >= _steps.size():
-		get_tree().quit()
+		for failure in _failures:
+			printerr("FAIL: " + failure)
+		print("streak ends (count, reason): %s  best %d" % [_streak_ends, Combat.streak.best])
+		get_tree().quit(1 if _failures else 0)
 
 
 func _report(step_name: String) -> void:
@@ -92,9 +100,17 @@ func _report(step_name: String) -> void:
 	var extra := ""
 	if step_name.begins_with("ragdolls"):
 		extra = "  corpse hips moved %.2f m (world)" % _hips_before.distance_to(_corpse_hips_world())
-	print("%-30s %5.1fs  mode %-10s health %3d  thugs standing %d  down %2d  pedestrians %d (%d panicking)  hero %s%s" % [
+	print("%-30s %5.1fs  mode %-10s health %3d  thugs standing %d  down %2d  pedestrians %d (%d panicking)  streak %d (best %d)  hero %s%s" % [
 		step_name, _time, _hero.mode.name, int(_hero.health), standing, Combat.defeated_count,
-		get_tree().get_node_count_in_group("pedestrians"), panicking, _hero.world_position().round(), extra])
+		get_tree().get_node_count_in_group("pedestrians"), panicking, Combat.streak.count, Combat.streak.best,
+		_hero.world_position().round(), extra])
+	if step_name == "punch combos" and Combat.streak.best < 2:
+		_failures.append("punch combos landed no streak of 2+ hits (best %d)" % Combat.streak.best)
+	if step_name == "get knocked out":
+		if Combat.streak.count != 0:
+			_failures.append("knocked out with a streak of %d still going" % Combat.streak.count)
+		if not _streak_ends.any(func(e: Array) -> bool: return e[1] == &"hurt" or e[1] == &"timeout"):
+			_failures.append("no streak ever ended")
 
 
 func _spawn_gang(world_center: Vector3, count: int) -> void:

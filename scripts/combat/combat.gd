@@ -36,13 +36,16 @@ var heroes: Array[Hero] = []
 var defeated_count := 0
 ## Set by the CombatEffects node when it enters the scene.
 var effects: CombatEffects
+## Our hero's run of hits landed without a pause or getting hurt (GameHud).
+var streak := CombatStreak.new()
 
 var _thugs_by_id := {}
 var _attackers := {}  # hero instance id -> thugs swinging at it
 var _hit_stop_end_msec := 0
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	streak.update(delta)
 	if _hit_stop_end_msec > 0 and Time.get_ticks_msec() >= _hit_stop_end_msec:
 		_hit_stop_end_msec = 0
 		Engine.time_scale = 1.0
@@ -65,11 +68,19 @@ func thug_by_id(net_id: int) -> Thug:
 
 func register_hero(hero: Hero) -> void:
 	heroes.append(hero)
+	if not hero.is_remote():  # (only our hero's hurt is felt here: take_hit runs in its owner's game)
+		hero.hurt.connect(_on_our_hero_hurt)
 
 
 func unregister_hero(hero: Hero) -> void:
 	heroes.erase(hero)
 	_attackers.erase(hero.get_instance_id())
+	if hero.hurt.is_connected(_on_our_hero_hurt):
+		hero.hurt.disconnect(_on_our_hero_hurt)
+
+
+func _on_our_hero_hurt(_damage: float) -> void:
+	streak.break_streak(&"hurt")
 
 
 ## Our hero hits every standing thug within `radius` of `center`. `push` is the
@@ -81,6 +92,7 @@ func strike(center: Vector3, radius: float, damage: float, push: Vector3, launch
 		if not thug.is_down() and thug.body_center().distance_to(center) <= radius:
 			hits.append([thug, damage, push, launch])
 	_hit_thugs(hits)
+	streak.add_hits(hits.size())
 	if not hits.is_empty():
 		raise_danger(WorldOrigin.to_world(center), 35.0)
 		hit_stop(0.09 if launch else 0.04)
@@ -105,6 +117,8 @@ func shockwave(center: Vector3, radius: float, damage: float, launch_speed: floa
 		var strength := launch_speed * (1.0 - 0.5 * distance / radius)
 		hits.append([thug, damage, away * strength + Vector3.UP * strength * 0.6, damage > 0.0])
 	_hit_thugs(hits)
+	if damage > 0.0:  # (getting up pushes thugs away without hurting them)
+		streak.add_hits(hits.size())
 	show_shockwave(WorldOrigin.to_world(center), radius)
 	raise_danger(WorldOrigin.to_world(center), radius * 6.0)
 	impact.emit(center, clampf(radius / 10.0, 0.3, 1.0))

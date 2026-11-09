@@ -53,6 +53,24 @@ peer can drive one later. Nearby tiles get collision.
 - Punch combos, dive attacks, landing slams and super speed rams; defeated
   thugs ragdoll, bleed, and stay on the street while you're nearby.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
+- Combat streak (added 2026-11-09): every hit our hero lands on a standing
+  thug (punches, the combo's launcher, dive slams and landing slams that do
+  damage, super speed rams; each thug hit counts once) adds to a streak
+  counter on the left of the HUD ("x12 HIT STREAK", callouts NICE at 5,
+  GREAT 10, BRUTAL 20, UNSTOPPABLE 35, LEGENDARY 50) with a bar running down
+  the 3 s left before it times out; another hit refills it. Taking damage
+  breaks it at once ("STREAK BROKEN: HIT!" in red), running out of time ends
+  it ("STREAK TIMED OUT"), and the best this session shows under it.
+  `CombatStreak` (scripts/combat/combat_streak.gd, owned by the Combat
+  autoload) only reads fights: misses, thugs already down and the harmless
+  push of getting back up count nothing, and damage balance is unchanged.
+  It's our own game's state, timed on game time (so hit stop pauses it);
+  other co-op players don't see it, and a hit on another player's thug
+  counts the moment we land it, as it's shown. `tests/streak_test.tscn`
+  checks its rules; `combat_test` fails if punches don't build a streak or
+  a knockout leaves one going. `tests/capture/streak_capture.tscn` plays
+  the real game with ordinary inputs for a Movie Maker video (its header
+  has the command).
 
 ## 4. All five boroughs and bridges (done)
 
@@ -2499,7 +2517,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/streak_test.tscn` (the
+  combat streak's rules, no city), `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
