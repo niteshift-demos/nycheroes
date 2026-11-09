@@ -28,6 +28,10 @@ extends Node3D
 ## Its Go to box takes the hero to an address (travel_to): onto the sidewalk
 ## nearest it, facing it.
 ##
+## The rooftop run (RooftopCourse): a checkpoint course of charged jumps over
+## real roofs west of Times Square; the HUD points to its start. ?course=0
+## leaves it out, ?course=start starts the hero on its START pad.
+##
 ## Phones and tablets: touch screens get on-screen controls (TouchControls;
 ## ?touch=1 or ?touch=0 forces them on or off, see Device), and a graphics
 ## quality preset is picked for the device (Quality; ?quality=low|medium|high),
@@ -71,6 +75,8 @@ var _touch_controls: TouchControls
 var _options: OptionsPanel
 var _name_prompt: NamePrompt
 var _loading: LoadingScreen
+## The rooftop run (null with ?course=0 or ?demo).
+var course: RooftopCourse
 
 
 func _enter_tree() -> void:
@@ -79,10 +85,13 @@ func _enter_tree() -> void:
 
 
 func _ready() -> void:
+	_add_course()
 	var spawn := LaunchOptions.get_floats("spawn")
 	var facing := deg_to_rad(spawn[3]) if spawn.size() >= 4 else hero.facing
 	if spawn.size() >= 3:
 		place_hero(Vector3(spawn[0], spawn[1], spawn[2]), facing)
+	elif course and LaunchOptions.get_string("course") == "start":
+		course.restart()
 	else:
 		place_hero(DEFAULT_SPAWN, facing, true)
 	_set_free_camera(LaunchOptions.has("cam"))
@@ -293,6 +302,21 @@ func _set_free_camera(on: bool) -> void:
 func _update_controls() -> void:
 	player_input.enabled = not _free_camera_on and not coop_panel.visible and not (_options and _options.visible) \
 		and not (_name_prompt and _name_prompt.visible)
+
+
+## The rooftop run (see the top), whose state the HUD shows.
+func _add_course() -> void:
+	if LaunchOptions.get_string("course", "1") == "0" or LaunchOptions.has("demo"):
+		return
+	course = RooftopCourse.new()
+	course.name = "RooftopCourse"
+	course.hero = hero
+	course.game = self
+	course.city = city
+	add_child(course)
+	var game_hud := hud.get_node_or_null("GameHud") as GameHud
+	if game_hud:
+		game_hud.course = course
 
 
 ## The loading screen (see the top), over the HUD and menus but the name prompt.

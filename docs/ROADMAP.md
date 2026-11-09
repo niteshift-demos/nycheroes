@@ -2398,6 +2398,64 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+## Rooftop run (added 2026-11-09)
+
+A replayable checkpoint course of charged super jumps over real roofs in
+Hell's Kitchen (West 44th to 46th Streets between Eighth and Ninth Avenues,
+about 450 m west of Times Square). `scripts/game/rooftop_course.gd`
+(RooftopCourse, made by Game; the HUD's parts are in GameHud).
+
+- **The course:** seven pads, each a ring on a flat spot of a roof with a
+  light beam over it and its number (START, 2-6, FINISH): a 31 m tenement,
+  up to 46 m, along to 44 m, down to 31 m across the backyards, a short hop,
+  up to a 59 m mid-rise, and the roof of a 112 m tower, which needs nearly a
+  full charge. Their spots were picked from a height map of the tiles (a
+  probe raycasting the loaded collision every 3 m); each pad's height is
+  measured again from the collision when its tile is in. Charges needed:
+  about 0.2-0.5 for the hops, about 0.9 for the tower.
+- **Start, progress, finish:** landing on START arms the run ("jump to roof
+  2 to start"); the clock starts on jumping off it. Each pad must be landed
+  on (on foot, within 7 m of its middle and 3 m of its roof) in order; the
+  next one's beam is amber, reached ones turn green. The HUD shows "ROOFTOP
+  RUN · roof N of 7 · clock · falls · best" under the stats text, a marker
+  to the next pad (to the start when not running, within 3 km), and notices
+  for each roof, a failure and the finish. The best time is kept
+  (`rooftop_best` in Settings).
+- **Failing and retrying:** touching down more than 6 m below both the last
+  roof reached and the next pad's (the street, a low roof), landing in
+  water, being knocked out, or flying, swinging or diving ends the attempt:
+  after 2 s the hero is put back on the last roof reached, and the clock runs
+  on, so a fall costs time. R (a gamepad's Back; RESTART RUN on touch
+  screens, shown during a run) goes back to START with the clock cleared.
+  Going more than 800 m away (Go to, joining a game) drops the run.
+- **Flight:** fine for getting to START (its beam shows across Midtown), not
+  during a run: the course is about judging charged jumps, and flight, a web
+  or a dive's speed (a dive called off keeps it) would skip them all.
+- **Charge meter:** while a super jump charges, a bar under the hero shows
+  how much ("SUPER JUMP 64%"), anywhere in the city.
+- **Co-op:** the pads are in the same place for everyone; each player runs
+  it alone. The hero is moved only by its HeroInput as usual (other players
+  see ordinary jumps), and going back to a roof is a move like the host's
+  placing of a joining player. The run's state isn't sent.
+- **Floating origin:** pads are kept in world coordinates and drawn at
+  scene positions every frame.
+- **Rendering:** unshaded additive StandardMaterial3D rings and beams (one
+  small shader, the colors differ only) and Label3D numbers; the beam and
+  number of a pad the hero stands near hide.
+- **Launch options:** `?course=start` starts on START; `?course=0` leaves
+  the course out (so does `?demo`).
+- **Tested:** `tests/rooftop_course_test.tscn` (17 checks): the run arms on
+  START and starts on jumping off it; pads count in order; R puts the hero
+  back on START with the clock cleared; a floating origin shift mid-run;
+  taking off (F) ends the attempt and goes back to the last roof; a jump for
+  the tower charged too little (0.45) hits its wall, falls to the street,
+  counts a fall and goes back to roof 6; landing on FINISH finishes, and
+  the time is kept as the best. The jumps are made by
+  `tests/rooftop_course_driver.gd`, which presses the usual input actions
+  (look stick, jump held for the charge, move stick to steer) like a player
+  with a gamepad. `tests/rooftop_course_capture.tscn` records the run with
+  Godot's Movie Maker (its header has the command).
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2510,6 +2568,10 @@ deployed); in a computer's browser the co-op menu links to it.
   players far off cost a host's frames, physics and memory),
   `res://tests/audio_test.tscn`, `res://tests/options_test.tscn` (the
   options menu and the settings, with a settings file of its own),
+  `res://tests/rooftop_course_test.tscn` (the rooftop run, played with
+  ordinary input actions: start, every roof, R, a floating origin shift,
+  flying and a short jump failing, the finish and best time; without local
+  tiles add `-- --tiles_url=https://nycheroes.party/tiles`),
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and
@@ -2527,6 +2589,7 @@ deployed); in a computer's browser the co-op menu links to it.
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?course=start` start on the rooftop run's START pad, `?course=0` no rooftop run,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

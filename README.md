@@ -21,6 +21,9 @@ Windows and Mac versions are on the site's download page.
 - **The hero:** running, super speed, charged super jumps, flight, web
   swinging, swimming, punch combos, dive attacks and landing slams; a
   customizable look and outfit.
+- **Rooftop run:** a checkpoint course of charged super jumps over real
+  Hell's Kitchen roofs, from a tenement to a 112 m tower, against the
+  clock (`?course=start` starts on it).
 - **Co-op:** one big public game by default, or a private game with a code.
   Peers connect over WebRTC (relayed through TURN when they must).
 
@@ -39,6 +42,7 @@ Windows and Mac versions are on the site's download page.
 | Co-op menu | M | |
 | Hero and options | O or Esc | |
 | Time of day | T | |
+| Restart the rooftop run | R | Back |
 
 Phones and tablets get touch controls.
 

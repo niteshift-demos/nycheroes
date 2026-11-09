@@ -54,6 +54,7 @@ const KEYS: Array[Array] = [
 	["O", "options (this menu)"],
 	["N", "sound off and on"],
 	["T", "time of day"],
+	["R", "restart the rooftop run"],
 	["F1", "free camera (wheel: its speed)"],
 ]
 const DESKTOP_KEYS: Array[Array] = [
@@ -69,6 +70,7 @@ const TOUCH_HELP: Array[Array] = [
 	["FLY", "fly; DOWN goes down"],
 	["SPEED", "super speed, on and off"],
 	["CO-OP", "play with friends"],
+	["RESTART RUN", "back to the rooftop run's start (during a run)"],
 ]
 
 ## Set by Game.

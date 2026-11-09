@@ -6,6 +6,10 @@ extends Control
 ## short notices ("Player 2 is now the host"), plus the aerial photos' credit
 ## while any are shown. An Options button in the top right corner opens the
 ## options menu with a click (touch screens have TouchControls' gear instead).
+## While a super jump charges, a meter under the hero shows how much. The
+## rooftop run (RooftopCourse) gets a line at the top (roof, clock, falls),
+## a marker to its next pad (or to its start, nearby), its notices, and on
+## touch screens a RESTART button.
 
 ## The Options button was clicked.
 signal options_requested
@@ -42,7 +46,20 @@ var touch_controls: TouchControls:
 		if _options_button:
 			_options_button.visible = value == null
 
+## Set by Game when the rooftop run is in.
+var course: RooftopCourse:
+	set(value):
+		course = value
+		if course:
+			course.pad_reached.connect(_on_pad_reached)
+			course.run_started.connect(func() -> void: notify("Rooftop run: go!"))
+			course.run_failed.connect(func(reason: String) -> void:
+				notify("%s  ·  back to the last roof" % reason))
+			course.run_finished.connect(func(seconds: float, best: bool) -> void:
+				notify("Rooftop run finished in %s%s" % [_clock(seconds), "  ·  best time!" if best else ""]))
+
 var _font: Font
+var _restart_button: Button
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
 
@@ -66,6 +83,7 @@ func _ready() -> void:
 		if Net.is_online() and not Net.is_public:
 			notify("You're the host now" if id == Net.local_id() else "%s is now the host" % Net.player_name(id)))
 	_add_options_button()
+	_add_restart_button()
 
 
 ## Shows a line near the top of the screen for a few seconds.
@@ -104,6 +122,8 @@ func _draw() -> void:
 		if touch_controls:  # bottom middle, between the thumbs
 			at = Vector2((size.x - width) * 0.5, size.y - touch_controls.safe_insets.w - 8.0)
 		_text(at, AERIAL_CREDIT, 12, Color(1.0, 1.0, 1.0, 0.8))
+	_draw_charge()
+	_draw_course()
 	var thug := encounters.nearest_thug(hero.world_position())
 	if thug:
 		_draw_marker(thug.global_position + Vector3.UP * 2.2, "THUGS", MARKER_COLOR, NEAR_ENOUGH)
@@ -143,12 +163,75 @@ func _draw_coop_status() -> void:
 		if touch_controls:  # under the co-op button
 			at = Vector2(size.x - touch_controls.safe_insets.z - width - 16.0, touch_controls.safe_insets.y + 78.0)
 		_text(at, line, 16)
-	# Notices: centered, under the debug text in the top left.
+	# Notices: centered, under the debug text in the top left (and the rooftop
+	# run's line).
 	var y := maxf(size.y * 0.2, 130.0)
+	if course and course.is_active():
+		y = maxf(y, _course_line_y() + 36.0)
 	for text in current_notices():
 		var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22).x
 		_text(Vector2((size.x - width) * 0.5, y), text, 22, NOTICE_COLOR)
 		y += 30.0
+
+
+## How far a super jump has charged, under the hero while it charges.
+func _draw_charge() -> void:
+	var on_foot := hero.get_mode(&"OnFoot") as OnFootMode
+	if hero.mode != on_foot or not on_foot.charging or on_foot.charge <= 0.0:
+		return
+	var bar := Rect2(size.x * 0.5 - 90.0, size.y * 0.8, 180.0, 10.0)  # (below the hero)
+	draw_rect(bar.grow(3.0), Color(0.0, 0.0, 0.0, 0.55))
+	var full := on_foot.charge >= 1.0
+	draw_rect(Rect2(bar.position, Vector2(bar.size.x * on_foot.charge, bar.size.y)),
+		Color(1.0, 0.85, 0.3) if full else Color(0.4, 0.8, 1.0))
+	_text(bar.position + Vector2(0.0, -8.0), "SUPER JUMP %d%%" % ceili(on_foot.charge * 100.0), 14)
+
+
+## The rooftop run's line and marker (see the top).
+func _draw_course() -> void:
+	if _restart_button:
+		_restart_button.visible = course != null and course.is_active() and touch_controls != null
+	if course == null:
+		return
+	var running := course.state == RooftopCourse.State.RUNNING or course.state == RooftopCourse.State.FAILED
+	if course.is_active():
+		var line := "ROOFTOP RUN  ·  "
+		if course.state == RooftopCourse.State.ARMED:
+			line += "jump to roof 2 to start  ·  R restart"
+		else:
+			line += "roof %d of %d  ·  %s  ·  falls %d" % [course.next_index + 1, course.pad_count(),
+				_clock(course.elapsed), course.falls]
+		if course.best > 0.0:
+			line += "  ·  best %s" % _clock(course.best)
+		var width := _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 20).x
+		# Under the stats text (when it's shown), over the notices.
+		var y := _course_line_y()
+		_text(Vector2((size.x - width) * 0.5, y), line, 20, RooftopCourse.COLOR_START.lightened(0.3))
+	var target := course.next_index if running else 0
+	if not running and course.distance_to_course() > RooftopCourse.SHOW_DISTANCE:
+		return
+	var label := "ROOFTOP RUN" if not running else (
+		"FINISH" if target == course.pad_count() - 1 else "ROOF %d" % (target + 1))
+	if course.state == RooftopCourse.State.ARMED:
+		target = 1
+		label = "ROOF 2"
+	var at := WorldOrigin.to_local(course.pad_world_position(target)) + Vector3.UP * 2.0
+	_draw_marker(at, label, RooftopCourse.COLOR_NEXT if running or course.is_active() else RooftopCourse.COLOR_START, 25.0)
+
+
+func _course_line_y() -> float:
+	if touch_controls:
+		return touch_controls.safe_insets.y + 104.0
+	return maxf(size.y * 0.17, 124.0)
+
+
+func _on_pad_reached(index: int) -> void:
+	if index < course.pad_count() - 1:
+		notify("Roof %d of %d  ·  %s" % [index + 1, course.pad_count(), _clock(course.elapsed)])
+
+
+static func _clock(seconds: float) -> String:
+	return "%d:%04.1f" % [floori(seconds / 60.0), fmod(seconds, 60.0)]
 
 
 ## A marker pointing at a scene position, labeled with the distance to it.
@@ -223,6 +306,29 @@ func _add_options_button() -> void:
 	_options_button.pressed.connect(options_requested.emit)
 	_options_button.visible = touch_controls == null
 	add_child(_options_button)
+
+
+## RESTART for the rooftop run on touch screens (keys and gamepads have R
+## and Back); shown only during a run.
+func _add_restart_button() -> void:
+	_restart_button = Button.new()
+	_restart_button.name = "RestartRunButton"
+	_restart_button.text = "RESTART RUN"
+	_restart_button.focus_mode = Control.FOCUS_NONE
+	_restart_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	_restart_button.add_theme_font_size_override("font_size", 16)
+	_restart_button.custom_minimum_size = Vector2(140.0, 44.0)
+	_restart_button.anchor_left = 0.5
+	_restart_button.anchor_right = 0.5
+	_restart_button.offset_left = -70.0
+	_restart_button.offset_right = 70.0
+	_restart_button.offset_top = 210.0
+	_restart_button.offset_bottom = 254.0
+	_restart_button.visible = false
+	_restart_button.pressed.connect(func() -> void:
+		if course:
+			course.restart())
+	add_child(_restart_button)
 
 
 func _text(at: Vector2, text: String, font_size: int, color := Color.WHITE) -> void:
