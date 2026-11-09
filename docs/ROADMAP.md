@@ -53,6 +53,28 @@ peer can drive one later. Nearby tiles get collision.
 - Punch combos, dive attacks, landing slams and super speed rams; defeated
   thugs ragdoll, bleed, and stay on the street while you're nearby.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
+- **Health recovery between fights (2026-11-09):** health comes back slowly,
+  and only out of combat (`HealthRecovery`, replacing a regen that refilled
+  15 a second 4 s after any hit, mid-fight included). The hero is in
+  combat while a standing thug is within 40 m (`Thug.NOTICE_RANGE`: close
+  enough to come after them, copies of other players' thugs included),
+  while being hit, and while knocked out; 6 s after the last of those,
+  health climbs 4 a second (empty to full in 25 s), never past full. A hit
+  or a thug coming near stops it and starts the wait over. A knockout gets
+  the hero up with 40 health rather than full (going down is never a faster
+  heal than walking away), and nothing comes back while down. The HUD says
+  so beside "HEALTH": "IN COMBAT", then "RECOVERY IN 6s" counting down
+  with a thin line filling under the bar, then a pulsing "+ RECOVERING".
+  Only the game that owns a hero runs it (its health is already that
+  game's to decide, and hits from thugs other games run reach it as
+  before); PlayerSync sends whether it's recovering in its flags
+  (`RECOVERING`), so copies know too. `tests/recovery_test.tscn` checks
+  the rules tick by tick, then in the city: the wait, the rate, a gang
+  25 m off stopping it before any punch, a knockout (nothing back while
+  down, up with 40, the wait over again away from the gang), a hit, the
+  co-op flag, and stopping at full through an origin shift.
+  `tests/recovery_recording.tscn` plays a fight through the player's own
+  input actions for recording it with Movie Maker (see its header).
 
 ## 4. All five boroughs and bridges (done)
 
@@ -2510,6 +2532,8 @@ deployed); in a computer's browser the co-op menu links to it.
   players far off cost a host's frames, physics and memory),
   `res://tests/audio_test.tscn`, `res://tests/options_test.tscn` (the
   options menu and the settings, with a settings file of its own),
+  `res://tests/recovery_test.tscn` (health coming back between fights,
+  and not during them or while knocked out),
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and

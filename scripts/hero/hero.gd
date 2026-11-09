@@ -21,9 +21,6 @@ const WATER_LINE := -0.6
 ## How far above and below the hero to look for a raised lake's surface.
 const WATER_PROBE := 4.0
 const MAX_HEALTH := 100.0
-## Health comes back after this long without being hit.
-const REGEN_DELAY := 4.0
-const REGEN_RATE := 15.0
 ## Landing faster than this slams the ground, hurling thugs nearby.
 const SLAM_SPEED := 35.0
 ## How long a hit staggers the hero.
@@ -39,6 +36,9 @@ var mode: HeroMode
 ## Physics waits until the ground under the spawn point has loaded.
 var frozen := true
 var health := MAX_HEALTH
+## Health coming back between fights (see HealthRecovery). Copies of other
+## players' heroes only show whether it is (`recovery.recovering`).
+var recovery := HealthRecovery.new()
 ## Seconds left of being staggered by a hit.
 var hurt_time := 0.0
 ## Set by a dive attack: the next landing slams, however slow it is.
@@ -63,7 +63,6 @@ var _prev_web := false
 var _prev_attack := false
 var _prev_position := Vector3.ZERO
 var _was_on_floor := false
-var _regen_delay := 0.0
 var _step_offset := 0.0  # height still to ease up after stepping onto a curb (m)
 
 
@@ -96,9 +95,8 @@ func _physics_process(delta: float) -> void:
 	_prev_web = input.web_held
 	_prev_attack = input.attack_held
 	hurt_time = maxf(hurt_time - delta, 0.0)
-	_regen_delay -= delta
-	if _regen_delay <= 0.0:
-		health = minf(health + REGEN_RATE * delta, MAX_HEALTH)
+	health = recovery.step(delta, health, MAX_HEALTH,
+		mode.name == &"KnockedOut" or HealthRecovery.threatened(global_position))
 
 	var fall_speed := -velocity.y
 	var next := mode.physics_update(delta)
@@ -192,7 +190,7 @@ func take_hit(damage: float, push: Vector3) -> void:
 		return
 	health = maxf(health - damage, 0.0)
 	hurt_time = HURT_TIME
-	_regen_delay = REGEN_DELAY
+	recovery.interrupt()
 	velocity += push
 	hurt.emit(damage)
 	if health <= 0.0:

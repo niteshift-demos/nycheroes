@@ -1,7 +1,8 @@
 class_name KnockedOutMode
 extends HeroMode
 ## Out of health: the hero lies on the ground for a few seconds, then gets up
-## at full health with a burst that shoves nearby thugs back.
+## with some health (HealthRecovery.KO_HEALTH, not full: the rest comes back
+## out of combat) and a burst that shoves nearby thugs back.
 
 @export var down_time := 3.5
 
@@ -21,6 +22,7 @@ func physics_update(delta: float) -> StringName:
 	hero.move_and_slide()
 	if _time < down_time:
 		return &""
-	hero.health = Hero.MAX_HEALTH
+	hero.health = maxf(hero.health, HealthRecovery.KO_HEALTH)
+	hero.recovery.interrupt()
 	Combat.shockwave(hero.global_position, 6.0, 0.0, 12.0)
 	return &"OnFoot"

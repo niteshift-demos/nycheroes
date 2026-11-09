@@ -37,6 +37,8 @@ const GROUNDED := 1
 const FROZEN := 2
 const CHARGING := 4
 const IN_WATER := 8
+## Health is coming back (HealthRecovery), worked out by the hero's own game.
+const RECOVERING := 16
 ## Joining players appear this far to the side of the host's hero (meters).
 const JOIN_SPACING := 3.0
 
@@ -111,7 +113,8 @@ func _encode(source: Hero) -> Array:
 	var melee := source.get_mode(&"Melee") as MeleeMode
 	var swing := source.get_mode(&"Swing") as SwingMode
 	var flags := (GROUNDED if source.is_on_floor() else 0) | (FROZEN if source.frozen else 0) \
-		| (CHARGING if on_foot.charging else 0) | (IN_WATER if source.is_in_water() else 0)
+		| (CHARGING if on_foot.charging else 0) | (IN_WATER if source.is_in_water() else 0) \
+		| (RECOVERING if source.recovery.recovering else 0)
 	return [Time.get_ticks_msec(), source.world_position(), source.velocity, source.facing,
 		MODES.find(source.mode.name), flags, on_foot.charge, source.health, source.hurt_time,
 		melee.step, melee.punch_id, WorldOrigin.to_world(swing.anchor), WorldOrigin.to_world(swing.web_point)]
@@ -136,6 +139,7 @@ func _follow(copy: Hero, snapshots: SnapshotBuffer) -> void:
 	copy.remote_grounded = flags & GROUNDED != 0
 	copy.frozen = flags & FROZEN != 0
 	copy.remote_in_water = flags & IN_WATER != 0
+	copy.recovery.recovering = flags & RECOVERING != 0
 	var on_foot := copy.get_mode(&"OnFoot") as OnFootMode
 	on_foot.charging = flags & CHARGING != 0
 	on_foot.charge = latest[6]

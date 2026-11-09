@@ -20,7 +20,8 @@ Windows and Mac versions are on the site's download page.
   city soundscape.
 - **The hero:** running, super speed, charged super jumps, flight, web
   swinging, swimming, punch combos, dive attacks and landing slams; a
-  customizable look and outfit.
+  customizable look and outfit. Health comes back slowly between fights
+  (the HUD shows when), never in the middle of one.
 - **Co-op:** one big public game by default, or a private game with a code.
   Peers connect over WebRTC (relayed through TURN when they must).
 
