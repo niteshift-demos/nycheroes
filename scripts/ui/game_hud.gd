@@ -6,6 +6,9 @@ extends Control
 ## short notices ("Player 2 is now the host"), plus the aerial photos' credit
 ## while any are shown. An Options button in the top right corner opens the
 ## options menu with a click (touch screens have TouchControls' gear instead).
+## On the flight ring course (FlightCourse): its clock and rings left at the
+## top, what just happened under it (a ring passed, a miss, the finish), and
+## a marker pointing to the ring to fly through next.
 
 ## The Options button was clicked.
 signal options_requested
@@ -25,6 +28,9 @@ const NOTICE_TIME := 6.0
 ## "Player joined" waits this long for their name (seconds).
 const NAME_WAIT := 1.0
 const NOTICE_COLOR := Color(1.0, 0.9, 0.45)
+## The ring course's line (its baseline, px from the top), clear of the
+## stats text; co-op notices go under it and its message meanwhile.
+const COURSE_TOP := 122.0
 ## The license (CC BY 4.0) asks for this whenever the photos are shown.
 const AERIAL_CREDIT := "Aerial imagery: NYC OTI / NYS Orthoimagery Program 2024 (CC BY 4.0)"
 
@@ -32,6 +38,8 @@ const AERIAL_CREDIT := "Aerial imagery: NYC OTI / NYS Orthoimagery Program 2024 
 @export var encounters: EncounterDirector
 @export var players: PlayerSync
 @export var city: CityStreamer
+## Set by Game.
+var flight_course: FlightCourse
 
 ## Set on touch screens (by Game): the health bar moves to the top left, out
 ## of the thumbs' way, and the HUD keeps clear of the screen's notches and of
@@ -98,6 +106,7 @@ func _draw() -> void:
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
 	_draw_coop_status()
+	_draw_course()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
 		var at := Vector2(size.x - width - 16.0, size.y - 12.0)
@@ -145,10 +154,50 @@ func _draw_coop_status() -> void:
 		_text(at, line, 16)
 	# Notices: centered, under the debug text in the top left.
 	var y := maxf(size.y * 0.2, 130.0)
+	if flight_course and flight_course.is_active():
+		y = maxf(y, COURSE_TOP + 72.0)
 	for text in current_notices():
 		var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22).x
 		_text(Vector2((size.x - width) * 0.5, y), text, 22, NOTICE_COLOR)
 		y += 30.0
+
+
+func _draw_course() -> void:
+	if flight_course == null or not flight_course.is_active():
+		return
+	var course := flight_course
+	var rings := FlightCourse.RINGS.size() - 1  # (the start ring isn't one to count)
+	var line := ""
+	match course.state:
+		FlightCourse.State.READY:
+			line = "RING COURSE  ·  fly through START  ·  0:00.00"
+		FlightCourse.State.RUNNING:
+			line = "RING COURSE  ·  ring %d of %d  ·  %s" % [course.next_ring, rings, FlightCourse.format_time(course.elapsed)]
+		FlightCourse.State.FINISHED:
+			line = "RING COURSE  ·  finished  ·  %s" % FlightCourse.format_time(course.elapsed)
+	if course.best_time != INF:
+		line += "  ·  best %s" % FlightCourse.format_time(course.best_time)
+	# Under the stats text in the top left (4 lines) and the Options button.
+	var top := COURSE_TOP
+	if touch_controls:
+		top = touch_controls.safe_insets.y + 84.0  # (under the health bar and stats)
+	var width := _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 24).x
+	_text(Vector2((size.x - width) * 0.5, top), line, 24, Color(1.0, 0.95, 0.7))
+	var said := course.current_message()
+	if said:
+		width = _font.get_string_size(said, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22).x
+		_text(Vector2((size.x - width) * 0.5, top + 32.0), said, 22, course.message_color)
+	var target := course.next_ring_position()
+	if target != Vector3.INF:
+		var label := "RING %d" % course.next_ring
+		var color := FlightCourse.NEXT_COLOR
+		if course.next_ring == 0:
+			label = "START"
+			color = FlightCourse.START_COLOR
+		elif course.next_ring == rings:
+			label = "FINISH"
+			color = FlightCourse.FINISH_COLOR
+		_draw_marker(WorldOrigin.to_local(target), label, color, 150.0)
 
 
 ## A marker pointing at a scene position, labeled with the distance to it.

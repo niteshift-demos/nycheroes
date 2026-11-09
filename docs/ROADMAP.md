@@ -2398,6 +2398,58 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+## Flight ring course (done; added 2026-11-09)
+
+- **What:** a short time trial for flying: seven rings in a slalom up
+  Central Park, from a green START ring over the park's south end (by 59th
+  Street) to a pink FINISH ring by the Reservoir, 60-90 m up, about 1.4 km
+  in all, with Billionaires' Row behind and the park's trees below. The
+  rings are fixed world positions (`FlightCourse.RINGS`, world meters from
+  Times Square), placed from roof heights sampled out of the real tiles; no
+  tile data was changed or rebuilt. `scripts/game/flight_course.gd`, made by
+  Game.
+- **Playing it:** R (a gamepad's Back), the options menu's "Ring course"
+  Start button on the Game page (also how it starts on touch screens), or
+  `?course=1` at launch. The hero is put 70 m before the START ring, flying
+  and facing it, held there until the city around has loaded (like Go to);
+  the clock starts on flying through START. R restarts at any time; the
+  menu's button ("Leave" while on it), Go to, or being placed by a co-op
+  host leaves it. The HUD shows the clock, the ring to fly through next and
+  the best time at the top, what just happened under it (a ring's split, a
+  miss, the finish), and a marker pointing to the next ring with its
+  distance. The next ring is gold (START green, FINISH pink) and pulses;
+  later rings are faint; passed rings go. The best time is kept
+  (`flight_course_best` in the settings).
+- **Honest checkpoints:** each physics tick, the hero's path since the last
+  tick, in world coordinates (origin shifts don't matter), is tested
+  against the plane of the one ring to fly through next. Forwards through
+  it within 12 m of its middle passes it; forwards past it within 50 m is a
+  miss ("MISSED ring 2 by 14 m: turn back and fly through it", the ring
+  flashes red) and that ring stays next; rings out of order and crossings
+  backwards count for nothing. The clock runs on physics time and the start
+  and finish are timed to the crossing point within the tick.
+- **Floating origin and co-op:** rings are in the "floating" group; the
+  course is 1.2-2.9 km from Times Square, so the origin shifts while it's
+  flown. The course is each player's own (not synced): the hero still moves
+  only by HeroInput, and PlayerSync shows it as usual; a restart moves it
+  like Go to does.
+- **Drawing:** plain unshaded StandardMaterial3D tori (no new shader for
+  ANGLE to compile), no shadows.
+- **Test:** `res://tests/flight_course_test.tscn` (the plane tests with
+  made-up paths; then in the real city: R starts it, every ring and the way
+  between them is clear of the city's collision by 12 m, the course flown
+  with HeroInput alone by `tests/flight_course_pilot.gd` missing ring 2 on
+  purpose and coming back for it, the time against the physics ticks, the
+  rings in place after origin shifts, and R restarting mid-course).
+  `res://tests/flight_course_capture.tscn` isn't a test: it plays the
+  course in the real game with ordinary gamepad controls for a Movie Maker
+  video (the command is in its header).
+- **Limitations:** one course; the miss zone is 50 m around a ring, so
+  flying wide of a ring altogether says nothing (the marker still points
+  back to it); no on-screen restart button on touch screens (the options
+  menu's Start restarts); other players don't see each other's rings or
+  times.
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2510,7 +2562,8 @@ deployed); in a computer's browser the co-op menu links to it.
   players far off cost a host's frames, physics and memory),
   `res://tests/audio_test.tscn`, `res://tests/options_test.tscn` (the
   options menu and the settings, with a settings file of its own),
-  `res://tests/address_test.tscn` (the Go to box: the projection against
+  `res://tests/flight_course_test.tscn` (the flight ring course; see its
+  section above), `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and
   `res://tests/traffic_test.tscn` (75 s of
@@ -2527,6 +2580,7 @@ deployed); in a computer's browser the co-op menu links to it.
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?course=1` start on the flight ring course,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

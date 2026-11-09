@@ -27,6 +27,9 @@ extends Node3D
 ## do the HUD's Options button and the touch gear; one menu shows at a time.
 ## Its Go to box takes the hero to an address (travel_to): onto the sidewalk
 ## nearest it, facing it.
+## R (or the options menu's Ring course button, or ?course=1 at launch) starts
+## the flight ring time trial over Central Park (FlightCourse), and restarts
+## it; going somewhere else leaves it.
 ##
 ## Phones and tablets: touch screens get on-screen controls (TouchControls;
 ## ?touch=1 or ?touch=0 forces them on or off, see Device), and a graphics
@@ -71,6 +74,7 @@ var _touch_controls: TouchControls
 var _options: OptionsPanel
 var _name_prompt: NamePrompt
 var _loading: LoadingScreen
+var _course: FlightCourse
 
 
 func _enter_tree() -> void:
@@ -86,7 +90,9 @@ func _ready() -> void:
 	else:
 		place_hero(DEFAULT_SPAWN, facing, true)
 	_set_free_camera(LaunchOptions.has("cam"))
-	players.placed_by_host.connect(place_hero)
+	players.placed_by_host.connect(func(at: Vector3, facing_there: float) -> void:
+		_course.stop()
+		place_hero(at, facing_there))
 	coop_panel.toggled.connect(func(_open: bool) -> void: _update_controls())
 	Net.state_changed.connect(_on_net_state_changed)
 	var quality := Quality.new()
@@ -94,6 +100,7 @@ func _ready() -> void:
 	add_child(quality)
 	quality.apply(time_of_day.sun, get_world_3d().environment, city, get_node("Crowd") as CrowdManager, encounters,
 		get_node_or_null("Traffic") as Traffic, get_node_or_null("Trains") as Trains, time_of_day)
+	_add_course()
 	_add_options(quality)
 	_add_loading_screen()
 	_add_name_prompt()
@@ -101,6 +108,8 @@ func _ready() -> void:
 		Device.set_fullscreen(true)
 	if Device.wants_touch_controls() and not LaunchOptions.has("demo"):
 		_add_touch_controls(false)
+	if LaunchOptions.has("course") and LaunchOptions.get_string("course") != "0" and not LaunchOptions.has("demo"):
+		_course.start()
 	if LaunchOptions.has("demo"):
 		_start_demo()
 	elif LaunchOptions.has("host"):
@@ -149,11 +158,20 @@ func place_hero(world_position: Vector3, facing: float, drop := false) -> void:
 	_arrival = Vector3.INF
 
 
+## Puts our hero in the air at a world position, flying and facing `facing`,
+## held there until the city around has loaded (FlightCourse's start).
+func place_hero_flying(world_position: Vector3, facing: float) -> void:
+	place_hero(world_position, facing)
+	hero.set_mode(&"Flight")
+	hero_camera.pitch = 0.0
+
+
 ## Takes our hero to an address (a world position on the map, any height):
 ## held over it until the streets there have loaded, then onto the nearest
 ## sidewalk, facing it (addresses mostly lie inside their buildings), or
 ## dropped onto whatever is there if no sidewalk is near.
 func travel_to(world_position: Vector3) -> void:
+	_course.stop()
 	place_hero(Vector3(world_position.x, ARRIVAL_HEIGHT, world_position.z), hero.facing, true)
 	_arrival = world_position
 
@@ -320,6 +338,19 @@ func _add_name_prompt() -> void:
 		_name_prompt.open()
 
 
+## The flight ring course (see the top); the HUD shows how it's going.
+func _add_course() -> void:
+	FlightCourse.add_action()
+	_course = FlightCourse.new()
+	_course.name = "FlightCourse"
+	_course.hero = hero
+	_course.game = self
+	add_child(_course)
+	var game_hud := hud.get_node_or_null("GameHud") as GameHud
+	if game_hud:
+		game_hud.flight_course = _course
+
+
 ## The options menu, over the co-op menu in the HUD (only one shows at a time).
 func _add_options(quality: Quality) -> void:
 	OptionsPanel.add_action()
@@ -333,6 +364,12 @@ func _add_options(quality: Quality) -> void:
 	hud.add_child(_options)
 	_options.toggled.connect(func(_open: bool) -> void: _update_controls())
 	_options.place_chosen.connect(travel_to)
+	_options.course_requested.connect(func() -> void:
+		if _course.is_active():
+			_course.stop()
+		else:
+			_course.start())
+	_options.flight_course = _course
 	var game_hud := hud.get_node_or_null("GameHud") as GameHud
 	if game_hud:
 		game_hud.options_requested.connect(func() -> void:

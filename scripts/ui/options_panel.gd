@@ -4,7 +4,7 @@ extends Control
 ## a gamepad's Start), and so do the gear button on touch screens and the
 ## HUD's Options button. Four pages:
 ##   Hero      saved costume, hair, headgear and colors with a live preview
-##   Game      going to an address, graphics quality (Auto, Low, Medium,
+##   Game      going to an address, the flight ring course, graphics quality (Auto, Low, Medium,
 ##             High), time of day, full screen, FPS and stats, joining the
 ##             public game automatically
 ##   Sound     Master, Effects and Ambience volumes, and the sound switch (N)
@@ -29,6 +29,9 @@ signal toggled(open: bool)
 ## The Go to box found a place on the map (world position, y 0); the menu
 ## has closed. Game takes the hero there (Game.travel_to).
 signal place_chosen(world_position: Vector3)
+## The Ring course button was pressed (the menu has closed): Game starts the
+## flight ring course, or leaves it if it's on.
+signal course_requested
 
 const WIDTH := 690.0
 const NOTE_COLOR := Color(1.0, 1.0, 1.0, 0.55)
@@ -54,6 +57,7 @@ const KEYS: Array[Array] = [
 	["O", "options (this menu)"],
 	["N", "sound off and on"],
 	["T", "time of day"],
+	["R", "flight ring course over Central Park: start, or restart"],
 	["F1", "free camera (wheel: its speed)"],
 ]
 const DESKTOP_KEYS: Array[Array] = [
@@ -69,6 +73,7 @@ const TOUCH_HELP: Array[Array] = [
 	["FLY", "fly; DOWN goes down"],
 	["SPEED", "super speed, on and off"],
 	["CO-OP", "play with friends"],
+	["Ring course", "on the Game page: the flight ring time trial"],
 ]
 
 ## Set by Game.
@@ -77,6 +82,8 @@ var quality: Quality
 var time_of_day: TimeOfDay
 ## For the Go to box: whether a place found is on the map.
 var city: CityStreamer
+## For the Ring course button: whether the course is on.
+var flight_course: FlightCourse
 ## The ?stats text (DebugHud): "Show FPS and stats" shows and hides it.
 var debug_label: Control
 
@@ -99,6 +106,8 @@ var _invert: Button
 var _address: LineEdit
 var _address_go: Button
 var _address_note: Label
+var _course_button: Button
+var _course_note: Label
 var _search: AddressSearch
 var _sliders := {}  # setting key -> HSlider
 var _resume: Button
@@ -294,6 +303,15 @@ func _refresh() -> void:
 	_set_toggle(_public, bool(Settings.get_value("online_public", true)))
 	_set_toggle(_sound, not GameAudio.is_muted())
 	_set_toggle(_invert, ThirdPersonCamera.look_y_sign() < 0.0)
+	_refresh_course()
+
+
+func _refresh_course() -> void:
+	var on := flight_course != null and flight_course.is_active()
+	_course_button.text = "Leave" if on else "Start"
+	var best := flight_course.best_time if flight_course else INF
+	_course_note.text = "Seven rings over Central Park against the clock (R restarts it).%s" % [
+		"  Your best: %s." % FlightCourse.format_time(best) if best != INF else ""]
 
 
 func _refresh_sliders() -> void:
@@ -460,6 +478,16 @@ func _game_page() -> VBoxContainer:
 	_address_note = _note("A street address in the five boroughs, like 350 5th Ave, Manhattan.")
 	_address_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	page.add_child(_address_note)
+	_course_button = Button.new()
+	_course_button.text = "Start"
+	_course_button.custom_minimum_size = Vector2(96.0, 44.0 if _touch else 0.0)
+	_course_button.pressed.connect(func() -> void:
+		close()
+		course_requested.emit())
+	_row(page, "Ring course", _course_button)
+	_course_note = _note("")
+	_course_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	page.add_child(_course_note)
 	var levels := HBoxContainer.new()
 	levels.add_theme_constant_override("separation", 6)
 	var group := ButtonGroup.new()
