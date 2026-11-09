@@ -227,7 +227,11 @@ func _draw_waypoint() -> void:
 	if camera == null:
 		return
 	var base := WorldOrigin.to_local(waypoint.target)
+	# Close by, the beam's top can be behind the camera (looking past it, a
+	# little down): as much of it as is in front, then.
 	var top := base + Vector3.UP * BEAM_HEIGHT
+	while camera.is_position_behind(top) and top.y - base.y > 4.0:
+		top = base + (top - base) * 0.5
 	if not camera.is_position_behind(base) and not camera.is_position_behind(top):
 		var from := camera.unproject_position(base)
 		var to := camera.unproject_position(top)
