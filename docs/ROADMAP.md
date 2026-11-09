@@ -36,6 +36,13 @@ Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
 the hero is driven by a plain input object per physics tick so a network
 peer can drive one later. Nearby tiles get collision.
 
+On-foot jumps forgive a press up to 120 ms after leaving a ledge, or a
+press up to 120 ms before landing. A released buffered tap jumps once on
+touchdown; holding starts the normal charge on the ground, without counting
+airborne time. Taking off consumes ledge grace, so this never grants a
+second air jump. Water and mode changes clear pending grace. Flight, swinging
+and the melee jump handoff keep their own input behavior.
+
 ## 3. Street fights (done)
 
 - Pedestrians walk real sidewalk lanes (traced from street data), run from
@@ -2499,7 +2506,9 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/jump_grace_test.tscn` (synthetic collision fixtures: ledge
+  grace, landing buffers, expiration, one jump per press, charging and mode
+  handoff; no city data needed), `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
@@ -2523,6 +2532,16 @@ deployed); in a computer's browser the co-op menu links to it.
   out onto the other track, alone on the terminal's track; it needs tiles
   with the trains surface around the 7, the 4 on Jerome Avenue and
   Woodlawn; `TRAINS_TERMINAL_ONLY=1` goes straight to Woodlawn).
+- Jump-grace gameplay reproduction: run `res://tests/jump_grace_demo.tscn`
+  with `-- --spawn=30,33.3,-10,90 --solo=1 --name=JumpGrace --quality=medium
+  --peds=0 --traffic=0 --trains=0 --gangs=0
+  --tiles_url=https://nycheroes.party/tiles`. It waits for the city, then
+  feeds normal `HeroInput` through a rooftop ledge jump, a pre-landing tap,
+  an expired airborne press and a charged jump. It never moves the hero or
+  edits physics/world state. Native Movie Maker: add `--resolution 1280x720
+  --write-movie /path/jump-grace.avi --fixed-fps 30` before the scene path;
+  the physics tick stays at its normal 60 Hz. Loading remains in the source
+  movie; `[jump demo] useful footage begins` identifies the gameplay start.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
