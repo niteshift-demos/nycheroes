@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/threat_awareness_play.gd" id="1"]
+
+[node name="ThreatAwarenessPlay" type="Node"]
+script = ExtResource("1")

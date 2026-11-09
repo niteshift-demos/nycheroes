@@ -56,6 +56,11 @@ var anim_index := 0
 var anim_speed := 1.0
 var anim_restarts := 0
 
+## Latest authoritative threat data for a remote copy; presentation only.
+var _threat_state := State.IDLE
+var _threat_seconds := 0.0
+var _threat_target := 0
+
 var _timer := 0.0
 var _cooldown := 0.0
 var _attack_slot: Hero
@@ -145,6 +150,28 @@ func is_down() -> bool:
 	return state == State.DOWN
 
 
+## The player being pursued, without guessing from the nearest hero on copies.
+func threat_target() -> int:
+	if puppet:
+		return _threat_target
+	if not is_instance_valid(hero):
+		return 0
+	return hero.remote_id if hero.is_remote() else Net.local_id()
+
+
+func threat_state() -> int:
+	return _threat_state if puppet else state
+
+
+## Seconds until contact, not until the animation finishes. Negative means no punch.
+func incoming_seconds() -> float:
+	if is_down() or frozen or (puppet and Time.get_ticks_msec() < _local_animation_until):
+		return -1.0
+	if threat_state() != State.PUNCH:
+		return -1.0
+	return _threat_seconds if puppet else _timer
+
+
 func facing() -> float:
 	return _facing
 
@@ -215,7 +242,11 @@ func _process(delta: float) -> void:
 
 ## A copy's update from the game running it (world position).
 func push_snapshot(sender_msec: float, world_position: Vector3, facing_angle: float, health_left: float,
-		animation: int, speed: float, restarts: int) -> void:
+		animation: int, speed: float, restarts: int, attack_state := State.IDLE,
+		attack_seconds := 0.0, target_player := 0) -> void:
+	_threat_state = attack_state
+	_threat_seconds = attack_seconds
+	_threat_target = target_player
 	_snapshots.push(sender_msec, [world_position, facing_angle, health_left, animation, speed, restarts])
 
 
@@ -224,6 +255,7 @@ func _physics_process(delta: float) -> void:
 		_update_down(delta)
 		return
 	if puppet:
+		_threat_seconds = maxf(0.0, _threat_seconds - delta)
 		_follow_updates(delta)
 		return
 	if frozen:

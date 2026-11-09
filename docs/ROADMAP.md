@@ -53,6 +53,20 @@ peer can drive one later. Nearby tiles get collision.
 - Punch combos, dive attacks, landing slams and super speed rams; defeated
   thugs ragdoll, bleed, and stay on the street while you're nearby.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
+- Fight awareness (`ThreatAwareness`): up to three nearby off-screen pursuers
+  get amber THREAT arrows; incoming punches get red rings and seconds to
+  contact, on screen or at its edge. Rings drain over the existing 0.45 s
+  punch windup: move away or interrupt with an attack using the usual controls.
+  Only enemies pursuing this hero within 24 m and 4 m vertically qualify;
+  world collision blocks cues, and idle gangs, pedestrians and downed enemies
+  never qualify. Incoming punches take priority. No extra shader or assets.
+  Co-op snapshots carry authoritative target, attack state and remaining time;
+  the target travels as an integer so large peer ids stay exact. Cues are
+  advisory: latency and cover can hide or delay a warning, and recovery has no
+  countdown. All peers need the same snapshot format (10 floats plus target ids).
+  The independent `tests/threat_awareness_play.tscn` reproduction drives normal
+  HeroInput and camera look against automatically spawned gangs; it never
+  changes hero/enemy transforms, health or combat timing.
 
 ## 4. All five boroughs and bridges (done)
 
@@ -2499,7 +2513,9 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/threat_awareness_test.tscn`
+  (threat eligibility, interrupted punches and authoritative remote countdowns),
+  `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so

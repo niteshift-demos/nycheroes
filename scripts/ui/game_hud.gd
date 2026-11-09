@@ -66,6 +66,9 @@ func _ready() -> void:
 		if Net.is_online() and not Net.is_public:
 			notify("You're the host now" if id == Net.local_id() else "%s is now the host" % Net.player_name(id)))
 	_add_options_button()
+	var threats := ThreatAwareness.new()
+	threats.name = "ThreatAwareness"
+	add_child(threats)
 
 
 ## Shows a line near the top of the screen for a few seconds.

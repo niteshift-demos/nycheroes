@@ -41,7 +41,7 @@ const SHARE_RANGE := 400.0
 const FORGET_RANGE := 500.0
 const SHARE_INTERVAL := 0.05
 ## Numbers sent per thug in each update (its number goes separately).
-const STATE_SIZE := 8
+const STATE_SIZE := 10
 ## Thug numbers are k * ID_STRIDE + the number of the player whose game made
 ## the thug (more than there can be players).
 const ID_STRIDE := 16
@@ -263,6 +263,7 @@ func _share_thugs() -> void:
 		var leaving := PackedInt32Array()
 		var ids := PackedInt32Array()
 		var states := PackedFloat32Array()
+		var targets := PackedInt32Array()
 		var present := {}
 		for thug in Combat.thugs:
 			if thug.puppet:
@@ -277,7 +278,8 @@ func _share_thugs() -> void:
 				elif not thug.is_down():
 					ids.append(thug.net_id)
 					states.append_array([at.x, at.y, at.z, thug.facing(), thug.health,
-						thug.anim_index, thug.anim_speed, thug.anim_restarts])
+						thug.anim_index, thug.anim_speed, thug.anim_restarts, thug.threat_state(), thug.incoming_seconds()])
+					targets.append(thug.threat_target())
 			elif distance < SHARE_RANGE:
 				known[thug.net_id] = true
 				_told[thug.net_id] = true
@@ -291,7 +293,7 @@ func _share_thugs() -> void:
 		if not leaving.is_empty():
 			_remove_thugs.rpc_id(player.remote_id, leaving)
 		if not ids.is_empty():
-			_thug_states.rpc_id(player.remote_id, now, ids, states)
+			_thug_states.rpc_id(player.remote_id, now, ids, states, targets)
 
 
 ## What another game needs to set a thug up: [net id, world position,
@@ -357,14 +359,14 @@ func _remove_thugs(net_ids: PackedInt32Array) -> void:
 
 
 @rpc("any_peer", "call_remote", "unreliable_ordered")
-func _thug_states(sender_msec: int, net_ids: PackedInt32Array, states: PackedFloat32Array) -> void:
+func _thug_states(sender_msec: int, net_ids: PackedInt32Array, states: PackedFloat32Array, targets: PackedInt32Array) -> void:
 	var sender := multiplayer.get_remote_sender_id()
-	for k in mini(net_ids.size(), states.size() / STATE_SIZE):
+	for k in mini(mini(net_ids.size(), targets.size()), states.size() / STATE_SIZE):
 		var thug := Combat.thug_by_id(net_ids[k])
 		var s := k * STATE_SIZE
 		if thug and thug.puppet and thug.run_by == sender and not thug.is_down():
 			thug.push_snapshot(sender_msec, Vector3(states[s], states[s + 1], states[s + 2]), states[s + 3],
-				states[s + 4], int(states[s + 5]), states[s + 6], int(states[s + 7]))
+				states[s + 4], int(states[s + 5]), states[s + 6], int(states[s + 7]), int(states[s + 8]), states[s + 9], targets[k])
 
 
 ## Leaving a room (or not getting into one), copies of other players' thugs
