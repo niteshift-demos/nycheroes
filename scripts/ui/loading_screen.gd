@@ -18,6 +18,7 @@ const TIPS: Array[String] = [
 	"Hold Space to charge a super jump.",
 	"F to fly; Space and C go up and down.",
 	"E or right mouse shoots a web to swing from.",
+	"Swinging, hold Space to reel the web in, C to let it out.",
 	"Punch in the air for a dive attack.",
 	"M: play with everyone online, alone, or with friends.",
 	"T steps the time of day on.",
@@ -26,6 +27,7 @@ const TIPS: Array[String] = [
 const TOUCH_TIPS: Array[String] = [
 	"The right side of the screen looks around.",
 	"Hold jump to charge a super jump.",
+	"Swinging, hold JUMP to reel the web in, DOWN to let it out.",
 	"The co-op button: play with everyone online, alone, or with friends.",
 	"The gear opens the options: graphics, sound, controls.",
 ]

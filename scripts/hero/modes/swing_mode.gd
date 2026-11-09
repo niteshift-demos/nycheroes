@@ -6,6 +6,13 @@ extends HeroMode
 ## The web sticks to a building wall beside the street, but the hero swings from
 ## a pivot above the street instead (like Spider-Man games do), so swings carry
 ## the hero along the street rather than into the wall.
+##
+## While swinging, holding JUMP reels the web in (a tighter, faster swing that
+## lifts the hero toward the pivot) and holding DOWN lets it out (a longer,
+## lower swing, or a drop toward the street). The web never gets shorter than
+## MIN_ROPE nor longer than reaches GROUND_CLEARANCE above whatever is under
+## the pivot (worked out when the web sticks), so letting out can't drag the
+## hero along the street.
 
 ## Height of the hand holding the web, above the hero's feet.
 const HAND_HEIGHT := 1.4
@@ -13,6 +20,12 @@ const HAND_HEIGHT := 1.4
 const GROUND_CLEARANCE := 6.0
 ## Shortest web worth swinging on.
 const MIN_ROPE := 8.0
+
+## How fast the web reels in while JUMP is held, and out while DOWN is (m/s).
+## Reeling in keeps the hero's speed along the swing, so the swing quickens
+## (and pulling the hero up the web gives it a little more energy).
+const REEL_IN_SPEED := 14.0
+const REEL_OUT_SPEED := 12.0
 
 @export var max_web_length := 120.0
 ## Anchors must be at least this far above the hand.
@@ -32,6 +45,12 @@ const MIN_ROPE := 8.0
 var anchor := Vector3.ZERO
 var web_point := Vector3.ZERO
 var rope_length := 0.0
+## Longest the web may be let out to on this swing (m).
+var max_rope := 0.0
+## What the web is doing this tick: -1 reeling in, +1 letting out, 0 neither
+## (not asked to, or at its limit). Plain state, sent to other players
+## (PlayerSync) so their copies of this hero sound the reel too.
+var reel := 0
 
 
 func _ready() -> void:
@@ -75,6 +94,7 @@ func try_attach() -> bool:
 				web_point = point
 				anchor = pivot
 				rope_length = rope
+				max_rope = maxf(minf(longest, max_web_length), rope)
 	return best_score > -INF
 
 
@@ -96,6 +116,7 @@ func _swing_direction() -> Vector3:
 
 func enter(_previous: StringName) -> void:
 	hero.motion_mode = CharacterBody3D.MOTION_MODE_GROUNDED
+	reel = 0
 	if hero.is_on_floor():
 		hero.velocity.y = 12.0  # hop off the ground into the swing
 
@@ -110,6 +131,7 @@ func physics_update(delta: float) -> StringName:
 		_release()
 		return &"OnFoot"
 
+	_reel(input, delta)
 	var velocity := hero.velocity
 	velocity.y -= Hero.GRAVITY * delta
 	velocity += input.move.limit_length(1.0) * pump_acceleration * delta
@@ -136,6 +158,25 @@ func physics_update(delta: float) -> StringName:
 		_release()
 		return &"OnFoot"
 	return &""
+
+
+func exit() -> void:
+	reel = 0
+
+
+## Shortens or lengthens the web while JUMP or DOWN is held (`input.vertical`;
+## both held cancel out).
+## The taut-web pull in physics_update then draws the hero in; a web let out
+## goes slack until the hero has fallen into it.
+func _reel(input: HeroInput, delta: float) -> void:
+	var wanted := -int(signf(input.vertical))
+	var length := rope_length
+	if wanted < 0:
+		length = maxf(rope_length - REEL_IN_SPEED * delta, MIN_ROPE)
+	elif wanted > 0:
+		length = minf(rope_length + REEL_OUT_SPEED * delta, max_rope)
+	reel = wanted if not is_equal_approx(length, rope_length) else 0
+	rope_length = length
 
 
 func _release() -> void:

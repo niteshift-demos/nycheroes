@@ -9,7 +9,8 @@ var stick := Vector2.ZERO
 var move := Vector3.ZERO
 ## Where the camera looks (unit vector, world space). Flight and webs follow it.
 var aim := Vector3.FORWARD
-## Climb/descend while flying: +1 up, -1 down.
+## Climb/descend while flying, and reel the web in/out while swinging: +1 up
+## (JUMP), -1 down (DOWN).
 var vertical := 0.0
 var jump_held := false
 var sprint_held := false

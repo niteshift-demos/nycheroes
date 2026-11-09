@@ -6,8 +6,9 @@ extends Control
 ## part of the screen, and follows a thumb that slides past its rim. Dragging
 ## anywhere else turns the camera. Buttons on the right:
 ##   PUNCH  attack (a dive attack in the air: the label then says DIVE)
-##   JUMP   jump (hold for a super jump); while flying it's UP
-##   DOWN   descend, while flying
+##   JUMP   jump (hold for a super jump); while flying it's UP; while
+##          swinging it reels the web in
+##   DOWN   descend, while flying; while swinging it lets the web out
 ##   WEB    web (hold to swing), not while flying
 ##   FLY    fly_toggle (lit while flying)
 ##   SPEED  super speed as a toggle (lit while on): it stays on until tapped
@@ -404,7 +405,7 @@ func _update_hero_state(delta: float) -> void:
 	(_by_id[&"punch"] as TouchButton).label = "DIVE" if airborne or flying else "PUNCH"
 	(_by_id[&"jump"] as TouchButton).label = "UP" if flying else "JUMP"
 	(_by_id[&"fly"] as TouchButton).on = flying
-	_show(&"down", flying)
+	_show(&"down", flying or mode == &"Swing")
 	_show(&"web", not flying)
 	queue_redraw()
 

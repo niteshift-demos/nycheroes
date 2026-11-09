@@ -27,6 +27,11 @@ const SURFACE_INTERVAL := 0.3
 ## A loop that fades out keeps playing silently this long (s), so jump after
 ## jump doesn't restart it (on the web each start copies its buffer).
 const LOOP_LINGER := 5.0
+## While a web reels in or out, its creak repeats this often (s), higher
+## pitched reeling in than letting out; it stops when the web reaches its limit.
+const REEL_CREAK_INTERVAL := 0.28
+const REEL_IN_PITCH := 1.35
+const REEL_OUT_PITCH := 0.8
 
 enum Loop { AIR_LOW, AIR_HIGH, SPEED, CHARGE }
 const LOOP_SOUNDS: Array[StringName] = [&"air_low", &"air_high", &"speed_loop", &"charge_loop"]
@@ -43,6 +48,7 @@ var _hurt_time := 0.0
 var _step_animation := &""
 var _step_phase := 0.0
 var _swing_rise := 0.0
+var _reel_creak := 0.0
 var _zoom_ready := true
 var _surface := &"step_concrete"
 var _odd_step := false
@@ -77,13 +83,13 @@ func _ready() -> void:
 		_loops.append(LoopVoice.new(player, entry.get("db", 0.0), LOOP_LINGER))
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	var start := Time.get_ticks_usec()
-	_update()
+	_update(delta)
 	GameAudio.cost_usec += Time.get_ticks_usec() - start
 
 
-func _update() -> void:
+func _update(delta: float) -> void:
 	var mode: StringName = hero.mode.name if hero.mode else &""
 	var grounded := hero.grounded()
 	var in_water := hero.is_in_water()
@@ -145,6 +151,7 @@ func _update() -> void:
 			if randf() < 0.4:
 				GameAudio.play(&"creak", at + Vector3.UP * 1.5)
 		_swing_rise = rise
+		_reel_sound(delta)
 
 	# Breaking into super speed.
 	var flat_speed := hero.horizontal_speed()
@@ -248,6 +255,19 @@ func _surface_at(world_position: Vector3) -> StringName:
 	if spot.g > 0.45 and world_position.y < 8.0:
 		return &"step_wood"
 	return &"step_concrete"
+
+
+## The web creaks as it reels (SwingMode.reel, which copies get from the network).
+func _reel_sound(delta: float) -> void:
+	var reel := (hero.get_mode(&"Swing") as SwingMode).reel
+	if reel == 0:
+		_reel_creak = 0.0
+		return
+	_reel_creak -= delta
+	if _reel_creak <= 0.0:
+		_reel_creak = REEL_CREAK_INTERVAL
+		GameAudio.play(&"creak", hero.global_position + Vector3.UP * SwingMode.HAND_HEIGHT, 0.0,
+			REEL_IN_PITCH if reel < 0 else REEL_OUT_PITCH)
 
 
 func _mode_changed(from: StringName, to: StringName) -> void:

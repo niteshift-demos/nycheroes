@@ -87,7 +87,7 @@ const MAX_PLAYERS := 8
 ## which matches public games only with games of the same number, and turns
 ## away room codes of another. Raise it whenever what games send each other
 ## changes (RPCs), so games that can't play together never meet.
-const NET_VERSION := 3
+const NET_VERSION := 4
 const ENET_VERSION := 1000000
 ## After failing to reach the public game, try again after this long
 ## (seconds), twice as long after each try that fails, up to PUBLIC_RETRY_MAX.

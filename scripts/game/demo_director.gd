@@ -2,7 +2,8 @@ class_name DemoDirector
 extends Node
 ## Plays a scripted tour for recording videos: ?demo shows off the hero's
 ## powers, ?demo=fight a street fight, ?demo=city flies the free camera over
-## the city, ?demo=new over what's new lately. Drives the hero's input and the camera and captions each part.
+## the city, ?demo=new over what's new lately, ?demo=reel reels a web in and
+## out (and runs it to both of its limits). Drives the hero's input and the camera and captions each part.
 ## Prints "[demo] start" and "[demo] finished" so a recorder can follow, and
 ## "[demo] pause" / "[demo] resume" around waits for the city to load (a
 ## recorder can pause, so the video has no loading pop-in).
@@ -41,6 +42,11 @@ var _caption: Label
 var _flight := {}
 var _holding := false
 var _loaded_time := 0.0
+## Reel tour: the web's length, under the caption.
+var _readout: Label
+## Reel tour: the web let go of the hero this shot (it was reeled all the way
+## in), so WEB is let go too, as a player would.
+var _let_go := false
 
 
 func _ready() -> void:
@@ -90,6 +96,21 @@ func _ready() -> void:
 					[21.5, 21.5]),
 			_shot("", 0.5),
 		]
+	elif LaunchOptions.get_string("demo") == "reel":
+		_yaw = _avenue_yaw + 0.6
+		camera.yaw = _yaw
+		_shots = [
+			_shot("Web reeling", 1.5, Callable(), _reel_camera),
+			_shot("Hold WEB to swing", 1.0, _reel_input.bind(0.0), _reel_camera),
+			_shot("Hold JUMP: reel in", 0.9, _reel_input.bind(1.0), _reel_camera),
+			_shot("Hold DOWN: let the web out", 1.0, _reel_input.bind(-1.0), _reel_camera),
+			_shot("...it stops 6 m above the street", 3.0, _reel_input.bind(-1.0), _reel_camera),
+			_shot("", 1.2, _reel_input.bind(0.0, false), _reel_camera),
+			_shot("Reel all the way in...", 3.5, _reel_input.bind(1.0), _reel_camera, func() -> void: _let_go = false),
+			_shot("...and the web lets go at the top", 2.5, _reel_input.bind(0.0, false), _reel_camera),
+			_shot("", 2.0, _reel_input.bind(0.0, false), _reel_camera),
+			_shot("", 0.5),
+		]
 	elif LaunchOptions.get_string("demo") == "fight":
 		_yaw = _avenue_yaw
 		camera.yaw = _yaw
@@ -114,6 +135,8 @@ func _ready() -> void:
 			_shot("", 1.0),
 		]
 	_make_caption()
+	if LaunchOptions.get_string("demo") == "reel":
+		_make_readout()
 
 
 func _physics_process(delta: float) -> void:
@@ -124,7 +147,7 @@ func _physics_process(delta: float) -> void:
 			return
 		_settle -= delta
 		if _settle <= 0.0:
-			print("[demo] start")
+			print("[demo] start (frame %d)" % Engine.get_frames_drawn())
 			_begin(0)
 		return
 	if _index >= _shots.size():
@@ -142,7 +165,9 @@ func _physics_process(delta: float) -> void:
 	if _time >= shot.seconds:
 		_begin(_index + 1)
 		if _index >= _shots.size():
-			print("[demo] finished")
+			print("[demo] finished (frame %d)" % Engine.get_frames_drawn())
+			if not Engine.get_write_movie_path().is_empty():
+				get_tree().quit()  # Movie Maker (--write-movie): the recording ends with the tour
 
 
 func _process(delta: float) -> void:
@@ -155,6 +180,12 @@ func _process(delta: float) -> void:
 		var seconds: float = _shots[_index].seconds
 		alpha = smoothstep(0.0, 0.4, _time) * (1.0 - smoothstep(seconds - 0.5, seconds, _time))
 	_caption.modulate.a = alpha
+	if _readout:
+		var swing := hero.get_mode(&"Swing") as SwingMode
+		var swinging := hero.mode.name == &"Swing"
+		_readout.text = "web %.1f m  (%.0f to %.0f m)%s" % [swing.rope_length, SwingMode.MIN_ROPE, swing.max_rope,
+				["  reeling in", "", "  letting out"][swing.reel + 1]] if swinging else "no web"
+		_readout.modulate.a = 1.0 if _index >= 0 and _index < _shots.size() - 1 else 0.0
 
 
 func _begin(index: int) -> void:
@@ -277,6 +308,41 @@ func _ram_camera(_t: float) -> void:
 func _aftermath_camera(t: float) -> void:
 	_yaw = _avenue_yaw + 2.6 * smoothstep(0.0, 3.0, t)
 	_pitch = -0.35
+
+
+# --- Reel tour ---
+
+## Moves along the avenue holding WEB (unless `web` is false), with JUMP
+## (vertical +1) or DOWN (-1) held as the plain input a player's would be.
+func _reel_input(input: HeroInput, t: float, vertical: float, web := true) -> void:
+	_move(input)
+	if web and t > 0.3 and hero.mode.name != &"Swing":
+		_let_go = true
+	input.web_held = web and not _let_go
+	input.vertical = vertical
+	input.jump_held = vertical > 0.0
+
+
+## From behind and to the side, level with the hero, so the swing's arc shows.
+func _reel_camera(_t: float) -> void:
+	_yaw = _avenue_yaw + 0.6
+	_pitch = 0.0
+
+
+func _make_readout() -> void:
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	_readout = Label.new()
+	_readout.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	_readout.offset_top = -46.0
+	_readout.offset_bottom = -14.0
+	_readout.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_readout.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_readout.add_theme_font_size_override("font_size", 24)
+	_readout.add_theme_color_override("font_outline_color", Color.BLACK)
+	_readout.add_theme_constant_override("outline_size", 8)
+	_readout.modulate.a = 0.0
+	layer.add_child(_readout)
 
 
 # --- Powers tour ---

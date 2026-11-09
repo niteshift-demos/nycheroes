@@ -30,8 +30,8 @@ Windows and Mac versions are on the site's download page.
 |---|---|---|
 | Move | WASD | Left stick |
 | Look | Mouse | Right stick |
-| Jump (hold to charge) | Space | A |
-| Descend | C | B |
+| Jump (hold to charge); reel the web in while swinging | Space | A |
+| Descend; let the web out while swinging | C | B |
 | Sprint / super speed | Shift | L3 or left bumper |
 | Toggle flight | F | Y |
 | Web | E or right mouse | Right trigger |
