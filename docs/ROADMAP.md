@@ -2398,6 +2398,54 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+## Landmark exploration (done; added 2026-11-09)
+
+- **What it is:** a light exploration goal. Fifteen of the hand-modeled
+  landmarks (`tools/citygen/landmarks.py`) are on a list to find: Times
+  Square, the New York Times Building, the New York Public Library, Grand
+  Central, the Chrysler, Empire State and Flatiron Buildings, 30 Rockefeller
+  Plaza, Radio City Music Hall, St. Patrick's Cathedral, Columbus Circle, One
+  World Trade Center, the Statue of Liberty, the Unisphere and the Wonder
+  Wheel. Going near one discovers it: a banner names it with a line about it
+  and "N of 15 found" (6 s, game time; several found at once take turns), the
+  HUD counts "Landmarks: N/15" beside the thugs, and a light blue marker
+  points to the nearest one still to find with its distance along the
+  ground. `scripts/game/landmark_discovery.gd` (LandmarkDiscovery, made by
+  Game), drawn by GameHud.
+- **Where they are:** latitudes and longitudes (the buildings' middles;
+  Columbus Circle, the Unisphere and the Wonder Wheel at the points
+  landmarks.py anchors their models to, which the test checks to a few
+  centimeters) put through `Geo.to_world`, the tiles' own projection. They
+  are world positions, compared with `Hero.world_position()` five times a
+  second, so floating origin shifts don't matter.
+- **Near enough:** each has a radius, 70-120 m from its middle, measured
+  along the ground: about the building's half-size plus its sidewalks. Flying
+  over counts, up to 600 m above sea level (`MAX_ALTITUDE`; from higher, all
+  of midtown would be "near"). No two radii overlap (Grand Central's and the
+  Chrysler's come closest, 9 m apart). Arriving by the Go to box counts too
+  once the hero is set down; nothing is found while the hero is held frozen
+  (loading).
+- **Limits:** progress is for the session: a reload starts over (nothing is
+  saved). In co-op every player discovers for themselves and nothing about it
+  is synced; it isn't hero state, so HeroInput and PlayerSync are unchanged.
+  Discovery is by distance only: it doesn't check that the landmark is in
+  sight, or that the hero is on the ground.
+- **Tested:** `tests/landmark_discovery_test.tscn` (16 checks): the anchors
+  above, every landmark on the map, no overlapping radii, the altitude limit,
+  a radius's edge, finding once; then in the real city, Times Square found at
+  the start (banner and count), and the Flatiron Building found after
+  travel_to took the hero 1.9 km past a floating origin shift, with the
+  marker then on the Empire State Building.
+- **Recording it:** `tests/landmark_tour_capture.tscn` (not a test) plays
+  the real game through ordinary inputs only (movement, Shift, F, Space and
+  C, the right stick), from `--spawn=-78,20,140,0` on Seventh Avenue: north
+  into Times Square at super speed, up over midtown and east to Radio City,
+  30 Rockefeller Plaza and St. Patrick's, then it quits. With Godot's Movie
+  Maker: `godot --path . --rendering-driver opengl3 --resolution 1280x720
+  --fixed-fps 30 --write-movie tour.avi res://tests/landmark_tour_capture.tscn
+  -- --solo=1 --spawn=-78,20,140,0` (add `--tiles_url=https://nycheroes.party/tiles/`
+  without local tiles; on Linux without a display, under `xvfb-run`).
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2513,6 +2561,9 @@ deployed); in a computer's browser the co-op menu links to it.
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and
+  `res://tests/landmark_discovery_test.tscn` (landmark exploration: where
+  the landmarks are, discovering them, through an origin shift; see
+  "Landmark exploration"),
   `res://tests/traffic_test.tscn` (75 s of
   midtown traffic: no red light run, no overlaps, cars stop for the hero,
   and leave with their tiles) and `res://tests/trains_test.tscn` (the 7 at

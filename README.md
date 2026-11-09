@@ -21,6 +21,8 @@ Windows and Mac versions are on the site's download page.
 - **The hero:** running, super speed, charged super jumps, flight, web
   swinging, swimming, punch combos, dive attacks and landing slams; a
   customizable look and outfit.
+- **Exploration:** fifteen landmarks to discover by going there, with a
+  banner for each, a count and a marker to the nearest one left.
 - **Co-op:** one big public game by default, or a private game with a code.
   Peers connect over WebRTC (relayed through TURN when they must).
 

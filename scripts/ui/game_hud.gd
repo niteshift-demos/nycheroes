@@ -4,7 +4,9 @@ extends Control
 ## thug, and in co-op a marker for each other player (markers sit at the
 ## screen edge when what they point at is off screen), the game's status and
 ## short notices ("Player 2 is now the host"), plus the aerial photos' credit
-## while any are shown. An Options button in the top right corner opens the
+## while any are shown. Exploration (LandmarkDiscovery): how many landmarks
+## have been found this session, a marker pointing to the nearest one still to
+## find, and a banner naming each one as it's discovered. An Options button in the top right corner opens the
 ## options menu with a click (touch screens have TouchControls' gear instead).
 
 ## The Options button was clicked.
@@ -27,11 +29,23 @@ const NAME_WAIT := 1.0
 const NOTICE_COLOR := Color(1.0, 0.9, 0.45)
 ## The license (CC BY 4.0) asks for this whenever the photos are shown.
 const AERIAL_CREDIT := "Aerial imagery: NYC OTI / NYS Orthoimagery Program 2024 (CC BY 4.0)"
+const LANDMARK_COLOR := Color(0.45, 0.85, 1.0)
+const DISCOVERY_COLOR := Color(1.0, 0.82, 0.35)
+## A discovery's banner shows this long (seconds), fading in and out; two
+## found at once show one after the other.
+const BANNER_TIME := 6.0
+const BANNER_FADE := 0.4
 
 @export var hero: Hero
 @export var encounters: EncounterDirector
 @export var players: PlayerSync
 @export var city: CityStreamer
+## Set by Game: the landmarks to find (none: no exploration HUD).
+var discovery: LandmarkDiscovery:
+	set(value):
+		discovery = value
+		if discovery:
+			discovery.discovered.connect(_on_discovered)
 
 ## Set on touch screens (by Game): the health bar moves to the top left, out
 ## of the thumbs' way, and the HUD keeps clear of the screen's notches and of
@@ -45,6 +59,10 @@ var touch_controls: TouchControls:
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
+## Discoveries waiting for their banner: [index, found, total].
+var _banners: Array[Array] = []
+## How long the first of _banners has shown (s, game time).
+var _banner_age := 0.0
 
 
 func _ready() -> void:
@@ -80,7 +98,12 @@ func current_notices() -> PackedStringArray:
 	return PackedStringArray(_notices.map(func(notice: Array) -> String: return notice[0]))
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if not _banners.is_empty():
+		_banner_age += delta
+		if _banner_age > BANNER_TIME:
+			_banners.pop_front()
+			_banner_age = 0.0
 	queue_redraw()
 
 
@@ -94,7 +117,12 @@ func _draw() -> void:
 	var fill := Color(0.85, 0.15, 0.12).lerp(Color(0.2, 0.8, 0.3), health)
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * health, bar.size.y)), fill)
 	_text(bar.position + Vector2(0.0, -8.0), "HEALTH", 14)
-	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
+	var thugs_line := "Thugs down: %d" % Combat.defeated_count
+	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), thugs_line, 18)
+	if discovery:
+		var at := Vector2(bar.end.x + 48.0 + _font.get_string_size(thugs_line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18).x,
+			bar.end.y - 2.0)
+		_text(at, "Landmarks: %d/%d" % [discovery.found_count(), discovery.total()], 18, LANDMARK_COLOR)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
 	_draw_coop_status()
@@ -104,6 +132,9 @@ func _draw() -> void:
 		if touch_controls:  # bottom middle, between the thumbs
 			at = Vector2((size.x - width) * 0.5, size.y - touch_controls.safe_insets.w - 8.0)
 		_text(at, AERIAL_CREDIT, 12, Color(1.0, 1.0, 1.0, 0.8))
+	if discovery:
+		_draw_landmark_marker()
+		_draw_banner()
 	var thug := encounters.nearest_thug(hero.world_position())
 	if thug:
 		_draw_marker(thug.global_position + Vector3.UP * 2.2, "THUGS", MARKER_COLOR, NEAR_ENOUGH)
@@ -118,6 +149,56 @@ func _draw() -> void:
 		var other: Hero = players.remote_heroes[id]
 		_draw_marker(other.global_position + Vector3.UP * 2.6, Net.player_name(id).to_upper(),
 			Net.player_color(id).lightened(0.35), PLAYER_NEAR_ENOUGH)
+
+
+func _on_discovered(index: int, found: int, total: int) -> void:
+	_banners.append([index, found, total])
+
+
+## The nearest landmark still to find: a marker to its top, with the distance
+## along the ground to it.
+func _draw_landmark_marker() -> void:
+	var at := hero.world_position()
+	var n := discovery.nearest_unfound(at)
+	if n < 0:
+		return
+	var landmark: Dictionary = LandmarkDiscovery.LANDMARKS[n]
+	var target := WorldOrigin.to_local(discovery.positions[n]) + Vector3.UP * float(landmark.height)
+	_draw_marker(target, String(landmark.name).to_upper(), LANDMARK_COLOR, 0.0, discovery.flat_distance(n, at))
+
+
+## The banner for the discovery showing now (see BANNER_TIME).
+func _draw_banner() -> void:
+	if _banners.is_empty():
+		return
+	var age := _banner_age
+	var alpha := clampf(minf(age, BANNER_TIME - age) / BANNER_FADE, 0.0, 1.0)
+	var index: int = _banners[0][0]
+	var landmark: Dictionary = LandmarkDiscovery.LANDMARKS[index]
+	var title := "LANDMARK DISCOVERED"
+	var landmark_name := String(landmark.name)
+	var line := String(landmark.line)
+	var count := "%d of %d found" % [_banners[0][1], _banners[0][2]]
+	if _banners[0][1] == _banners[0][2]:
+		count = "All %d landmarks found!" % _banners[0][2]
+	var name_size := 34 if size.x > 700.0 else 24
+	var line_size := 17 if size.x > 700.0 else 14
+	var width := maxf(_font.get_string_size(landmark_name, HORIZONTAL_ALIGNMENT_LEFT, -1.0, name_size).x,
+		_font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, line_size).x) + 48.0
+	width = minf(width, size.x - 24.0)
+	var top := size.y * 0.24 + 40.0
+	var box := Rect2((size.x - width) * 0.5, top, width, name_size + line_size * 2.0 + 62.0)
+	draw_rect(box, Color(0.0, 0.05, 0.1, 0.6 * alpha))
+	draw_rect(Rect2(box.position, Vector2(box.size.x, 3.0)), Color(DISCOVERY_COLOR, alpha))
+	var y := top + 26.0
+	for item: Array in [[title, 15, DISCOVERY_COLOR], [landmark_name, name_size, Color.WHITE],
+			[line, line_size, Color(0.88, 0.92, 1.0)], [count, line_size, LANDMARK_COLOR]]:
+		var text: String = item[0]
+		var font_size: int = item[1]
+		var text_width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
+		_text(Vector2(maxf((size.x - text_width) * 0.5, box.position.x + 8.0), y + font_size * 0.4), text, font_size,
+			Color(item[2] as Color, alpha))
+		y += font_size + 12.0
 
 
 func _draw_coop_status() -> void:
@@ -153,7 +234,8 @@ func _draw_coop_status() -> void:
 
 ## A marker pointing at a scene position, labeled with the distance to it.
 ## Skipped when the spot is on screen and closer than `near_enough`.
-func _draw_marker(target: Vector3, label: String, color: Color, near_enough: float) -> void:
+## `shown_distance` (m) is labeled instead of the distance to the spot itself.
+func _draw_marker(target: Vector3, label: String, color: Color, near_enough: float, shown_distance := -1.0) -> void:
 	var camera := get_viewport().get_camera_3d()
 	if camera == null or size.x < EDGE_MARGIN * 3.0 or size.y < EDGE_MARGIN * 3.0:
 		return
@@ -186,7 +268,8 @@ func _draw_marker(target: Vector3, label: String, color: Color, near_enough: flo
 	var side := Vector2(-direction.y, direction.x)
 	var tip := point + direction * 14.0
 	draw_colored_polygon(PackedVector2Array([tip, point - direction * 6.0 + side * 10.0, point - direction * 6.0 - side * 10.0]), color)
-	_text(point + Vector2(-34.0, 30.0) - direction * 10.0, "%s %d m" % [label, distance], 15, color)
+	_text(point + Vector2(-34.0, 30.0) - direction * 10.0, "%s %d m" % [label,
+		distance if shown_distance < 0.0 else shown_distance], 15, color)
 
 
 ## A small button in the top right corner: "OPTIONS  O". It never takes the

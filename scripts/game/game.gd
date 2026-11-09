@@ -27,6 +27,9 @@ extends Node3D
 ## do the HUD's Options button and the touch gear; one menu shows at a time.
 ## Its Go to box takes the hero to an address (travel_to): onto the sidewalk
 ## nearest it, facing it.
+## Exploration: going near one of a short list of landmarks discovers it, for
+## this session (LandmarkDiscovery; the HUD shows the count, a marker to the
+## nearest one left and a banner for each found).
 ##
 ## Phones and tablets: touch screens get on-screen controls (TouchControls;
 ## ?touch=1 or ?touch=0 forces them on or off, see Device), and a graphics
@@ -71,6 +74,7 @@ var _touch_controls: TouchControls
 var _options: OptionsPanel
 var _name_prompt: NamePrompt
 var _loading: LoadingScreen
+var discovery: LandmarkDiscovery
 
 
 func _enter_tree() -> void:
@@ -95,6 +99,7 @@ func _ready() -> void:
 	quality.apply(time_of_day.sun, get_world_3d().environment, city, get_node("Crowd") as CrowdManager, encounters,
 		get_node_or_null("Traffic") as Traffic, get_node_or_null("Trains") as Trains, time_of_day)
 	_add_options(quality)
+	_add_discovery()
 	_add_loading_screen()
 	_add_name_prompt()
 	if not Device.is_web() and bool(Settings.get_value("fullscreen", false)) and not LaunchOptions.has("screenshot"):
@@ -293,6 +298,17 @@ func _set_free_camera(on: bool) -> void:
 func _update_controls() -> void:
 	player_input.enabled = not _free_camera_on and not coop_panel.visible and not (_options and _options.visible) \
 		and not (_name_prompt and _name_prompt.visible)
+
+
+## Landmarks to discover (see the top), shown by the HUD.
+func _add_discovery() -> void:
+	discovery = LandmarkDiscovery.new()
+	discovery.name = "LandmarkDiscovery"
+	discovery.hero = hero
+	add_child(discovery)
+	var game_hud := hud.get_node_or_null("GameHud") as GameHud
+	if game_hud:
+		game_hud.discovery = discovery
 
 
 ## The loading screen (see the top), over the HUD and menus but the name prompt.
