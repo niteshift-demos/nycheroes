@@ -73,6 +73,9 @@ var _snapshots: SnapshotBuffer
 var _shown_restarts := -1
 var _local_animation_until := 0
 var _detail_check := randf() * 0.5
+## Copies only: when (msec) the punch they're showing started, or -1. Their
+## state isn't sent, so a warning has to go by the punch animation restarting.
+var _copy_punch_msec := -1
 
 @onready var _model: Node3D = $Model
 
@@ -149,6 +152,37 @@ func facing() -> float:
 	return _facing
 
 
+## How far into winding up a punch this thug is: 0 as the swing starts, 1 as it
+## lands (PUNCH_HIT_TIME), or -1 when it isn't about to land one. For the
+## incoming-attack warning (ThreatWarning); copies go by the punch animation.
+func windup_progress() -> float:
+	if state == State.DOWN:
+		return -1.0
+	if puppet:
+		if _copy_punch_msec < 0:
+			return -1.0
+		var seconds := (Time.get_ticks_msec() - _copy_punch_msec) / 1000.0
+		return seconds / PUNCH_HIT_TIME if seconds < PUNCH_HIT_TIME else -1.0
+	if state != State.PUNCH:
+		return -1.0
+	return clampf(1.0 - _timer / PUNCH_HIT_TIME, 0.0, 1.0)
+
+
+## Whether a punch winding up now is aimed at `target`. Copies don't say whom
+## they're after, so for them: `target` is in reach and in front of them, as
+## the punch itself checks when it lands (see _land_punch).
+func winding_up_at(target: Hero) -> bool:
+	if windup_progress() < 0.0:
+		return false
+	if not puppet:
+		return hero == target
+	var flat := target.global_position - global_position
+	flat.y = 0.0
+	var forward := Vector3(-sin(_facing), 0.0, -cos(_facing))
+	return flat.length() < ATTACK_RANGE + 0.4 and absf(target.global_position.y - global_position.y) < REACH_HEIGHT \
+		and forward.dot(flat.normalized()) > 0.5
+
+
 func body_center() -> Vector3:
 	return global_position + Vector3.UP
 
@@ -175,6 +209,7 @@ func take_hit(damage: float, push: Vector3, launch: bool) -> void:
 		go_down(push if launch else push + Vector3.UP * 3.0)
 		return
 	_play(&"Hit_Head" if randf() < 0.5 else &"Hit_Chest", 1.0, 0.05, true)
+	_copy_punch_msec = -1  # (a hit cuts a swing short)
 	if randf() < 0.5:
 		GameAudio.play(&"thug_hurt", body_center())
 	if puppet:
@@ -343,6 +378,9 @@ func _follow_updates(delta: float) -> void:
 		_play(ANIMATIONS[clampi(newer[3], 0, ANIMATIONS.size() - 1)], newer[4], 0.05 if restart else 0.2, restart)
 		if restart and (newer[3] == 3 or newer[3] == 4):  # Punch_Jab, Punch_Cross
 			_punch_sound()
+			_copy_punch_msec = Time.get_ticks_msec()
+		elif newer[3] != 3 and newer[3] != 4:
+			_copy_punch_msec = -1
 	_shown_restarts = restarts
 	_model.rotation.y = lerp_angle(_model.rotation.y, _facing, 1.0 - exp(-10.0 * delta))
 

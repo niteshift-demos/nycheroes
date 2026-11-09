@@ -53,6 +53,29 @@ peer can drive one later. Nearby tiles get collision.
 - Punch combos, dive attacks, landing slams and super speed rams; defeated
   thugs ragdoll, bleed, and stay on the street while you're nearby.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
+- Incoming punch warning (added 2026-11-09): while a thug winds up a punch
+  at our hero (`Thug.PUNCH_HIT_TIME`, 0.45 s) the HUD's `ThreatWarning`
+  draws an arc around the hero on the side the punch comes from (seen from
+  the camera: top is ahead, bottom behind, so it reads for thugs behind the
+  camera too) with a notch pointing in, and over the thug's head, when it's
+  on screen, a ring closing onto a dot. Both come from the thug's real
+  windup (`Thug.windup_progress`), turning from amber to red and closing
+  exactly as the punch lands, so the player has the whole windup to act:
+  punch the thug first (a hit cuts its swing short) or get out of reach or
+  out from in front of it (the punch checks both as it lands). Only thugs
+  swinging at our hero within 4 m get marks, at most two (the attackers
+  allowed at once), and only while they swing; nothing else in the city
+  does. Drawn in 2D on the HUD: no shader, no extra cost when nobody's
+  swinging. In co-op, copies of another game's thugs don't send their
+  state, so their warning starts when their punch animation restarts and
+  goes by whether our hero is in reach in front of them
+  (`Thug.winding_up_at`); copies are drawn a little in the past, so it
+  shows a little late (412 ms before the hit on one machine, against
+  470 ms for our own thugs). No option turns it off yet.
+  `tests/threat_warning_test.tscn` checks it; `coop_test` checks copies.
+  `tests/threat_warning_capture.tscn` plays a fight through ordinary
+  controls for recording it with Movie Maker (`--write-movie`; the command
+  is in its header).
 
 ## 4. All five boroughs and bridges (done)
 
@@ -2513,6 +2536,10 @@ deployed); in a computer's browser the co-op menu links to it.
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and
+  `res://tests/threat_warning_test.tscn` (the incoming punch warning: up
+  for the whole windup, filling steadily, gone when the swing is cut short,
+  at most two, none for thugs not swinging; running away or punching back
+  on it avoids the punch) and
   `res://tests/traffic_test.tscn` (75 s of
   midtown traffic: no red light run, no overlaps, cars stop for the hero,
   and leave with their tiles) and `res://tests/trains_test.tscn` (the 7 at

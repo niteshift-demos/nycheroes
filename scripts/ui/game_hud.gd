@@ -3,7 +3,8 @@ extends Control
 ## Player HUD: health bar, thugs taken down, a marker pointing to the nearest
 ## thug, and in co-op a marker for each other player (markers sit at the
 ## screen edge when what they point at is off screen), the game's status and
-## short notices ("Player 2 is now the host"), plus the aerial photos' credit
+## short notices ("Player 2 is now the host"), a warning of punches about to
+## land on our hero (ThreatWarning), plus the aerial photos' credit
 ## while any are shown. An Options button in the top right corner opens the
 ## options menu with a click (touch screens have TouchControls' gear instead).
 
@@ -45,6 +46,7 @@ var touch_controls: TouchControls:
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
+var _threat_warning: ThreatWarning
 
 
 func _ready() -> void:
@@ -65,6 +67,10 @@ func _ready() -> void:
 		# nobody minds who hosts a public game.
 		if Net.is_online() and not Net.is_public:
 			notify("You're the host now" if id == Net.local_id() else "%s is now the host" % Net.player_name(id)))
+	_threat_warning = ThreatWarning.new()
+	_threat_warning.name = "ThreatWarning"
+	_threat_warning.hero = hero
+	add_child(_threat_warning)
 	_add_options_button()
 
 

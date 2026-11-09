@@ -5,7 +5,7 @@ extends Node
 ## through the webrtc-native extension). Run it once: it starts the server, hosts
 ## a game, starts a second copy of the game that joins, and checks that each
 ## sees the other's hero in the right place, that the host's thugs show up for
-## the joined player and hurt them, and that the joined player's punches take
+## the joined player and hurt them (warned of by its ThreatWarning), and that the joined player's punches take
 ## the host's thugs down. Then the joined player goes across the city: its own
 ## game puts gangs down there, and the host's runs none and loads no streets
 ## there; the host comes over, sees the joined player's gang (run by that
@@ -42,6 +42,10 @@ var _client_log := ""
 var _client_report: Array = []
 var _gang: Array[Thug] = []
 var _position_checked := false
+## (client) When the warning of a punch from the host's thugs (copies here)
+## first showed, and when one first landed (msec).
+var _copy_warned_msec := -1
+var _copy_hurt_msec := -1
 var _far_since := -1.0  # (host) when the other hero was last seen arriving far off
 
 
@@ -141,6 +145,10 @@ func _client_steps() -> Array[Dictionary]:
 			return _standing_thugs().size() >= 3),
 		_step("the host's thugs hurt our hero", 20.0, Callable(), func() -> bool:
 			return _hero.health < Hero.MAX_HEALTH),
+		_step("their punches were warned of", 10.0, Callable(), func() -> bool:
+			if _copy_warned_msec >= 0:
+				print("  (copies' warning first showed %d ms before their first punch landed)" % (_copy_hurt_msec - _copy_warned_msec))
+			return _copy_warned_msec >= 0),
 		_step("our punches take them down", 45.0, Callable(), func() -> bool:
 			return _standing_thugs().is_empty() and Combat.defeated_count >= 3),
 		_step("travel across the city", 30.0, func() -> void:
@@ -168,6 +176,12 @@ func _physics_process(delta: float) -> void:
 		_begin(0)
 	var step := _steps[_index]
 	_time += delta
+	if _role == "client" and _copy_warned_msec < 0:
+		var warning := _world.find_child("ThreatWarning", true, false) as ThreatWarning
+		if warning and warning.incoming().any(func(threat: Array) -> bool: return (threat[0] as Thug).puppet):
+			_copy_warned_msec = Time.get_ticks_msec()
+	if _role == "client" and _copy_hurt_msec < 0 and _hero.health < Hero.MAX_HEALTH:
+		_copy_hurt_msec = Time.get_ticks_msec()
 	if step.name in ["our punches take them down", "go up to it; our punches (applied by their game) take it down"]:
 		_punch_nearest_thug()
 	var done: bool = step.until.call() if step.until.is_valid() else _time >= step.seconds
