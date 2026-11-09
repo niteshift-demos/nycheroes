@@ -49,6 +49,7 @@ const KEYS: Array[Array] = [
 	["Space", "jump; hold for a super jump"],
 	["Shift", "super speed"],
 	["F", "fly; Space and C go up and down"],
+	["Q / pad LT", "hold in flight to brake; steer slowly and descend to land"],
 	["E, right mouse", "web swing (hold)"],
 	["M", "co-op"],
 	["O", "options (this menu)"],

@@ -1,7 +1,8 @@
 class_name FlightMode
 extends HeroMode
 ## Free flight: the stick steers relative to where the camera looks, Space/C
-## climb and descend, Shift boosts. Descending onto the ground lands.
+## climb and descend, Shift boosts, Q brakes for a slow landing approach.
+## Descending onto the ground lands.
 
 @export var cruise_speed := 33.0
 @export var boost_speed := 150.0
@@ -12,6 +13,11 @@ extends HeroMode
 @export var boost_acceleration := 100.0
 ## How quickly the hero comes to a hover with no input (per second).
 @export var hover_damping := 2.5
+
+## Braking has a finite stopping distance, even when held with boost.
+const BRAKE_ACCELERATION := 160.0
+const APPROACH_SPEED := 6.0
+const APPROACH_VERTICAL_SPEED := 4.0
 
 var _boost_time := 0.0
 
@@ -36,7 +42,14 @@ func physics_update(delta: float) -> StringName:
 	var forward := input.aim
 	var right := forward.cross(Vector3.UP).normalized()
 	var wish := forward * -input.stick.y + right * input.stick.x + Vector3.UP * input.vertical
-	if wish.length() > 0.05:
+	if input.brake_held:
+		_boost_time = 0.0
+		# Pitch must not turn forward approach into an accidental dive.
+		var flat_forward := Vector3(forward.x, 0.0, forward.z).normalized()
+		var approach := (flat_forward * -input.stick.y + right * input.stick.x).limit_length(1.0)
+		var target := approach * APPROACH_SPEED + Vector3.UP * input.vertical * APPROACH_VERTICAL_SPEED
+		hero.velocity = hero.velocity.move_toward(target, BRAKE_ACCELERATION * delta)
+	elif wish.length() > 0.05:
 		var boosting := input.sprint_held
 		# Don't charge while hovering or pushing into a wall. Releasing boost
 		# starts the next run at the normal boost speed.

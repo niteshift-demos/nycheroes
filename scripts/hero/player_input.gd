@@ -23,6 +23,7 @@ func _physics_process(_delta: float) -> void:
 	input.aim = camera_rig.aim_direction()
 	input.vertical = Input.get_axis("descend", "jump")
 	input.jump_held = Input.is_action_pressed("jump")
+	input.brake_held = Input.is_action_pressed("air_brake")
 	input.sprint_held = Input.is_action_pressed("sprint")
 	input.web_held = Input.is_action_pressed("web")
 	input.attack_held = Input.is_action_pressed("attack")

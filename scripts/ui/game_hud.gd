@@ -97,6 +97,12 @@ func _draw() -> void:
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
+	if hero.mode.name == &"Flight":
+		var braking := hero.input.brake_held
+		var hint := "Hold BRAKE for approach" if touch_controls else "Hold Q / LT: air brake"
+		var line := "AIR BRAKE  %d m/s  |  C / B / DOWN to land" % hero.velocity.length() if braking else hint
+		var width := _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18).x
+		_text(Vector2((size.x - width) * 0.5, 90.0), line, 18, NOTICE_COLOR if braking else Color.WHITE)
 	_draw_coop_status()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x

@@ -2398,6 +2398,23 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+### Flight air brake
+
+Hold Q / gamepad left trigger / touch BRAKE during flight to decelerate at
+160 m/s². Brake overrides boost and resets its ramp; release restores ordinary
+flight speeds. While braking, steering is horizontal at up to 6 m/s, and
+Space/C (A/B, UP/DOWN) climbs/descends at 4 m/s. Descending onto a roof or
+ground exits flight as usual. The flight HUD advertises the control and shows
+AIR BRAKE with current speed while held. It has a finite stopping distance
+(about 110 m from full sustained boost); it does not select a roof or prevent
+collisions. Braking affects only Flight, leaving diving and on-foot input alone.
+Velocity and facing use existing PlayerSync state; no extra peer state or mode.
+
+Run `res://tests/flight_airbrake_test.tscn` for stop distance, approach,
+boost priority/release, landing, input clearing and binding coverage. The
+native-only `res://tests/flight_airbrake_demo.tscn` replays disclosed HeroInput
+through the real world for Movie Maker; no launch option or physics override.
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2499,7 +2516,7 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/combat_test.tscn`, `res://tests/flight_airbrake_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
