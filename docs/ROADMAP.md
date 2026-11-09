@@ -66,7 +66,8 @@ peer can drive one later. Nearby tiles get collision.
   countdown. All peers need the same snapshot format (10 floats plus target ids).
   The independent `tests/threat_awareness_play.tscn` reproduction drives normal
   HeroInput and camera look against automatically spawned gangs; it never
-  changes hero/enemy transforms, health or combat timing.
+  changes hero/enemy transforms, health or combat timing. A native renderer
+  fixture checks off-screen visibility, cover, removal of cover and origin shifts.
 
 ## 4. All five boroughs and bridges (done)
 
@@ -2539,6 +2540,10 @@ deployed); in a computer's browser the co-op menu links to it.
   out onto the other track, alone on the terminal's track; it needs tiles
   with the trains surface around the 7, the 4 on Jerome Avenue and
   Woodlawn; `TRAINS_TERMINAL_ONLY=1` goes straight to Woodlawn).
+- Native overlay check: `godot --path . --resolution 1280x720
+  res://tests/threat_awareness_render_test.tscn -- --solo=1` (run with a
+  renderer, not headless; a synthetic world checks the real overlay against
+  a physics wall and a 500 m floating-origin shift).
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
