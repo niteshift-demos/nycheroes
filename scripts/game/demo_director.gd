@@ -2,7 +2,7 @@ class_name DemoDirector
 extends Node
 ## Plays a scripted tour for recording videos: ?demo shows off the hero's
 ## powers, ?demo=fight a street fight, ?demo=tells thugs' wind-up tells (standing
-## in them, stepping out in time, and too late), ?demo=city flies the free camera over
+## in them, stepping out in time, too late, and two thugs at once), ?demo=city flies the free camera over
 ## the city, ?demo=new over what's new lately. Drives the hero's input and the camera and captions each part.
 ## Prints "[demo] start" and "[demo] finished" so a recorder can follow, and
 ## "[demo] pause" / "[demo] resume" around waits for the city to load (a
@@ -111,10 +111,12 @@ func _ready() -> void:
 		_yaw = _avenue_yaw
 		camera.yaw = _yaw
 		_shots = [
-			_shot("Street thugs", 2.5, Callable(), _tells_camera, _spawn_gang_ahead.bind(9.0, 3)),
-			_shot("Each punch winds up over where it will land", 6.0, _approach_input, _tells_camera),
-			_shot("Step out of it in time, and it misses", 8.0, _dodge_input.bind(QUICK_REACTION), _tells_camera),
-			_shot("A moment too late, and it lands", 6.0, _dodge_input.bind(LATE_REACTION), _tells_camera),
+			_shot("A street thug", 2.5, Callable(), _tells_camera, _spawn_gang_ahead.bind(9.0, 1)),
+			_shot("Each punch winds up over where it will land", 5.0, _approach_input, _tells_camera),
+			_shot("Step out of it in time, and it misses", 6.0, _dodge_input.bind(QUICK_REACTION), _tells_camera),
+			_shot("A moment too late, and it lands", 4.5, _dodge_input.bind(LATE_REACTION), _tells_camera),
+			_shot("Two at once: two tells to watch", 6.0,
+					_dodge_input.bind(QUICK_REACTION), _tells_camera, _spawn_gang_ahead.bind(6.0, 2)),
 			_shot("", 0.5),
 		]
 	else:
