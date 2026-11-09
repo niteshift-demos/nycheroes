@@ -26,7 +26,9 @@ extends Node3D
 ## O opens the options menu (OptionsPanel; Esc too in the desktop builds), as
 ## do the HUD's Options button and the touch gear; one menu shows at a time.
 ## Its Go to box takes the hero to an address (travel_to): onto the sidewalk
-## nearest it, facing it.
+## nearest it, facing it; its Mark sets the player's waypoint there instead.
+## G marks a waypoint where the camera looks, or clears it (Waypoint; the HUD
+## points the way to it).
 ##
 ## Phones and tablets: touch screens get on-screen controls (TouchControls;
 ## ?touch=1 or ?touch=0 forces them on or off, see Device), and a graphics
@@ -71,6 +73,7 @@ var _touch_controls: TouchControls
 var _options: OptionsPanel
 var _name_prompt: NamePrompt
 var _loading: LoadingScreen
+var _waypoint: Waypoint
 
 
 func _enter_tree() -> void:
@@ -94,6 +97,7 @@ func _ready() -> void:
 	add_child(quality)
 	quality.apply(time_of_day.sun, get_world_3d().environment, city, get_node("Crowd") as CrowdManager, encounters,
 		get_node_or_null("Traffic") as Traffic, get_node_or_null("Trains") as Trains, time_of_day)
+	_add_waypoint()
 	_add_options(quality)
 	_add_loading_screen()
 	_add_name_prompt()
@@ -159,19 +163,7 @@ func travel_to(world_position: Vector3) -> void:
 
 
 func _step_onto_street(address: Vector3) -> void:
-	var spot := Vector2(address.x, address.z)
-	var best := INF
-	var street := Vector3.INF
-	for lane in city.lanes_near(address, STREET_SEARCH):
-		for n in lane.size() - 1:
-			var a := Vector2(lane[n].x, lane[n].z)
-			var b := Vector2(lane[n + 1].x, lane[n + 1].z)
-			var point := Geometry2D.get_closest_point_to_segment(spot, a, b)
-			var distance := point.distance_squared_to(spot)
-			if distance < best:
-				best = distance
-				var along := 0.0 if a.is_equal_approx(b) else (point - a).length() / (b - a).length()
-				street = Vector3(point.x, lerpf(lane[n].y, lane[n + 1].y, along), point.y)
+	var street := city.sidewalk_near(address, STREET_SEARCH)
 	if street == Vector3.INF:
 		return  # (dropped from the sky instead)
 	# From just above the sidewalk, not the sky: under scaffolding or an el.
@@ -199,6 +191,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("coop_menu") and not coop_panel.is_typing():
 		_options.close(false, false)
 		coop_panel.toggle()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("waypoint") and not coop_panel.is_typing() and not LaunchOptions.has("demo"):
+		var camera := get_viewport().get_camera_3d()
+		if camera:
+			_waypoint.mark_where_looking(camera)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("time_of_day") and not coop_panel.is_typing():
 		time_of_day.step_forward()
@@ -329,6 +326,7 @@ func _add_options(quality: Quality) -> void:
 	_options.quality = quality
 	_options.time_of_day = time_of_day
 	_options.city = city
+	_options.waypoint = _waypoint
 	_options.debug_label = hud.get_node_or_null("DebugLabel") as Control
 	hud.add_child(_options)
 	_options.toggled.connect(func(_open: bool) -> void: _update_controls())
@@ -338,6 +336,19 @@ func _add_options(quality: Quality) -> void:
 		game_hud.options_requested.connect(func() -> void:
 			coop_panel.close()
 			_options.open())
+
+
+## The player's waypoint (see the top), shown by the HUD.
+func _add_waypoint() -> void:
+	Waypoint.add_action()
+	_waypoint = Waypoint.new()
+	_waypoint.name = "Waypoint"
+	_waypoint.hero = hero
+	_waypoint.city = city
+	add_child(_waypoint)
+	var game_hud := hud.get_node_or_null("GameHud") as GameHud
+	if game_hud:
+		game_hud.waypoint = _waypoint
 
 
 ## On-screen controls for touch screens. The UI is then measured in CSS

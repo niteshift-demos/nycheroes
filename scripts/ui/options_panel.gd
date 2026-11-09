@@ -4,7 +4,7 @@ extends Control
 ## a gamepad's Start), and so do the gear button on touch screens and the
 ## HUD's Options button. Four pages:
 ##   Hero      saved costume, hair, headgear and colors with a live preview
-##   Game      going to an address, graphics quality (Auto, Low, Medium,
+##   Game      going to an address or marking it as the waypoint, graphics quality (Auto, Low, Medium,
 ##             High), time of day, full screen, FPS and stats, joining the
 ##             public game automatically
 ##   Sound     Master, Effects and Ambience volumes, and the sound switch (N)
@@ -54,6 +54,7 @@ const KEYS: Array[Array] = [
 	["O", "options (this menu)"],
 	["N", "sound off and on"],
 	["T", "time of day"],
+	["G", "waypoint: mark where you look; G on it clears it"],
 	["F1", "free camera (wheel: its speed)"],
 ]
 const DESKTOP_KEYS: Array[Array] = [
@@ -69,6 +70,7 @@ const TOUCH_HELP: Array[Array] = [
 	["FLY", "fly; DOWN goes down"],
 	["SPEED", "super speed, on and off"],
 	["CO-OP", "play with friends"],
+	["Mark", "Game page: a waypoint at an address"],
 ]
 
 ## Set by Game.
@@ -77,6 +79,8 @@ var quality: Quality
 var time_of_day: TimeOfDay
 ## For the Go to box: whether a place found is on the map.
 var city: CityStreamer
+## The player's waypoint: the Go to box's Mark sets it, Clear clears it.
+var waypoint: Waypoint
 ## The ?stats text (DebugHud): "Show FPS and stats" shows and hides it.
 var debug_label: Control
 
@@ -98,6 +102,10 @@ var _sound: Button
 var _invert: Button
 var _address: LineEdit
 var _address_go: Button
+var _address_mark: Button
+var _waypoint_clear: Button
+## The search running is for Mark, not Go.
+var _marking := false
 var _address_note: Label
 var _search: AddressSearch
 var _sliders := {}  # setting key -> HSlider
@@ -294,6 +302,7 @@ func _refresh() -> void:
 	_set_toggle(_public, bool(Settings.get_value("online_public", true)))
 	_set_toggle(_sound, not GameAudio.is_muted())
 	_set_toggle(_invert, ThirdPersonCamera.look_y_sign() < 0.0)
+	_waypoint_clear.disabled = waypoint == null or not waypoint.is_set()
 
 
 func _refresh_sliders() -> void:
@@ -448,16 +457,33 @@ func _game_page() -> VBoxContainer:
 	_address_go.custom_minimum_size.x = 64.0
 	_address_go.pressed.connect(_go_to_address)
 	go_to.add_child(_address_go)
+	_address_mark = Button.new()
+	_address_mark.text = "Mark"
+	_address_mark.tooltip_text = "Set it as your waypoint instead of going there"
+	_address_mark.custom_minimum_size.x = 64.0
+	_address_mark.pressed.connect(_go_to_address.bind(true))
+	go_to.add_child(_address_mark)
+	_waypoint_clear = Button.new()
+	_waypoint_clear.text = "Clear"
+	_waypoint_clear.tooltip_text = "Clear your waypoint"
+	_waypoint_clear.custom_minimum_size.x = 64.0
+	_waypoint_clear.pressed.connect(func() -> void:
+		if waypoint:
+			waypoint.clear()
+		_show_address_note("Waypoint cleared.")
+		_refresh_cooldown = 0.0)
+	go_to.add_child(_waypoint_clear)
 	if _touch:
 		_address.custom_minimum_size.y = 44.0
-		_address_go.custom_minimum_size.y = 44.0
+		for button: Button in [_address_go, _address_mark, _waypoint_clear]:
+			button.custom_minimum_size.y = 44.0
 		if Device.is_web():
 			var field := WebTextField.new()
 			field.line_edit = _address
 			field.capitals = false
 			go_to.add_child(field)
 	_row(page, "Go to", go_to)
-	_address_note = _note("A street address in the five boroughs, like 350 5th Ave, Manhattan.")
+	_address_note = _note("A street address in the five boroughs, like 350 5th Ave, Manhattan. Mark sets it as your waypoint instead.")
 	_address_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	page.add_child(_address_note)
 	var levels := HBoxContainer.new()
@@ -501,16 +527,26 @@ func _game_page() -> VBoxContainer:
 	return page
 
 
-func _go_to_address() -> void:
+## Go (or Mark, with `mark`): looks up the Go to box's text.
+func _go_to_address(mark := false) -> void:
+	_marking = mark
 	_show_address_note("Looking it up...")
 	_address_go.disabled = true
+	_address_mark.disabled = true
 	_search.search(_address.text)
 
 
 func _on_place_found(world_position: Vector3, label: String) -> void:
 	_address_go.disabled = false
+	_address_mark.disabled = false
 	if city and not city.covers(world_position):
 		_show_address_note("%s isn't on the city's map." % label)
+		return
+	if _marking:
+		_show_address_note("Waypoint set: %s." % label)
+		if waypoint:
+			waypoint.set_target(world_position, label, true)
+		close()
 		return
 	_show_address_note("Went to %s." % label)
 	close()
@@ -519,6 +555,7 @@ func _on_place_found(world_position: Vector3, label: String) -> void:
 
 func _show_address_note(text: String) -> void:
 	_address_go.disabled = false
+	_address_mark.disabled = false
 	_address_note.text = text
 
 

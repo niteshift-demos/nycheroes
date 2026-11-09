@@ -6,6 +6,11 @@ extends Control
 ## short notices ("Player 2 is now the host"), plus the aerial photos' credit
 ## while any are shown. An Options button in the top right corner opens the
 ## options menu with a click (touch screens have TouchControls' gear instead).
+## The player's waypoint (Waypoint) gets a marker of its own, unlike the
+## others: a cyan diamond on a beam standing up from the spot (at the screen's
+## edge when off screen, always shown until it's reached), and a compass line
+## at the top middle: an arrow turning with the camera, the distance and the
+## compass point it lies in.
 
 ## The Options button was clicked.
 signal options_requested
@@ -25,6 +30,10 @@ const NOTICE_TIME := 6.0
 ## "Player joined" waits this long for their name (seconds).
 const NAME_WAIT := 1.0
 const NOTICE_COLOR := Color(1.0, 0.9, 0.45)
+## Cyan: none of the thug (red), players' (their colors) or notices' (yellow).
+const WAYPOINT_COLOR := Color(0.25, 0.95, 1.0)
+## The waypoint's beam stands this high over it (m).
+const BEAM_HEIGHT := 250.0
 ## The license (CC BY 4.0) asks for this whenever the photos are shown.
 const AERIAL_CREDIT := "Aerial imagery: NYC OTI / NYS Orthoimagery Program 2024 (CC BY 4.0)"
 
@@ -32,6 +41,12 @@ const AERIAL_CREDIT := "Aerial imagery: NYC OTI / NYS Orthoimagery Program 2024 
 @export var encounters: EncounterDirector
 @export var players: PlayerSync
 @export var city: CityStreamer
+## The player's waypoint (set by Game; none in tests that don't).
+var waypoint: Waypoint:
+	set(value):
+		waypoint = value
+		if waypoint:
+			waypoint.changed.connect(notify)
 
 ## Set on touch screens (by Game): the health bar moves to the top left, out
 ## of the thumbs' way, and the HUD keeps clear of the screen's notches and of
@@ -104,6 +119,8 @@ func _draw() -> void:
 		if touch_controls:  # bottom middle, between the thumbs
 			at = Vector2((size.x - width) * 0.5, size.y - touch_controls.safe_insets.w - 8.0)
 		_text(at, AERIAL_CREDIT, 12, Color(1.0, 1.0, 1.0, 0.8))
+	if waypoint and waypoint.is_set():
+		_draw_waypoint()
 	var thug := encounters.nearest_thug(hero.world_position())
 	if thug:
 		_draw_marker(thug.global_position + Vector3.UP * 2.2, "THUGS", MARKER_COLOR, NEAR_ENOUGH)
@@ -154,21 +171,29 @@ func _draw_coop_status() -> void:
 ## A marker pointing at a scene position, labeled with the distance to it.
 ## Skipped when the spot is on screen and closer than `near_enough`.
 func _draw_marker(target: Vector3, label: String, color: Color, near_enough: float) -> void:
+	var placed := _place_marker(target)
+	if placed.is_empty() or (placed.on_screen and placed.distance < near_enough):
+		return
+	var point: Vector2 = placed.point
+	var direction: Vector2 = placed.direction
+	var side := Vector2(-direction.y, direction.x)
+	var tip := point + direction * 14.0
+	draw_colored_polygon(PackedVector2Array([tip, point - direction * 6.0 + side * 10.0, point - direction * 6.0 - side * 10.0]), color)
+	_text(point + Vector2(-34.0, 30.0) - direction * 10.0, "%s %d m" % [label, placed.distance], 15, color)
+
+
+## Where a marker for a scene position goes: {point, direction (from the
+## screen's middle), on_screen, distance (from the hero)}; {} when the screen
+## is too small for markers.
+func _place_marker(target: Vector3) -> Dictionary:
 	var camera := get_viewport().get_camera_3d()
 	if camera == null or size.x < EDGE_MARGIN * 3.0 or size.y < EDGE_MARGIN * 3.0:
-		return
+		return {}
 	var distance := target.distance_to(hero.global_position)
 	var behind := camera.is_position_behind(target)
 	var point := camera.unproject_position(target)
-	var area := Rect2(Vector2.ZERO, size).grow(-EDGE_MARGIN)
-	if touch_controls:
-		# Clear of notches, and left of the column of touch buttons.
-		var insets := touch_controls.safe_insets + Vector4(0.0, 0.0, TOUCH_BUTTONS_WIDTH, 0.0)
-		area = Rect2(area.position + Vector2(insets.x, insets.y), area.size - Vector2(insets.x + insets.z, insets.y + insets.w))
+	var area := _marker_area()
 	var on_screen := not behind and area.has_point(point)
-	if on_screen and distance < near_enough:
-		return
-
 	var center := area.get_center()  # the screen's middle, less any notches
 	var direction := (point - center).normalized()
 	if behind:
@@ -183,10 +208,71 @@ func _draw_marker(target: Vector3, label: String, color: Color, near_enough: flo
 		var button := _options_button.get_rect().grow(24.0)  # (kept clear of it)
 		if button.has_point(point):
 			point.y = button.end.y
-	var side := Vector2(-direction.y, direction.x)
-	var tip := point + direction * 14.0
-	draw_colored_polygon(PackedVector2Array([tip, point - direction * 6.0 + side * 10.0, point - direction * 6.0 - side * 10.0]), color)
-	_text(point + Vector2(-34.0, 30.0) - direction * 10.0, "%s %d m" % [label, distance], 15, color)
+	return {"point": point, "direction": direction, "on_screen": on_screen, "distance": distance}
+
+
+## Where markers may go: the screen less a margin (and, on touch screens,
+## the notches and the column of touch buttons).
+func _marker_area() -> Rect2:
+	var area := Rect2(Vector2.ZERO, size).grow(-EDGE_MARGIN)
+	if touch_controls:
+		var insets := touch_controls.safe_insets + Vector4(0.0, 0.0, TOUCH_BUTTONS_WIDTH, 0.0)
+		area = Rect2(area.position + Vector2(insets.x, insets.y), area.size - Vector2(insets.x + insets.z, insets.y + insets.w))
+	return area
+
+
+## The waypoint's beam, diamond and compass line (see the top).
+func _draw_waypoint() -> void:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return
+	var base := WorldOrigin.to_local(waypoint.target)
+	var top := base + Vector3.UP * BEAM_HEIGHT
+	if not camera.is_position_behind(base) and not camera.is_position_behind(top):
+		var from := camera.unproject_position(base)
+		var to := camera.unproject_position(top)
+		var faded := Color(WAYPOINT_COLOR, 0.0)
+		draw_polyline_colors(PackedVector2Array([from, to]), PackedColorArray([Color(WAYPOINT_COLOR, 0.75), faded]), 3.0)
+	var placed := _place_marker(base + Vector3.UP * 2.0)
+	var distance_text := Waypoint.format_distance(waypoint.distance())
+	if not placed.is_empty():
+		var point: Vector2 = placed.point
+		if placed.on_screen:
+			_diamond(point, 11.0)
+			_text(point + Vector2(-30.0, 30.0), distance_text, 15, WAYPOINT_COLOR)
+		else:
+			var direction: Vector2 = placed.direction
+			var side := Vector2(-direction.y, direction.x)
+			var tip := point + direction * 16.0
+			draw_colored_polygon(PackedVector2Array([tip, point + side * 9.0, point - side * 9.0]), WAYPOINT_COLOR)
+			_diamond(point - direction * 14.0, 8.0)
+			_text(point + Vector2(-34.0, 34.0) - direction * 18.0, "WAYPOINT " + distance_text, 15, WAYPOINT_COLOR)
+	# The compass line: which way to turn, how far, and the compass point.
+	var forward := -camera.global_basis.z
+	var facing := atan2(-forward.x, -forward.z)
+	var toward := base - camera.global_position
+	var turn := wrapf(atan2(-toward.x, -toward.z) - facing, -PI, PI)  # (positive: to the left)
+	var name := waypoint.label.to_upper()
+	if name.length() > 34:
+		name = name.left(32) + "..."
+	var line := "%s  ·  %s  ·  %s" % [name, distance_text, Waypoint.compass_point(waypoint.bearing())]
+	var width := _font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 17).x
+	var y := 34.0 + (touch_controls.safe_insets.y if touch_controls else 0.0)
+	var arrow_at := Vector2(size.x * 0.5 - width * 0.5 - 4.0, y - 6.0)
+	var up := Vector2.UP.rotated(-turn)
+	var across := Vector2(-up.y, up.x)
+	draw_circle(arrow_at, 15.0, Color(0.0, 0.0, 0.0, 0.45))
+	draw_colored_polygon(PackedVector2Array([arrow_at + up * 12.0, arrow_at - up * 8.0 + across * 8.0,
+		arrow_at - up * 3.0, arrow_at - up * 8.0 - across * 8.0]), WAYPOINT_COLOR)
+	_text(Vector2(arrow_at.x + 24.0, y), line, 17, WAYPOINT_COLOR)
+
+
+func _diamond(at: Vector2, radius: float) -> void:
+	var points := PackedVector2Array([at + Vector2(0.0, -radius), at + Vector2(radius * 0.7, 0.0),
+		at + Vector2(0.0, radius), at + Vector2(-radius * 0.7, 0.0)])
+	draw_colored_polygon(points, WAYPOINT_COLOR)
+	points.append(points[0])
+	draw_polyline(points, Color.BLACK, 2.0)
 
 
 ## A small button in the top right corner: "OPTIONS  O". It never takes the

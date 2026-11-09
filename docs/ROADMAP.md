@@ -2398,6 +2398,57 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+## Waypoint navigation (done; added 2026-11-09)
+
+A personal destination: mark a spot in the city and the HUD points the way
+there while you fly, swing or run, until you reach it or clear it.
+`scripts/ui/waypoint.gd` (the Waypoint node, made by Game), drawn by
+GameHud.
+
+- **Setting it:** G (or a gamepad's D-pad up) marks the spot the camera
+  looks at: the first building, street or roof it sees within 1.5 km
+  (collision), else the ground plane at sea level out to 8 km; looking at
+  the sky says "Look at the city to mark a waypoint". The options menu's Go
+  to box has Mark beside Go: the same lookup (an address, a place, a ZIP
+  code, or a typed latitude and longitude, which needs no internet) sets
+  the waypoint there instead of going there. An address lies inside its
+  building, so its waypoint moves onto the nearest sidewalk
+  (`CityStreamer.sidewalk_near`, shared with Game.travel_to) once the
+  streets there have loaded; a marked spot stays exactly where it was
+  marked. Nothing new is downloaded: G uses the loaded city, Mark the Go
+  to box's existing lookups.
+- **Clearing it:** G again while looking at it (within about 3 degrees, or
+  marking within 30 m of it), the menu's Clear (greyed out without one), or
+  reaching it: within 20 m across and 80 m up or down, it says "You reached
+  your waypoint: ..." and clears. One set where the hero stands waits for
+  them to leave first.
+- **On screen:** cyan, unlike the thug marker (red), the other players'
+  (their colors) and the notices (yellow): a diamond over the spot with its
+  distance, on a beam 250 m tall that fades upward (seen over the
+  rooftops); off screen, at the edge where it lies (the bottom edge when
+  behind the camera) as an arrow with a diamond and "WAYPOINT 850 m". Unlike
+  the other markers it shows however near it is, until it's reached. A
+  compass line at the top middle names it, gives the distance (m, then km)
+  and the compass point it lies in (N, NE, ...; from the hero, north is -Z),
+  beside an arrow that turns with the camera (up: straight ahead). Set,
+  cleared and reached show as notices.
+- **Floating origin and co-op:** kept in world coordinates, so origin
+  shifts don't move it. It's personal: it's not in HeroInput or PlayerSync
+  and changes nothing any hero does, so other players neither see it nor
+  need it.
+- **Touch screens:** Mark and Clear in the options menu (44 px tall); no
+  touch button for G.
+- **Tested:** `tests/waypoint_test.tscn` (25 checks): compass points and
+  distances; Mark with a typed latitude and longitude (the Empire State
+  Building) sets it 1.06 km to the south without moving the hero, and Mark
+  off the map doesn't; an origin shift leaves its place, distance and
+  bearing alone; the HUD's marker at the bottom edge with it behind the
+  camera and on screen facing it; Clear; G marking the street ahead right
+  where the camera looks, G again clearing it, the sky not marked; an
+  address moved onto its sidewalk; walking there with HeroInput reaching
+  and clearing it. options_test, address_test, hero_moves_test and
+  combat_test pass as before.
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2512,7 +2563,9 @@ deployed); in a computer's browser the co-op menu links to it.
   options menu and the settings, with a settings file of its own),
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
-  sidewalk facing it; `--online` tries the real searches too) and
+  sidewalk facing it; `--online` tries the real searches too),
+  `res://tests/waypoint_test.tscn` (the player's waypoint: G, the Go to
+  box's Mark and Clear, the HUD's marker, origin shifts, reaching it) and
   `res://tests/traffic_test.tscn` (75 s of
   midtown traffic: no red light run, no overlaps, cars stop for the hero,
   and leave with their tiles) and `res://tests/trains_test.tscn` (the 7 at

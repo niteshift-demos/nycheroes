@@ -39,6 +39,7 @@ Windows and Mac versions are on the site's download page.
 | Co-op menu | M | |
 | Hero and options | O or Esc | |
 | Time of day | T | |
+| Waypoint: mark where you look, or clear it (also "Mark" in the options menu's Go to box) | G | D-pad up |
 
 Phones and tablets get touch controls.
 

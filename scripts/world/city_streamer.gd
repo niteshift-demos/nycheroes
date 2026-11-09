@@ -447,6 +447,26 @@ func covers(world_position: Vector3) -> bool:
 	return not _levels.is_empty() and _tile_at(LEVEL_NEAR, world_position) != null
 
 
+## The point on a loaded sidewalk lane nearest a world position, within
+## about `radius` (Vector3.INF if none): where an address (mostly inside its
+## building) meets the street. Game.travel_to and Waypoint use it.
+func sidewalk_near(world_position: Vector3, radius: float) -> Vector3:
+	var spot := Vector2(world_position.x, world_position.z)
+	var best := INF
+	var street := Vector3.INF
+	for lane in lanes_near(world_position, radius):
+		for n in lane.size() - 1:
+			var a := Vector2(lane[n].x, lane[n].z)
+			var b := Vector2(lane[n + 1].x, lane[n + 1].z)
+			var point := Geometry2D.get_closest_point_to_segment(spot, a, b)
+			var distance := point.distance_squared_to(spot)
+			if distance < best:
+				best = distance
+				var along := 0.0 if a.is_equal_approx(b) else (point - a).length() / (b - a).length()
+				street = Vector3(point.x, lerpf(lane[n].y, lane[n + 1].y, along), point.y)
+	return street
+
+
 ## Sidewalk lanes (world-space polylines) of loaded tiles that come within
 ## about `radius` of a world position (their bounds do).
 func lanes_near(world_position: Vector3, radius: float) -> Array[PackedVector3Array]:
