@@ -30,17 +30,17 @@ func _physics_process(delta: float) -> void:
 		beat = "Take off: normal flight"
 		input.fly_toggle_pressed = _time < 0.02
 		input.vertical = 1.0
-	elif _time < 4.0:
+	elif _time < 2.5:
 		beat = "Boost: ordinary speed"
 		input.stick.y = -1.0
 		input.sprint_held = true
-	elif _time < 7.0:
+	elif _time < 5.5:
 		beat = "Brake: stopping distance remains"
 		input.brake_held = true
-	elif _time < 10.0:
+	elif _time < 8.5:
 		beat = "Brake: slow approach"
 		input.brake_held = true
-		input.stick.y = -1.0
+		input.stick.y = 1.0
 	elif _time < 27.0:
 		beat = "Brake + descend: controlled landing"
 		input.brake_held = true
