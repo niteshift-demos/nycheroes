@@ -4,7 +4,9 @@ extends Control
 ## thug, and in co-op a marker for each other player (markers sit at the
 ## screen edge when what they point at is off screen), the game's status and
 ## short notices ("Player 2 is now the host"), plus the aerial photos' credit
-## while any are shown. An Options button in the top right corner opens the
+## while any are shown. While flying, a readout at the bottom shows the speed,
+## the air brake's key and how far it would take to stop; while braking, the
+## distance still to go and a bar that empties as the hero comes to a hover. An Options button in the top right corner opens the
 ## options menu with a click (touch screens have TouchControls' gear instead).
 
 ## The Options button was clicked.
@@ -25,6 +27,12 @@ const NOTICE_TIME := 6.0
 ## "Player joined" waits this long for their name (seconds).
 const NAME_WAIT := 1.0
 const NOTICE_COLOR := Color(1.0, 0.9, 0.45)
+## Flight readout: the brake's line is drawn in this color while it's held.
+const BRAKE_COLOR := Color(1.0, 0.55, 0.2)
+## Under this speed (m/s) the air brake has the hero hovering.
+const HOVER_SPEED := 1.0
+## "HOVERING" shows this long after the brake brings the hero to a stop (s).
+const HOVER_NOTE_TIME := 1.5
 ## The license (CC BY 4.0) asks for this whenever the photos are shown.
 const AERIAL_CREDIT := "Aerial imagery: NYC OTI / NYS Orthoimagery Program 2024 (CC BY 4.0)"
 
@@ -45,6 +53,9 @@ var touch_controls: TouchControls:
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
+## Speed when the air brake went on (the bar's full length), 0 when it's off.
+var _brake_from := 0.0
+var _hover_note := 0.0
 
 
 func _ready() -> void:
@@ -80,7 +91,8 @@ func current_notices() -> PackedStringArray:
 	return PackedStringArray(_notices.map(func(notice: Array) -> String: return notice[0]))
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_hover_note = maxf(_hover_note - delta, 0.0)
 	queue_redraw()
 
 
@@ -98,6 +110,7 @@ func _draw() -> void:
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
 	_draw_coop_status()
+	_draw_flight()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
 		var at := Vector2(size.x - width - 16.0, size.y - 12.0)
@@ -149,6 +162,60 @@ func _draw_coop_status() -> void:
 		var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22).x
 		_text(Vector2((size.x - width) * 0.5, y), text, 22, NOTICE_COLOR)
 		y += 30.0
+
+
+## Bottom middle while flying: "FLIGHT 142 m/s  BOOST" over "Q / LT  AIR BRAKE
+## · stops in 36 m"; while braking, the meters still to go over a bar that
+## empties, then "HOVERING" for a moment once stopped.
+func _draw_flight() -> void:
+	if hero.mode.name != &"Flight":
+		_brake_from = 0.0
+		_hover_note = 0.0
+		return
+	var flight := hero.mode as FlightMode
+	var speed := hero.velocity.length()
+	var shed := flight.speed_to_shed()
+	var bottom := size.y - 70.0
+	if touch_controls:  # above the photo credit, between the thumbs
+		bottom = size.y - touch_controls.safe_insets.w - 120.0
+	var top_line := "FLIGHT  %d m/s" % roundi(speed)
+	if hero.input.sprint_held and speed > flight.cruise_speed + 1.0 and not flight.braking:
+		top_line += "  ·  BOOST"
+	var key := "BRAKE button" if touch_controls else ("Q / LT" if not Input.get_connected_joypads().is_empty() else "Q")
+	var line := ""
+	var color := Color(1.0, 1.0, 1.0, 0.85)
+	if flight.braking:
+		if _brake_from <= 0.0:
+			_brake_from = maxf(shed, HOVER_SPEED)
+		if shed > HOVER_SPEED:
+			line = "AIR BRAKE  ·  stopping in %d m" % ceili(flight.stopping_distance(shed))
+		else:
+			if _hover_note <= 0.0 and _brake_from > HOVER_SPEED * 4.0:
+				_hover_note = HOVER_NOTE_TIME
+			_brake_from = HOVER_SPEED  # (stopped: the bar stays empty)
+			line = "AIR BRAKE  ·  HOVERING" if is_zero_approx(hero.input.vertical) else "AIR BRAKE  ·  holding still"
+		color = BRAKE_COLOR
+	else:
+		_brake_from = 0.0
+		if _hover_note > 0.0 and speed < HOVER_SPEED * 2.0:
+			line = "HOVERING"
+			color = BRAKE_COLOR
+		elif shed > 8.0:
+			line = "%s  air brake  ·  stops in %d m" % [key, ceili(flight.stopping_distance(shed))]
+		else:
+			line = "%s  air brake" % key
+	_text_centered(bottom - 26.0, top_line, 18, Color.WHITE)
+	_text_centered(bottom, line, 16 if not flight.braking else 20, color)
+	if flight.braking and _brake_from > HOVER_SPEED:
+		var bar := Rect2(size.x * 0.5 - 110.0, bottom + 10.0, 220.0, 6.0)
+		draw_rect(bar.grow(2.0), Color(0.0, 0.0, 0.0, 0.55))
+		var left := clampf((shed - HOVER_SPEED) / (_brake_from - HOVER_SPEED), 0.0, 1.0)
+		draw_rect(Rect2(bar.position, Vector2(bar.size.x * left, bar.size.y)), BRAKE_COLOR)
+
+
+func _text_centered(baseline: float, text: String, font_size: int, color: Color) -> void:
+	var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
+	_text(Vector2((size.x - width) * 0.5, baseline), text, font_size, color)
 
 
 ## A marker pointing at a scene position, labeled with the distance to it.

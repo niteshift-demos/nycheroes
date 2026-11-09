@@ -34,6 +34,7 @@ Windows and Mac versions are on the site's download page.
 | Descend | C | B |
 | Sprint / super speed | Shift | L3 or left bumper |
 | Toggle flight | F | Y |
+| Air brake (flying: stop and hover) | Q | Left trigger |
 | Web | E or right mouse | Right trigger |
 | Attack | Left mouse | X |
 | Co-op menu | M | |

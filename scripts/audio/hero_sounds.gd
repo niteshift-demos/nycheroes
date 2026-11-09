@@ -44,6 +44,7 @@ var _step_animation := &""
 var _step_phase := 0.0
 var _swing_rise := 0.0
 var _zoom_ready := true
+var _braking := false
 var _surface := &"step_concrete"
 var _odd_step := false
 var _surface_cooldown := 0.0
@@ -145,6 +146,13 @@ func _update() -> void:
 			if randf() < 0.4:
 				GameAudio.play(&"creak", at + Vector3.UP * 1.5)
 		_swing_rise = rise
+
+	# Hitting the air brake at speed: a heavy, low rush of air.
+	var flight := hero.get_mode(&"Flight") as FlightMode
+	var braking := mode == &"Flight" and flight.braking
+	if braking and not _braking and speed > 20.0:
+		GameAudio.play(&"whoosh_heavy", at + Vector3.UP, lerpf(-6.0, 2.0, clampf((speed - 20.0) / 120.0, 0.0, 1.0)), 0.7)
+	_braking = braking
 
 	# Breaking into super speed.
 	var flat_speed := hero.horizontal_speed()

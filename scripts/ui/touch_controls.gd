@@ -9,6 +9,7 @@ extends Control
 ##   JUMP   jump (hold for a super jump); while flying it's UP
 ##   DOWN   descend, while flying
 ##   WEB    web (hold to swing), not while flying
+##   BRAKE  the air brake (hold), in WEB's place while flying
 ##   FLY    fly_toggle (lit while flying)
 ##   SPEED  super speed as a toggle (lit while on): it stays on until tapped
 ##          again or the stick has been let go for a moment
@@ -142,6 +143,7 @@ func _ready() -> void:
 	_add(&"jump", "JUMP", &"jump", false, true)
 	_add(&"down", "DOWN", &"descend")
 	_add(&"web", "WEB", &"web", false, true)
+	_add(&"brake", "BRAKE", &"brake")
 	_add(&"fly", "FLY", &"fly_toggle")
 	_add(&"speed", "SPEED", &"sprint", true)
 	_add(&"coop", "CO-OP", &"")
@@ -406,6 +408,7 @@ func _update_hero_state(delta: float) -> void:
 	(_by_id[&"fly"] as TouchButton).on = flying
 	_show(&"down", flying)
 	_show(&"web", not flying)
+	_show(&"brake", flying)
 	queue_redraw()
 
 
@@ -442,6 +445,7 @@ func _layout() -> void:
 	_place(&"jump", punch + Vector2(-104.0, 8.0), 36.0)
 	_place(&"down", punch + Vector2(-190.0, 8.0), 32.0)
 	_place(&"web", punch + Vector2(6.0, -100.0), 36.0)
+	_place(&"brake", punch + Vector2(6.0, -100.0), 36.0)  # (WEB's spot, while flying)
 	_place(&"speed", punch + Vector2(-88.0, -84.0), 31.0)
 	_place(&"fly", punch + Vector2(-14.0, -182.0), 31.0)
 	# The gear in the top right corner, co-op to its left, then full screen

@@ -36,6 +36,22 @@ Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
 the hero is driven by a plain input object per physics tick so a network
 peer can drive one later. Nearby tiles get collision.
 
+- **Air brake** (added 2026-11-09): holding Q, the left trigger or the
+  touch BRAKE button (in WEB's place while flying) stops a flying hero and
+  holds it in a hover, even with the stick and boost still held. It slows
+  by 60 m/s^2 plus 3/s times the speed (`FlightMode.brake_deceleration`,
+  `brake_damping`): from a sustained boost's 187.5 m/s about 47 m in 0.8 s,
+  from 150 m/s 36 m, where letting go of everything drifts about 75 m and
+  keeps creeping. Climbing or descending still works while braking, so a
+  hero can brake out of a boost and drop straight onto a roof or the
+  street. While flying the HUD shows the speed, the brake's key and how far
+  it would take to stop (`FlightMode.stopping_distance()`); while braking,
+  the meters still to go over an emptying bar, then HOVERING. The hero
+  leans back feet first with a low rush of air; the brake is one more
+  PlayerSync flag (BRAKING), so other players see the pose and hear it.
+  `tests/flight_brake_test.tscn` checks it in the real city;
+  `tests/flight_brake_capture.tscn` drives the keys for a Movie Maker video.
+
 ## 3. Street fights (done)
 
 - Pedestrians walk real sidewalk lanes (traced from street data), run from
@@ -1857,8 +1873,8 @@ phone, in the phone's browser, at https://nycheroes.party.
   floating stick on the left 42% of the screen (it follows the thumb past
   its rim; walking speed follows how far it's pushed), dragging anywhere
   else turns the camera, and buttons on the right: PUNCH (DIVE in the air),
-  JUMP (hold for a super jump; UP while flying), DOWN (flying), WEB (hold),
-  FLY, SPEED (a toggle, off 0.8 s after the stick is let go), and along the
+  JUMP (hold for a super jump; UP while flying), DOWN (flying), WEB (hold;
+  BRAKE in its place while flying, the air brake), FLY, SPEED (a toggle, off 0.8 s after the stick is let go), and along the
   top the speaker, fullscreen, CO-OP and a gear for the options menu.
   Holding WEB or JUMP and sliding also turns the camera (at the options
   menu's look speed). They
@@ -2512,7 +2528,11 @@ deployed); in a computer's browser the co-op menu links to it.
   options menu and the settings, with a settings file of its own),
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
-  sidewalk facing it; `--online` tries the real searches too) and
+  sidewalk facing it; `--online` tries the real searches too),
+  `res://tests/flight_brake_test.tscn` (flight's air brake: from a boost
+  it stops where `FlightMode.stopping_distance()` says, within 1.2 s and
+  well short of just letting go, and hovers with the stick still held;
+  braking while descending still descends and lands; PlayerSync sends it) and
   `res://tests/traffic_test.tscn` (75 s of
   midtown traffic: no red light run, no overlaps, cars stop for the hero,
   and leave with their tiles) and `res://tests/trains_test.tscn` (the 7 at
