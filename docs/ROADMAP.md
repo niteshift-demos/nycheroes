@@ -2398,6 +2398,51 @@ deployed); in a computer's browser the co-op menu links to it.
   moved in. Pointer lock can't be checked there (headless Chrome never
   grants it). The other tests pass as before.
 
+## Time trial (done; added 2026-11-09)
+
+- **The course:** a short checkpoint run in the streamed city, about 550 m:
+  a green start gate on Seventh Avenue just north of Times Square, two
+  blocks north, the corner of West 50th Street, halfway along it, and the
+  finish on Sixth Avenue (`TimeTrial.COURSE`, world meters). Each gate is a
+  hoop across the way with a beam over it, in small unshaded materials of
+  their own (no big shader changes); each stands on the street once that
+  has loaded (a ray down from a little above the course's own height, so
+  not a roof). The node floats with `WorldOrigin` and every check is in
+  world positions. `scripts/game/time_trial.gd`, made by Game unless
+  `?demo` or `?trial=0`.
+- **Playing it:** optional; nothing happens until the hero runs through the
+  green gate, which starts the clock. The gates then have to be cleared in
+  order by the hero's own movement (running, super speed, jumps, webs, low
+  flight; no power is sped up, slowed or switched off for it): within 7 m
+  of a gate's middle and between 3 m under and 25 m over its street, so
+  flying over the rooftops past a gate doesn't count. 90 s after the start
+  the run fails ("TIME'S UP"). The finish shows the time and "New best
+  time!" or the best (kept in the `time_trial_best` setting). Retry: R,
+  a gamepad's Back button or the HUD's "RETRY · R" button (shown during a
+  run and for 10 s after it; it's how touch screens retry) put the hero
+  25 m before the start gate, facing it, with the clock reset (Game's
+  place_hero, as joining co-op does); running into the start gate again
+  also starts over after a run.
+- **HUD** (GameHud): near the start a "TIME TRIAL" marker and, closer, how
+  to start (and the best time); during a run the clock, "Checkpoints N / 4
+  · S s left" (red under 15 s) and a marker to the next gate or the
+  finish; a notice at the start and at each checkpoint with its split; the
+  result for 10 s after.
+- **Co-op:** the trial is each player's own and nothing about it is sent:
+  other players don't see your gates, clock or result (the hero itself
+  moves as always, so they see the run). A shared race would need its
+  state in PlayerSync.
+- **Limits:** one fixed course; no sound for the gates; a run's clock goes
+  on through the hero being knocked out, and the options menu's pause
+  (single player) stops it with the game.
+- **Tested:** `tests/time_trial_test.tscn` (20 checks): the gates on the
+  street, the gates' reach (8 m to the side or 40 m up doesn't count), a
+  full run driven through HeroInput as a player would (`tests/trial_pilot.gd`)
+  with super speed on the straights (about 19-20 s, with the midtown
+  traffic), the order of the gates, retry, the time limit and an origin
+  shift. `tests/time_trial_recording.tscn` plays it for a video with
+  Godot's Movie Maker (`docs/recordings/time_trial.md`).
+
 ## Constraints
 
 - **Browser first, WebGL 2.** Godot web builds use the Compatibility renderer;
@@ -2510,6 +2555,8 @@ deployed); in a computer's browser the co-op menu links to it.
   players far off cost a host's frames, physics and memory),
   `res://tests/audio_test.tscn`, `res://tests/options_test.tscn` (the
   options menu and the settings, with a settings file of its own),
+  `res://tests/time_trial_test.tscn` (the time trial: gates, a full run
+  driven like a player's, order, retry, the time limit, an origin shift),
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and
@@ -2526,7 +2573,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?trial=0` no time trial, `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

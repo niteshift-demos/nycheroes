@@ -54,6 +54,7 @@ const KEYS: Array[Array] = [
 	["O", "options (this menu)"],
 	["N", "sound off and on"],
 	["T", "time of day"],
+	["R", "time trial: retry (its start gate is just north of Times Square)"],
 	["F1", "free camera (wheel: its speed)"],
 ]
 const DESKTOP_KEYS: Array[Array] = [
@@ -69,6 +70,7 @@ const TOUCH_HELP: Array[Array] = [
 	["FLY", "fly; DOWN goes down"],
 	["SPEED", "super speed, on and off"],
 	["CO-OP", "play with friends"],
+	["RETRY", "time trial: back to its start (run through the green gate by Times Square)"],
 ]
 
 ## Set by Game.

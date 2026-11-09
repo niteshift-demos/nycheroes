@@ -6,6 +6,13 @@ extends Control
 ## short notices ("Player 2 is now the host"), plus the aerial photos' credit
 ## while any are shown. An Options button in the top right corner opens the
 ## options menu with a click (touch screens have TouchControls' gear instead).
+## With a time trial (TimeTrial): near its start, a marker to the start gate
+## and how to begin; during a run, the clock, the gates cleared and a marker
+## to the next; after it, the time or "time's up" for a while. A Retry button
+## (top middle, also for touch screens) shows during a run and after it.
+
+## The Retry button was clicked or tapped.
+signal retry_requested
 
 ## The Options button was clicked.
 signal options_requested
@@ -26,6 +33,12 @@ const NOTICE_TIME := 6.0
 const NAME_WAIT := 1.0
 const NOTICE_COLOR := Color(1.0, 0.9, 0.45)
 ## The license (CC BY 4.0) asks for this whenever the photos are shown.
+## The time trial's start shows from this close (m), its "how to start" line closer.
+const TRIAL_START_SHOWN := 250.0
+const TRIAL_HINT_DISTANCE := 60.0
+const TRIAL_COLOR := Color(1.0, 0.82, 0.2)
+const TRIAL_START_COLOR := Color(0.45, 1.0, 0.55)
+const TRIAL_FAIL_COLOR := Color(1.0, 0.45, 0.35)
 const AERIAL_CREDIT := "Aerial imagery: NYC OTI / NYS Orthoimagery Program 2024 (CC BY 4.0)"
 
 @export var hero: Hero
@@ -45,6 +58,14 @@ var touch_controls: TouchControls:
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
+var _retry_button: Button
+
+## The time trial, if there's one (set by Game).
+var time_trial: TimeTrial:
+	set(value):
+		time_trial = value
+		if time_trial:
+			time_trial.gate_cleared.connect(_on_gate_cleared)
 
 
 func _ready() -> void:
@@ -66,6 +87,7 @@ func _ready() -> void:
 		if Net.is_online() and not Net.is_public:
 			notify("You're the host now" if id == Net.local_id() else "%s is now the host" % Net.player_name(id)))
 	_add_options_button()
+	_add_retry_button()
 
 
 ## Shows a line near the top of the screen for a few seconds.
@@ -81,6 +103,11 @@ func current_notices() -> PackedStringArray:
 
 
 func _process(_delta: float) -> void:
+	if _retry_button:
+		_retry_button.visible = time_trial != null and (time_trial.state == TimeTrial.State.RUNNING \
+			or time_trial.since_end < TimeTrial.RESULT_TIME)
+		_retry_button.offset_top = _trial_top() + 64.0
+		_retry_button.offset_bottom = _retry_button.offset_top
 	queue_redraw()
 
 
@@ -104,6 +131,7 @@ func _draw() -> void:
 		if touch_controls:  # bottom middle, between the thumbs
 			at = Vector2((size.x - width) * 0.5, size.y - touch_controls.safe_insets.w - 8.0)
 		_text(at, AERIAL_CREDIT, 12, Color(1.0, 1.0, 1.0, 0.8))
+	_draw_time_trial()
 	var thug := encounters.nearest_thug(hero.world_position())
 	if thug:
 		_draw_marker(thug.global_position + Vector3.UP * 2.2, "THUGS", MARKER_COLOR, NEAR_ENOUGH)
@@ -145,10 +173,76 @@ func _draw_coop_status() -> void:
 		_text(at, line, 16)
 	# Notices: centered, under the debug text in the top left.
 	var y := maxf(size.y * 0.2, 130.0)
+	if _retry_button and _retry_button.visible:  # (under the time trial's lines)
+		y = maxf(y, _retry_button.get_rect().end.y + 30.0)
 	for text in current_notices():
 		var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22).x
 		_text(Vector2((size.x - width) * 0.5, y), text, 22, NOTICE_COLOR)
 		y += 30.0
+
+
+## The time trial's clock, markers and result (see the top).
+func _draw_time_trial() -> void:
+	if time_trial == null:
+		return
+	var top := _trial_top()
+	match time_trial.state:
+		TimeTrial.State.RUNNING:
+			var cleared := time_trial.next_gate - 1
+			_centered(top + 24.0, "TIME TRIAL  %s" % TimeTrial.format_time(time_trial.elapsed), 30, Color.WHITE)
+			var left := time_trial.time_left()
+			_centered(top + 50.0, "Checkpoints %d / %d  ·  %d s left" % [cleared, time_trial.gate_count(), ceili(left)],
+				16, TRIAL_FAIL_COLOR if left < 15.0 else TRIAL_COLOR)
+			var last := time_trial.next_gate == time_trial.gate_count()
+			_draw_gate_marker(time_trial.next_gate, "FINISH" if last else "CHECKPOINT %d" % time_trial.next_gate,
+				TRIAL_COLOR, 25.0)
+			return
+		TimeTrial.State.FINISHED when time_trial.since_end < TimeTrial.RESULT_TIME:
+			_centered(top + 24.0, "FINISHED  %s" % TimeTrial.format_time(time_trial.elapsed), 34, TRIAL_START_COLOR)
+			_centered(top + 52.0, "New best time!" if time_trial.new_best \
+				else "Best %s" % TimeTrial.format_time(time_trial.best), 18, TRIAL_COLOR)
+			return
+		TimeTrial.State.FAILED when time_trial.since_end < TimeTrial.RESULT_TIME:
+			_centered(top + 24.0, "TIME'S UP", 34, TRIAL_FAIL_COLOR)
+			_centered(top + 52.0, "%d of %d checkpoints. Press R or Retry to try again" % [
+				time_trial.next_gate - 1, time_trial.gate_count()], 18, TRIAL_COLOR)
+			return
+	var start := WorldOrigin.to_local(time_trial.gate_position(0))
+	var distance := Vector2(start.x - hero.global_position.x, start.z - hero.global_position.z).length()
+	if distance > TRIAL_START_SHOWN:
+		return
+	_draw_gate_marker(0, "TIME TRIAL", TRIAL_START_COLOR, 30.0)
+	if distance < TRIAL_HINT_DISTANCE:
+		var line := "Time trial: run through the green gate to start"
+		if time_trial.best > 0.0:
+			line += "  ·  best %s" % TimeTrial.format_time(time_trial.best)
+		_centered(top + 24.0, line, 18, TRIAL_START_COLOR)
+
+
+## Where the time trial's lines start: under the debug text (on for
+## computers unless switched off), like the notices; on touch screens, at the
+## top, clear of the notch (the debug text is small there, under the health).
+func _trial_top() -> float:
+	if touch_controls:
+		return touch_controls.safe_insets.y + 24.0
+	return maxf(size.y * 0.2, 130.0)
+
+
+func _draw_gate_marker(index: int, label: String, color: Color, near_enough: float) -> void:
+	var at := WorldOrigin.to_local(time_trial.gate_position(index)) + Vector3.UP * TimeTrial.HOOP_HEIGHT
+	_draw_marker(at, label, color, near_enough)
+
+
+func _on_gate_cleared(index: int, seconds: float) -> void:
+	if index == 0:
+		notify("Time trial: go!")
+	elif index < time_trial.gate_count():
+		notify("Checkpoint %d  ·  %s" % [index, TimeTrial.format_time(seconds)])
+
+
+func _centered(y: float, text: String, font_size: int, color: Color) -> void:
+	var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
+	_text(Vector2((size.x - width) * 0.5, y), text, font_size, color)
 
 
 ## A marker pointing at a scene position, labeled with the distance to it.
@@ -223,6 +317,28 @@ func _add_options_button() -> void:
 	_options_button.pressed.connect(options_requested.emit)
 	_options_button.visible = touch_controls == null
 	add_child(_options_button)
+
+
+## "RETRY  ·  R", top middle under the time trial's clock (see the top). Like
+## the Options button, it never takes the keyboard's focus.
+func _add_retry_button() -> void:
+	_retry_button = Button.new()
+	_retry_button.name = "RetryButton"
+	_retry_button.text = "RETRY  ·  R"
+	_retry_button.focus_mode = Control.FOCUS_NONE
+	_retry_button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	_retry_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_retry_button.add_theme_font_size_override("font_size", 14)
+	for state: String in ["normal", "hover", "pressed"]:
+		_retry_button.add_theme_stylebox_override(state, _options_button.get_theme_stylebox(state))
+	_retry_button.anchor_left = 0.5
+	_retry_button.anchor_right = 0.5
+	_retry_button.offset_top = 130.0 + 64.0
+	_retry_button.offset_bottom = _retry_button.offset_top
+	_retry_button.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_retry_button.pressed.connect(retry_requested.emit)
+	_retry_button.visible = false
+	add_child(_retry_button)
 
 
 func _text(at: Vector2, text: String, font_size: int, color := Color.WHITE) -> void:

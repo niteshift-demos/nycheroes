@@ -12,7 +12,7 @@ const ORIGIN_LON := -73.9855
 const METERS_PER_DEGREE := 111320.0
 const REFRESH_INTERVAL := 0.25
 const LOG_INTERVAL := 2.0
-const HERO_HELP := "WASD move  ·  Left mouse punch (in the air: dive)  ·  Space jump (hold: super jump)  ·  Shift super speed  ·  F fly (Space/C up/down)  ·  E / right mouse web  ·  M co-op  ·  O options  ·  T time of day  ·  N mute  ·  F1 free camera"
+const HERO_HELP := "WASD move  ·  Left mouse punch (in the air: dive)  ·  Space jump (hold: super jump)  ·  Shift super speed  ·  F fly (Space/C up/down)  ·  E / right mouse web  ·  M co-op  ·  O options  ·  T time of day  ·  R time trial retry  ·  N mute  ·  F1 free camera"
 const FREE_CAMERA_HELP := "Free camera: WASD move  ·  Space/C up/down  ·  Shift boost  ·  Wheel speed  ·  O options  ·  T time of day  ·  N mute  ·  F1 back to hero"
 
 @export var city: CityStreamer

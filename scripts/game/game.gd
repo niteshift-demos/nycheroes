@@ -27,6 +27,9 @@ extends Node3D
 ## do the HUD's Options button and the touch gear; one menu shows at a time.
 ## Its Go to box takes the hero to an address (travel_to): onto the sidewalk
 ## nearest it, facing it.
+## A short checkpoint time trial starts at the green gate just north of Times
+## Square (TimeTrial; not with ?demo or ?trial=0); R or the HUD's Retry button
+## takes the hero back to its start.
 ##
 ## Phones and tablets: touch screens get on-screen controls (TouchControls;
 ## ?touch=1 or ?touch=0 forces them on or off, see Device), and a graphics
@@ -71,6 +74,7 @@ var _touch_controls: TouchControls
 var _options: OptionsPanel
 var _name_prompt: NamePrompt
 var _loading: LoadingScreen
+var _time_trial: TimeTrial
 
 
 func _enter_tree() -> void:
@@ -95,6 +99,7 @@ func _ready() -> void:
 	quality.apply(time_of_day.sun, get_world_3d().environment, city, get_node("Crowd") as CrowdManager, encounters,
 		get_node_or_null("Traffic") as Traffic, get_node_or_null("Trains") as Trains, time_of_day)
 	_add_options(quality)
+	_add_time_trial()
 	_add_loading_screen()
 	_add_name_prompt()
 	if not Device.is_web() and bool(Settings.get_value("fullscreen", false)) and not LaunchOptions.has("screenshot"):
@@ -202,6 +207,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("time_of_day") and not coop_panel.is_typing():
 		time_of_day.step_forward()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("time_trial_retry") and _time_trial and player_input.enabled \
+			and not coop_panel.is_typing():
+		_time_trial.retry()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("debug_free_camera"):
 		if not _free_camera_on:
@@ -338,6 +347,22 @@ func _add_options(quality: Quality) -> void:
 		game_hud.options_requested.connect(func() -> void:
 			coop_panel.close()
 			_options.open())
+
+
+## The time trial (see the top), drawn by the HUD, whose Retry button retries it.
+func _add_time_trial() -> void:
+	if LaunchOptions.has("demo") or LaunchOptions.get_string("trial") == "0":
+		return
+	_time_trial = TimeTrial.new()
+	_time_trial.name = "TimeTrial"
+	_time_trial.game = self
+	_time_trial.hero = hero
+	_time_trial.city = city
+	add_child(_time_trial)
+	var game_hud := hud.get_node_or_null("GameHud") as GameHud
+	if game_hud:
+		game_hud.time_trial = _time_trial
+		game_hud.retry_requested.connect(_time_trial.retry)
 
 
 ## On-screen controls for touch screens. The UI is then measured in CSS

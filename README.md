@@ -21,6 +21,9 @@ Windows and Mac versions are on the site's download page.
 - **The hero:** running, super speed, charged super jumps, flight, web
   swinging, swimming, punch combos, dive attacks and landing slams; a
   customizable look and outfit.
+- **Time trial:** an optional checkpoint run from Times Square to Sixth
+  Avenue: run through the green gate to start the clock, clear the gates in
+  order, R (or the Retry button) to start over.
 - **Co-op:** one big public game by default, or a private game with a code.
   Peers connect over WebRTC (relayed through TURN when they must).
 
@@ -39,6 +42,7 @@ Windows and Mac versions are on the site's download page.
 | Co-op menu | M | |
 | Hero and options | O or Esc | |
 | Time of day | T | |
+| Time trial: retry | R | Back |
 
 Phones and tablets get touch controls.
 
@@ -79,7 +83,7 @@ generators.
 Add them to the URL (`?quality=low&time=21:00`) or, on desktop, after
 `--` on the command line (`-- --quality=low`). A few useful ones:
 `?quality=low|medium|high`, `?time=HH:MM`, `?spawn=x,y,z,yaw`,
-`?peds=N`, `?traffic=N`, `?gangs=N`, `?solo=1`, `?host`, `?join=CODE`,
+`?peds=N`, `?traffic=N`, `?gangs=N`, `?trial=0`, `?solo=1`, `?host`, `?join=CODE`,
 `?stats`. The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Tests
