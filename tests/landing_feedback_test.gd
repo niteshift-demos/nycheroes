@@ -58,6 +58,8 @@ func _ready() -> void:
 		_step("short super jump (hard landing)", 6.0, func(i: HeroInput, t: float) -> void:
 			i.jump_held = t < 0.21,
 			_landed_after(0.6), func() -> void:
+				var screen := _indicator.get_viewport_rect().size
+				_check(_indicator.size == screen and screen.x > 0.0, "the indicator covers the screen (%s of %s)" % [_indicator.size, screen])
 				_check(_indicator.last_tier == LandingIndicator.Tier.HARD,
 					"lands hard, not a slam (%s, %.1f m/s)" % [_indicator.readout_text(), _indicator.last_impact_speed])
 				_check(_indicator.readout_visible() and _indicator.readout_text().begins_with("HARD LANDING"),

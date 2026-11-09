@@ -76,7 +76,7 @@ peer can drive one later. Nearby tiles get collision.
   dust and slams' shockwaves. `?demo=landing` tours it (a hop, a hard
   landing among thugs that doesn't hurl them, a slam that does, a dive
   slam, and a slam with reduced motion). Tested by
-  `tests/landing_feedback_test.tscn` (18 checks, the real city, driven by
+  `tests/landing_feedback_test.tscn` (19 checks, the real city, driven by
   HeroInput) and the options test.
 
 ## 4. All five boroughs and bridges (done)
