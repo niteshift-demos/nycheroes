@@ -2,7 +2,9 @@ class_name DemoDirector
 extends Node
 ## Plays a scripted tour for recording videos: ?demo shows off the hero's
 ## powers, ?demo=fight a street fight, ?demo=city flies the free camera over
-## the city, ?demo=new over what's new lately. Drives the hero's input and the camera and captions each part.
+## the city, ?demo=new over what's new lately, ?demo=landing hard landings'
+## feedback (LandingIndicator, the camera's dip; one slam with "Reduce camera
+## motion" on, put back as it was at the end). Drives the hero's input and the camera and captions each part.
 ## Prints "[demo] start" and "[demo] finished" so a recorder can follow, and
 ## "[demo] pause" / "[demo] resume" around waits for the city to load (a
 ## recorder can pause, so the video has no loading pop-in).
@@ -41,6 +43,9 @@ var _caption: Label
 var _flight := {}
 var _holding := false
 var _loaded_time := 0.0
+## Landing tour: the player's own "reduce_motion" before the tour changed it
+## (null: never set).
+var _saved_reduce_motion: Variant = null
 
 
 func _ready() -> void:
@@ -90,6 +95,19 @@ func _ready() -> void:
 					[21.5, 21.5]),
 			_shot("", 0.5),
 		]
+	elif LaunchOptions.get_string("demo") == "landing":
+		_yaw = _avenue_yaw + 0.9
+		camera.yaw = _yaw
+		_shots = [
+			_shot("A small hop: nothing to read out", 2.5, _hop_input, _landing_tour_camera),
+			_shot("Short super jump: hard landing, under slam speed", 4.0, _short_jump_input,
+					_landing_tour_camera, _spawn_gang_ahead.bind(5.0, 4)),
+			_shot("Full super jump: the gauge passes SLAM", 7.0, _full_jump_input, _landing_tour_camera),
+			_shot("A dive attack always slams", 3.0, _hop_and_dive_input, _landing_tour_camera),
+			_shot("Reduce camera motion: same readout, still camera", 7.0, _full_jump_input,
+					_landing_tour_camera, _set_reduce_motion.bind(true)),
+			_shot("", 1.0, Callable(), Callable(), _set_reduce_motion.bind(false)),
+		]
 	elif LaunchOptions.get_string("demo") == "fight":
 		_yaw = _avenue_yaw
 		camera.yaw = _yaw
@@ -124,7 +142,7 @@ func _physics_process(delta: float) -> void:
 			return
 		_settle -= delta
 		if _settle <= 0.0:
-			print("[demo] start")
+			print("[demo] start (frame %d)" % Engine.get_frames_drawn())
 			_begin(0)
 		return
 	if _index >= _shots.size():
@@ -142,7 +160,7 @@ func _physics_process(delta: float) -> void:
 	if _time >= shot.seconds:
 		_begin(_index + 1)
 		if _index >= _shots.size():
-			print("[demo] finished")
+			print("[demo] finished (frame %d)" % Engine.get_frames_drawn())
 
 
 func _process(delta: float) -> void:
@@ -277,6 +295,44 @@ func _ram_camera(_t: float) -> void:
 func _aftermath_camera(t: float) -> void:
 	_yaw = _avenue_yaw + 2.6 * smoothstep(0.0, 3.0, t)
 	_pitch = -0.35
+
+
+# --- Landing tour ---
+
+func _hop_input(input: HeroInput, t: float) -> void:
+	input.jump_held = t < 0.1
+
+
+## Held just past a tap: the lowest super jump, landing at about 31 m/s.
+func _short_jump_input(input: HeroInput, t: float) -> void:
+	input.jump_held = t < 0.21
+
+
+func _full_jump_input(input: HeroInput, t: float) -> void:
+	input.jump_held = t < 1.2
+
+
+func _hop_and_dive_input(input: HeroInput, t: float) -> void:
+	input.jump_held = t < 0.1
+	input.attack_held = t > 0.35 and t < 0.45
+	input.aim = (Vector3.DOWN + AVENUE * 0.3).normalized()
+
+
+func _landing_tour_camera(_t: float) -> void:
+	_yaw = _avenue_yaw + 0.9
+	_pitch = -0.3
+
+
+## Flips the options menu's "Reduce camera motion" for the tour (`on`), or
+## puts back the player's own choice (off).
+func _set_reduce_motion(on: bool) -> void:
+	if on:
+		_saved_reduce_motion = Settings.get_value("reduce_motion")
+		Settings.set_value("reduce_motion", true)
+	elif _saved_reduce_motion != null:
+		Settings.set_value("reduce_motion", _saved_reduce_motion)
+	else:
+		Settings.clear_value("reduce_motion")
 
 
 # --- Powers tour ---

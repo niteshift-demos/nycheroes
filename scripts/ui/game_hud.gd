@@ -6,6 +6,7 @@ extends Control
 ## short notices ("Player 2 is now the host"), plus the aerial photos' credit
 ## while any are shown. An Options button in the top right corner opens the
 ## options menu with a click (touch screens have TouchControls' gear instead).
+## Hard landings and slams are read out by a LandingIndicator it adds.
 
 ## The Options button was clicked.
 signal options_requested
@@ -45,6 +46,7 @@ var touch_controls: TouchControls:
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
+var _landing: LandingIndicator
 
 
 func _ready() -> void:
@@ -66,6 +68,10 @@ func _ready() -> void:
 		if Net.is_online() and not Net.is_public:
 			notify("You're the host now" if id == Net.local_id() else "%s is now the host" % Net.player_name(id)))
 	_add_options_button()
+	_landing = LandingIndicator.new()
+	_landing.name = "LandingIndicator"
+	_landing.hero = hero
+	add_child(_landing)
 
 
 ## Shows a line near the top of the screen for a few seconds.

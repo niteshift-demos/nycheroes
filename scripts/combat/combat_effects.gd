@@ -92,6 +92,23 @@ func shockwave(at: Vector3, radius: float) -> void:
 	dust.color_ramp = _dust_fade
 
 
+## A hard landing short of a slam: a low ring of dust around the feet, bigger
+## with `strength` (0..1). Plain particles, no shader of its own.
+func landing_dust(at: Vector3, strength: float) -> void:
+	var dust := _burst(_dust_mesh, at + Vector3.UP * 0.3, int(lerpf(8.0, 16.0, strength)), 0.9)
+	dust.direction = Vector3.UP
+	dust.spread = 88.0
+	dust.flatness = 0.9
+	dust.initial_velocity_min = lerpf(3.0, 5.0, strength)
+	dust.initial_velocity_max = lerpf(5.0, 9.0, strength)
+	dust.damping_min = 6.0
+	dust.damping_max = 9.0
+	dust.gravity = Vector3(0.0, 0.3, 0.0)
+	dust.scale_amount_min = 0.8
+	dust.scale_amount_max = lerpf(1.6, 2.4, strength)
+	dust.color_ramp = _dust_fade
+
+
 func _burst(mesh: Mesh, at: Vector3, amount: int, lifetime: float) -> CPUParticles3D:
 	var particles := CPUParticles3D.new()
 	particles.mesh = mesh

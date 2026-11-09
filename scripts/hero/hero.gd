@@ -12,6 +12,10 @@ signal mode_changed(mode_name: StringName)
 ## Emitted on touching down, with the downward speed just before impact.
 signal landed(impact_speed: float)
 signal hurt(damage: float)
+## Our own hero's ground slam (after `landed`): the speed it hit at, the
+## blast's radius and how many thugs it hurled. Only the player's own game
+## knows the thug count, so copies of other players' heroes never send it.
+signal slammed(impact_speed: float, radius: float, hits: int)
 
 const GRAVITY := 30.0
 const MAX_FALL_SPEED := 95.0
@@ -26,6 +30,10 @@ const REGEN_DELAY := 4.0
 const REGEN_RATE := 15.0
 ## Landing faster than this slams the ground, hurling thugs nearby.
 const SLAM_SPEED := 35.0
+## Landing faster than this (but slower than a slam) is a hard landing: it
+## kicks up a little dust (CombatEffects.landing_dust), the camera dips and
+## the HUD reads it out (LandingIndicator). No damage: heroes are tough.
+const HARD_LANDING_SPEED := 20.0
 ## How long a hit staggers the hero.
 const HURT_TIME := 0.35
 ## Stepping up a curb eases the drawn hero (and camera) up at this speed (m/s)
@@ -77,6 +85,7 @@ func _ready() -> void:
 			_modes[child.name] = child
 	set_mode(&"OnFoot")
 	_prev_position = global_position
+	landed.connect(_on_landed)
 
 
 func _exit_tree() -> void:
@@ -209,8 +218,25 @@ func _find_water_level() -> float:
 
 ## A hard landing: the faster the fall, the wider the blast.
 func _slam(impact_speed: float) -> void:
-	var power := clampf(inverse_lerp(SLAM_SPEED, MAX_FALL_SPEED, impact_speed), 0.0, 1.0)
-	Combat.shockwave(global_position, lerpf(5.0, 11.0, power), 100.0, lerpf(14.0, 26.0, power))
+	var power := slam_power(impact_speed)
+	var radius := lerpf(5.0, 11.0, power)
+	var hits := Combat.shockwave(global_position, radius, 100.0, lerpf(14.0, 26.0, power))
+	slammed.emit(impact_speed, radius, hits)
+
+
+## How strong a slam at this speed is, 0 (just over SLAM_SPEED) to 1 (falling
+## as fast as anything can, MAX_FALL_SPEED).
+static func slam_power(impact_speed: float) -> float:
+	return clampf(inverse_lerp(SLAM_SPEED, MAX_FALL_SPEED, impact_speed), 0.0, 1.0)
+
+
+## Hard landings kick up dust, for copies of other players' heroes too (they
+## emit `landed` from PlayerSync). Slams have their own shockwave and dust.
+func _on_landed(impact_speed: float) -> void:
+	if frozen or impact_speed < HARD_LANDING_SPEED or impact_speed >= SLAM_SPEED or slam_pending:
+		return
+	if Combat.effects and not is_in_water():
+		Combat.effects.landing_dust(global_position, inverse_lerp(HARD_LANDING_SPEED, SLAM_SPEED, impact_speed))
 
 
 func _on_origin_shifted(delta: Vector3) -> void:

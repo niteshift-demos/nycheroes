@@ -234,7 +234,12 @@ func _plays_public() -> bool:
 
 func _start_demo() -> void:
 	player_input.process_mode = Node.PROCESS_MODE_DISABLED
-	hud.visible = false
+	# The landing tour is about the HUD's landing readout: it keeps the HUD,
+	# but not the stats text.
+	hud.visible = LaunchOptions.get_string("demo") == "landing"
+	var stats := hud.get_node_or_null("DebugLabel") as Control
+	if stats:
+		stats.visible = false
 	var director := DemoDirector.new()
 	director.game = self
 	director.hero = hero

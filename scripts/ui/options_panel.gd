@@ -9,7 +9,9 @@ extends Control
 ##             public game automatically
 ##   Sound     Master, Effects and Ambience volumes, and the sound switch (N)
 ##   Controls  look speed (mouse, or fingers on touch screens), up and down
-##             swapped, and what the keys (or touch buttons) do
+##             swapped, reduce camera motion (no shake, no landing dip; the
+##             browser's reduced-motion preference until set), and what the
+##             keys (or touch buttons) do
 ## Changes apply at once and are remembered (Settings; a slider saves once
 ## it stops moving). Its Co-op button opens the co-op menu instead: one menu
 ## at a time. In single player the game pauses while it's open (the sound
@@ -96,6 +98,7 @@ var _stats: Button
 var _public: Button
 var _sound: Button
 var _invert: Button
+var _calm: Button
 var _address: LineEdit
 var _address_go: Button
 var _address_note: Label
@@ -294,6 +297,7 @@ func _refresh() -> void:
 	_set_toggle(_public, bool(Settings.get_value("online_public", true)))
 	_set_toggle(_sound, not GameAudio.is_muted())
 	_set_toggle(_invert, ThirdPersonCamera.look_y_sign() < 0.0)
+	_set_toggle(_calm, Settings.reduce_motion())
 
 
 func _refresh_sliders() -> void:
@@ -543,6 +547,8 @@ func _controls_page() -> VBoxContainer:
 	_row(page, "Look speed", slider.get_parent())
 	_invert = _switch(func(on: bool) -> void: Settings.set_value("invert_y", on))
 	_row(page, "Swap looking up and down", _invert)
+	_calm = _switch(func(on: bool) -> void: Settings.set_value("reduce_motion", on))
+	_row(page, "Reduce camera motion", _calm)
 	var help := GridContainer.new()
 	help.columns = 2
 	help.add_theme_constant_override("h_separation", 16)

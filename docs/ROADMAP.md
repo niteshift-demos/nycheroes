@@ -53,6 +53,31 @@ peer can drive one later. Nearby tiles get collision.
 - Punch combos, dive attacks, landing slams and super speed rams; defeated
   thugs ragdoll, bleed, and stay on the street while you're nearby.
 - Hero health, knockouts, and a HUD with a marker to the nearest thug.
+- **Readable landings (2026-11-09):** falling 16 m/s or faster (not
+  web-swinging) shows a small fall-speed gauge low in the middle of the
+  screen: a bar to the fastest fall (95 m/s) with a tick at slam speed
+  (35 m/s), white, amber from a hard landing's 20 m/s, orange-red past the
+  tick, and "DIVE SLAM" during a dive attack, which always slams. Touching
+  down at 20 m/s or more reads out what happened for about two seconds:
+  "HARD LANDING 32 m/s", or "SLAM 80 m/s · blast 10 m · 3 thugs hurled"
+  (`Hero.slammed` carries the blast and the thugs the shockwave hurled;
+  `Combat.shockwave()` now returns that count). Gentler landings show
+  nothing. `scripts/ui/landing_indicator.gd`, added by GameHud; drawn with
+  the HUD's font, no shader. Hard landings short of a slam kick up a low
+  ring of dust (`CombatEffects.landing_dust()`, plain particles; copies of
+  other players' heroes too, from PlayerSync's `landed`); slams keep their
+  shockwave. The camera dips on landings of 20 m/s and up, 0.12 m to
+  0.35 m deep over 0.4 s (down fast, back up slowly), besides the existing
+  slam shake. The options menu's Controls page has "Reduce camera motion"
+  (`reduce_motion`): no dip, no shake from landings, slams or punches, and
+  the readout appears without its small pop; until it is set, the
+  browser's `prefers-reduced-motion` decides (`Settings.reduce_motion()`).
+  The gauge and readout are only for our own hero; other players see the
+  dust and slams' shockwaves. `?demo=landing` tours it (a hop, a hard
+  landing among thugs that doesn't hurl them, a slam that does, a dive
+  slam, and a slam with reduced motion). Tested by
+  `tests/landing_feedback_test.tscn` (18 checks, the real city, driven by
+  HeroInput) and the options test.
 
 ## 4. All five boroughs and bridges (done)
 
@@ -2349,7 +2374,8 @@ deployed); in a computer's browser the co-op menu links to it.
   buses, so half way is -12 dB) and the sound switch (N). Controls: look
   speed (the mouse's and the gamepad stick's, or the fingers' on touch
   screens, 25-300%), swapping looking up and down, and what each key (or
-  touch button) does. It looks like the co-op menu and works with the
+  touch button) does, and "Reduce camera motion" (see step 3's readable
+  landings). It looks like the co-op menu and works with the
   mouse, keys (Tab or arrows, Enter or Space), gamepads and fingers; on
   phones its buttons are 44 px tall, it keeps clear of notches, and its
   page scrolls when the screen is too short. The panel keeps the height of
@@ -2385,8 +2411,10 @@ deployed); in a computer's browser the co-op menu links to it.
   (`?quality=low` shows in the menu as "for this visit"); the menu's own
   changes are saved as usual. Keys: muted, volume_master, volume_effects,
   volume_ambience, quality, look_mouse, look_touch, invert_y, show_stats,
-  fullscreen (desktop), online_public.
-- **Tested:** `tests/options_test.tscn` (41 checks): settings saved and
+  fullscreen (desktop), online_public, reduce_motion (unset: the browser's
+  prefers-reduced-motion; `Settings.clear_value()` forgets a key).
+- **Tested:** `tests/options_test.tscn` (41 checks; 48 with reduce camera
+  motion and the checks added since): settings saved and
   read back, the old mute switch moved in, "high" matching the scene, low
   and back to high while playing (everything above; at Times Square the far
   tiles went from 84 to 12 and back, cars from 180 to 35 and back),
@@ -2510,6 +2538,8 @@ deployed); in a computer's browser the co-op menu links to it.
   players far off cost a host's frames, physics and memory),
   `res://tests/audio_test.tscn`, `res://tests/options_test.tscn` (the
   options menu and the settings, with a settings file of its own),
+  `res://tests/landing_feedback_test.tscn` (hard landings' gauge, readout
+  and camera dip, and reduce camera motion),
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and
@@ -2526,7 +2556,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` / `?demo=landing` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

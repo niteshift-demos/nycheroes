@@ -11,7 +11,8 @@ extends Node
 ##   unload to low's distances; "High" brings back the start's values, and
 ##   more cars and trains than low's come back in.
 ## - Volumes: the sliders set the buses at once and save once they stop; the
-##   sound switch mutes Master; look speed and invert reach the camera.
+##   sound switch mutes Master; look speed and invert reach the camera;
+##   "Reduce camera motion" is saved and keeps the camera from shaking.
 ## - The menu: O opens it and pauses the game (single player), O closes it;
 ##   M swaps it for the co-op menu, and so does its Co-op button: one menu at
 ##   a time, the hero's controls off while either is open; "Show FPS and
@@ -244,6 +245,14 @@ func _check_sound_and_look() -> void:
 	_check(_camera._look_y < 0.0 and Settings.get_value("invert_y", false) == true, "invert reaches the camera")
 	_options._invert.toggled.emit(false)
 	Settings.set_value("look_mouse", 1.0)
+	_options._calm.toggled.emit(true)
+	_camera._shake = 0.0
+	Combat.impact.emit(_camera.global_position, 1.0)
+	_check(Settings.reduce_motion() and _camera._shake == 0.0, "reduce camera motion is saved and stops the shake")
+	_options._calm.toggled.emit(false)
+	Combat.impact.emit(_camera.global_position, 1.0)
+	_check(not Settings.reduce_motion() and _camera._shake > 0.0, "and turned off, the camera shakes again")
+	_camera._shake = 0.0
 
 
 func _check_menu() -> void:

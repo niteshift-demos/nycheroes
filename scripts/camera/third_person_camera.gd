@@ -5,7 +5,10 @@ extends Node3D
 ## the right stick to look around. The options menu sets the look speed
 ## (look_mouse, times mouse_sensitivity and stick_sensitivity) and whether up
 ## and down are swapped (invert_y; TouchControls follows both too). Pulls
-## back and widens the view at speed, and shakes on hard landings.
+## back and widens the view at speed, and on hard landings dips (a short,
+## quick-down slow-up drop of the view, deeper the harder the landing) and
+## shakes on slams. The options menu's "Reduce camera motion"
+## (Settings.reduce_motion()) keeps it still: no dip and no shake.
 ##
 ## The near plane moves out (up to NEAR_MAX) while nothing of the city is
 ## within CLEAR_RADIUS of the camera: with WebGL's depth buffer and a 40 km
@@ -27,12 +30,21 @@ const NEAR_MAX := 4.0
 const NEAR_ARM_SHARE := 0.45
 ## The near plane moves out only with nothing solid this close to the camera (m).
 const CLEAR_RADIUS := 9.0
+## A hard landing's dip lasts this long (s), and drops the view this far (m)
+## at Hero.HARD_LANDING_SPEED and at Hero.MAX_FALL_SPEED. Small: it should
+## read as weight, not as the camera being hit.
+const DIP_TIME := 0.4
+const DIP_MIN := 0.12
+const DIP_MAX := 0.35
 
 var yaw := 0.0
 var pitch := -0.15
 
 var _distance := 4.5
 var _shake := 0.0
+## The landing dip: how deep (m) and how far through it (s; DIP_TIME is done).
+var _dip_depth := 0.0
+var _dip_time := DIP_TIME
 ## The options menu's look speed and invert_y (-1 when swapped).
 var _look_scale := 1.0
 var _look_y := 1.0
@@ -108,8 +120,17 @@ func _process(delta: float) -> void:
 	camera.near = _near_plane()
 
 	_shake = maxf(_shake - delta, 0.0)
+	_dip_time = minf(_dip_time + delta, DIP_TIME)
 	camera.h_offset = randf_range(-1.0, 1.0) * _shake
-	camera.v_offset = randf_range(-1.0, 1.0) * _shake
+	camera.v_offset = randf_range(-1.0, 1.0) * _shake - dip_offset()
+
+
+## How far down the landing dip has the view now (m, 0 when still): down
+## fast (deepest a quarter of the way through), then back up slowly.
+func dip_offset() -> float:
+	if _dip_time >= DIP_TIME:
+		return 0.0
+	return _dip_depth * sin(PI * sqrt(_dip_time / DIP_TIME))
 
 
 ## As far out as the hero in front and the city around allow (see the top).
@@ -130,10 +151,18 @@ func _read_look_settings() -> void:
 
 
 func _on_target_landed(impact_speed: float) -> void:
+	if Settings.reduce_motion() or target.frozen:
+		return
+	if impact_speed >= Hero.HARD_LANDING_SPEED:
+		var power := clampf(inverse_lerp(Hero.HARD_LANDING_SPEED, Hero.MAX_FALL_SPEED, impact_speed), 0.0, 1.0)
+		_dip_depth = lerpf(DIP_MIN, DIP_MAX, power)
+		_dip_time = 0.0
 	if impact_speed > HeroAnimator.HARD_LANDING_SPEED:
 		_shake = maxf(_shake, clampf(impact_speed / 150.0, 0.0, 0.5))
 
 
 func _on_impact(at: Vector3, strength: float) -> void:
+	if Settings.reduce_motion():
+		return
 	var falloff := clampf(1.0 - at.distance_to(global_position) / 60.0, 0.0, 1.0)
 	_shake = maxf(_shake, strength * 0.4 * falloff)

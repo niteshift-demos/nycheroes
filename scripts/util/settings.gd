@@ -27,7 +27,8 @@ extends Node
 ## Keys: muted, volume_master, volume_effects, volume_ambience (0..1),
 ## quality ("auto", "low", "medium", "high"), look_mouse and look_touch (look
 ## speed, times the usual), invert_y, show_stats, fullscreen (desktop),
-## online_public, hero_appearance (validated versioned cosmetic profile).
+## online_public, hero_appearance (validated versioned cosmetic profile),
+## reduce_motion (no camera shake or landing dip; see reduce_motion()).
 
 ## A setting changed (set_value), e.g. for nodes that follow it.
 signal changed(key: String)
@@ -40,6 +41,8 @@ const OLD_MUTED_STORAGE_KEY := "nycheroes.muted"
 
 var _config := ConfigFile.new()
 var _path := PATH
+## The browser's "reduce motion" preference, read once (-1 not yet).
+var _system_reduce_motion := -1
 
 
 func _init() -> void:
@@ -67,6 +70,31 @@ func set_value(key: String, value: Variant) -> void:
 		if typeof(old) == typeof(value) and old == value:
 			return
 	_config.set_value(SECTION, key, value)
+	_save()
+	changed.emit(key)
+
+
+## Whether to keep the camera still: no shake on hits and slams, no dip on
+## hard landings. The options menu's switch if it has been set, else the
+## browser's prefers-reduced-motion (the system's setting on phones and
+## computers alike), else off.
+func reduce_motion() -> bool:
+	if has_value("reduce_motion"):
+		return bool(get_value("reduce_motion"))
+	if _system_reduce_motion < 0:
+		_system_reduce_motion = 0
+		if OS.has_feature("web"):
+			var answer := str(JavaScriptBridge.eval(
+				"(function () { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'yes' : 'no'; } catch (e) { return 'no'; } })()", true))
+			_system_reduce_motion = 1 if answer == "yes" else 0
+	return _system_reduce_motion == 1
+
+
+## Forgets a setting (saving at once), so its default applies again.
+func clear_value(key: String) -> void:
+	if not has_value(key):
+		return
+	_config.erase_section_key(SECTION, key)
 	_save()
 	changed.emit(key)
 
