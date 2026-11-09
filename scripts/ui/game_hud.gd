@@ -231,8 +231,13 @@ func _draw_waypoint() -> void:
 	if not camera.is_position_behind(base) and not camera.is_position_behind(top):
 		var from := camera.unproject_position(base)
 		var to := camera.unproject_position(top)
-		var faded := Color(WAYPOINT_COLOR, 0.0)
-		draw_polyline_colors(PackedVector2Array([from, to]), PackedColorArray([Color(WAYPOINT_COLOR, 0.75), faded]), 3.0)
+		# Fades out over what's on screen: near by, its top is far above it.
+		var length := from.distance_to(to)
+		var shown := minf(length, size.y)
+		if shown > 1.0:
+			to = from + (to - from) / length * shown
+			var faded := Color(WAYPOINT_COLOR, 0.0)
+			draw_polyline_colors(PackedVector2Array([from, to]), PackedColorArray([Color(WAYPOINT_COLOR, 0.75), faded]), 3.0)
 	# The compass line: bottom middle, clear of the stats text and the co-op
 	# line at the top, above the health bar and "Thugs down" (touch screens:
 	# top middle, clear of the thumbs).
