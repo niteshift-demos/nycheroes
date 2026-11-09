@@ -2420,12 +2420,12 @@ despawn rejection, duplicate rejection, completion and replay. Run it headless
 alongside `combat_test.tscn` for changes to the encounter lifecycle.
 `res://tests/patrol_playthrough.tscn` is a real-game QA input driver, not a
 pass/fail test: it uses ordinary movement, attacks and flight, then requests
-replay after a completed goal. It does not place enemies, teleport the hero,
+replay after a completed goal, then flies outside the new circle. It does not place enemies, teleport the hero,
 or change health, physics or game time. Run with `-- --solo=1 --quality=low
 --name=Patrol --peds=0 --traffic=0 --spawn=420,22,-220,331`; native Movie Maker
 uses `--write-movie /absolute/path/patrol.avi --fixed-fps 30 --resolution
 1280x720`. Capture logs disclose actual clears; randomized city encounters
-and obstacles can prevent the driver from completing within 35 seconds.
+and obstacles can prevent the driver from completing within the 35 second limit.
 
 ## Constraints
 

@@ -73,9 +73,12 @@ func _physics_process(delta: float) -> void:
 		if not _replayed:
 			_hud._start_patrol()
 			_replayed = true
+			input.fly_toggle_pressed = true
 			print("PATROL replay at ", _time)
-		# Ordinary super-speed input leaves the fresh area to expose its limit.
+		# Ordinary boosted flight leaves the fresh area to expose its limit.
 		input.move = Vector3(0.485, 0.0, -0.875)
+		input.aim = (input.move + Vector3.UP).normalized()
+		input.vertical = 1.0
 		input.stick = Vector2(0, -1)
 		input.sprint_held = true
 	var second := int(_time)
@@ -88,7 +91,7 @@ func _physics_process(delta: float) -> void:
 	if _last_progress != _hud.patrol.cleared:
 		_last_progress = _hud.patrol.cleared
 		print("PATROL progress=", _last_progress, " time=", _time, " health=", _game.hero.health)
-	if _time > 35.0:
+	if _time > 35.0 or (_replayed and _time > 24.0):
 		print("PATROL END completed=", _hud.patrol.completed, " progress=", _hud.patrol.cleared)
 		get_tree().quit()
 
