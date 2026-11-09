@@ -54,7 +54,7 @@ direction is (`SwingMode.reel`, the 14th value of PlayerSync's state, so
 reeling in than out (`HeroSounds._reel_sound`, the existing creak).
 Touch players need a second finger on the right side for JUMP or DOWN
 while one holds WEB. `tests/swing_reel_test.tscn` checks it in the real
-city on 6th Avenue (27 checks: both limits, both held, a floating origin
+city on 6th Avenue (25 checks: both limits, both held, a floating origin
 shift mid-reel, and a copy driven by PlayerSync from the hero's own state).
 `?demo=reel` (`-- --demo=reel` on desktop) shows it on 6th Avenue with
 the web's length on screen: a swing, reeling in, letting out until it stops
