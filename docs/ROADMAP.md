@@ -36,6 +36,19 @@ Running, 60 m/s super speed, charged super jumps (~100 m), flight up to
 the hero is driven by a plain input object per physics tick so a network
 peer can drive one later. Nearby tiles get collision.
 
+- Forgiving jumps (added 2026-11-09, `OnFootMode`): a jump pressed up to
+  0.12 s after running off a ledge still jumps (coyote time; a normal jump,
+  since a super jump charges with the feet planted), and one pressed up to
+  0.15 s before touching down jumps on landing (jump buffering; still held at
+  touchdown, it charges a super jump as usual). Coyote time used to start
+  over in the air after any jump or web, so a second press just after a jump
+  jumped again; now it only follows running off an edge, and taking off ends
+  it. Both are local input handling: other players see the jump through the
+  hero's synced velocity and grounded state, as before. Not in the water
+  (a press just before falling in is dropped) nor from other modes (a press
+  while swinging or flying isn't kept for landing). `tests/jump_forgiveness_test.tscn`
+  checks both and their limits off the TKTS steps.
+
 ## 3. Street fights (done)
 
 - Pedestrians walk real sidewalk lanes (traced from street data), run from
@@ -2510,6 +2523,13 @@ deployed); in a computer's browser the co-op menu links to it.
   players far off cost a host's frames, physics and memory),
   `res://tests/audio_test.tscn`, `res://tests/options_test.tscn` (the
   options menu and the settings, with a settings file of its own),
+  `res://tests/jump_forgiveness_test.tscn` (runs up the TKTS steps and off
+  their top: a jump 0.08 s after leaving the edge is a coyote jump, one 0.08 s
+  before touchdown jumps on landing, 0.25 s late or 0.3 s early does nothing,
+  a press just after a jump is no double jump, and a buffered press held on
+  charges a super jump; exits non-zero on failure. With Godot's Movie Maker
+  (`--write-movie out.png --fixed-fps 30 --resolution 1280x720`, plus `--
+  --name=Hero --solo=1 --gangs=0`) it records the same run with captions),
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and

@@ -20,8 +20,14 @@ GODOT_DIR=/opt/godot/$GODOT_VERSION
 GODOT_BIN=$GODOT_DIR/Godot_v${GODOT_VERSION}-stable_linux.x86_64
 TEMPLATES=$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 RELEASE=https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable
+# The same files in godotengine/godot-builds, for when the main release's
+# downloads fail (GitHub has answered 504 for the template pack there).
+MIRROR=https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable
 
-fetch() { curl -fsSL --retry 5 --retry-delay 3 -o "$2" "$1"; }
+fetch() {
+  curl -fsSL --retry 5 --retry-delay 3 -o "$2" "$1" \
+    || curl -fsSL --retry 5 --retry-delay 3 -o "$2" "${1/#$RELEASE/$MIRROR}"
+}
 
 if [ ! -x "$GODOT_BIN" ]; then
   echo "Installing Godot $GODOT_VERSION"
