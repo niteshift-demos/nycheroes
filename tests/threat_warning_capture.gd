@@ -13,9 +13,9 @@ extends Node
 ## 2. stands and takes a punch, the warning closing as it lands,
 ## 3. then reacts to each warning a player's reaction time after it shows,
 ##    taking turns: punch the swinging thug (a hit cuts its swing short), or
-##    run straight away from it (out of reach, the punch misses). It never
-##    attacks otherwise, so every thug that goes down went down to a
-##    reaction. When a gang is down it runs on to the next one.
+##    run straight away from it (out of reach, the punch misses). Otherwise
+##    it waits, punching first only after 2.5 s with nobody swinging. When a
+##    gang is down it runs on to the next one.
 ## The debug stats line is turned off (the options menu's "Show FPS and
 ## stats", in a settings file of its own), as a player would for a video.
 ## Prints "[capture] start <frame>" when the fight footage begins (after the
@@ -52,6 +52,7 @@ var _reacted := 0
 var _away := Vector3.ZERO
 var _settle := 0.0
 var _seen_at := -1.0
+var _quiet := 0.0
 var _reaction := ""
 var _gangs_met := 0
 var _start_frame := 0
@@ -123,20 +124,27 @@ func _physics_process(delta: float) -> void:
 
 ## Reacts to each warning a beat after it shows (REACTION_TIME, about a
 ## player's), taking turns: punch the swinging thug, or run straight away
-## from it. Between warnings the hero just watches the gang (no attacks of
-## its own), walking back up to it when it's further than a punch.
-func _react(_delta: float) -> void:
+## from it. Between warnings the hero watches the gang, walks up to a thug
+## hanging back, and only after 2.5 s with nobody swinging punches first.
+func _react(delta: float) -> void:
 	var threats := _warning.incoming()
 	if _react_until < 0.0:
 		_look_at_gang()
 		if threats.is_empty():
 			_seen_at = -1.0
+			_quiet += delta
+			var thug := _nearest_thug()
 			var distance := _nearest_distance()
-			if distance > ARRIVE_DISTANCE and distance < 15.0:
-				var thug := _nearest_thug()
-				_look_at(thug.global_position)
+			if distance < 15.0 and (distance > ARRIVE_DISTANCE or (_quiet > 1.2 and distance > 1.3)):
+				_look_at(thug.global_position)  # (a thug hanging back: go to it)
 				Input.action_press("move_forward")
+			if _quiet > 2.5 and distance < 3.0:
+				_quiet = 0.0  # nobody's swinging: take the fight to them
+				_reaction = "attack"
+				_react_until = _time + 0.3
+				print("[capture]   attack at frame %d, nobody swinging for 2.5 s" % Engine.get_frames_drawn())
 			return
+		_quiet = 0.0
 		if _seen_at < 0.0:
 			_seen_at = _time
 		if _time - _seen_at < REACTION_TIME:
@@ -148,7 +156,7 @@ func _react(_delta: float) -> void:
 		_away = _flat(_hero.global_position - thug.global_position).normalized()
 		print("[capture]   %s at frame %d, %.2f s after the warning showed" % [_reaction, Engine.get_frames_drawn(), _time - _seen_at])
 	if _time < _react_until:
-		if _reaction == "punch":
+		if _reaction == "punch" or _reaction == "attack":
 			Input.action_press("attack")
 		else:
 			_steer(_away)

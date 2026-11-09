@@ -91,7 +91,7 @@ func _draw() -> void:
 		var side := Vector2.from_angle(angle + PI * 0.5) * (6.0 + 6.0 * progress)
 		draw_colored_polygon(PackedVector2Array([tip, base + side, base - side]), color)
 		# Over the thug: a ring closing in as the punch comes.
-		var head := thug.global_position + Vector3.UP * 2.25
+		var head := thug.global_position + Vector3.UP * 2.05
 		if camera.is_position_behind(head):
 			continue
 		var at := camera.unproject_position(head)
