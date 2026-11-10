@@ -19,7 +19,9 @@ GODOT_VERSION=4.7.2
 GODOT_DIR=/opt/godot/$GODOT_VERSION
 GODOT_BIN=$GODOT_DIR/Godot_v${GODOT_VERSION}-stable_linux.x86_64
 TEMPLATES=$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable
-RELEASE=https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable
+# Godot's download service selects its release mirror. GitHub release asset
+# downloads can fail in sandboxes before a first web build is produced.
+DOWNLOAD="https://downloads.godotengine.org/?version=${GODOT_VERSION}&flavor=stable"
 
 fetch() { curl -fsSL --retry 5 --retry-delay 3 -o "$2" "$1"; }
 
@@ -27,7 +29,7 @@ if [ ! -x "$GODOT_BIN" ]; then
   echo "Installing Godot $GODOT_VERSION"
   mkdir -p "$GODOT_DIR"
   tmp=$(mktemp -d)
-  fetch "$RELEASE/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" "$tmp/godot.zip"
+  fetch "$DOWNLOAD&slug=linux.x86_64.zip" "$tmp/godot.zip"
   unzip -q -o "$tmp/godot.zip" -d "$GODOT_DIR"
   rm -rf "$tmp"
 fi
@@ -37,7 +39,7 @@ if [ ! -f "$TEMPLATES/web_nothreads_release.zip" ] || [ ! -f "$TEMPLATES/web_not
   echo "Installing Godot $GODOT_VERSION web export templates"
   mkdir -p "$TEMPLATES"
   tmp=$(mktemp -d)
-  fetch "$RELEASE/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" "$tmp/templates.tpz"
+  fetch "$DOWNLOAD&slug=export_templates.tpz" "$tmp/templates.tpz"
   unzip -q -o -j "$tmp/templates.tpz" templates/version.txt \
     templates/web_nothreads_release.zip templates/web_nothreads_debug.zip -d "$TEMPLATES"
   rm -rf "$tmp"
