@@ -2445,6 +2445,9 @@ deployed); in a computer's browser the co-op menu links to it.
 - Web build: `tools/build_web.ps1` (add `-Serve` to play at
   http://localhost:8060; it also runs the co-op signaling server on port
   8070, after `npm install` in `tools/signaling`).
+  On Linux, `.niteshift/setup` installs the pinned engine and web templates
+  through Godot's official download service, then exports the preview.
+  `.niteshift/files/build-web` rebuilds it after game changes.
 - Desktop builds: `tools/build_desktop.ps1` (`-Windows` or `-Mac` for one)
   makes `build/desktop/nyc-heroes-windows.zip` and `nyc-heroes-macos.zip`
   (see step 9); `tools/deploy_cloudflare.ps1 -Desktop` publishes them.
