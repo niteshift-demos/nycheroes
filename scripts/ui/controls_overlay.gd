@@ -65,10 +65,10 @@ func _draw() -> void:
 	if not _font or size.x < 240.0 or size.y < 240.0:
 		return
 	if not expanded:
-		var badge := Rect2(size - Vector2(192.0, 70.0), Vector2(172.0, 46.0))
+		var badge := Rect2(size - Vector2(244.0, 82.0), Vector2(224.0, 58.0))
 		_box(badge, BACKGROUND, Color(0.45, 0.55, 0.65))
-		_key(badge.position + Vector2(12.0, 9.0), "H", 28.0, 28.0, 16)
-		draw_string(_font, badge.position + Vector2(50.0, 29.0), "Controls", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18)
+		_key(badge.position + Vector2(14.0, 11.0), "H", 36.0, 36.0, 20)
+		draw_string(_font, badge.position + Vector2(64.0, 37.0), "Controls", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22)
 		return
 	var rows: Array[Array] = GROUND
 	var title := "On foot"
@@ -88,21 +88,21 @@ func _draw() -> void:
 		&"KnockedOut":
 			rows = [["", "Getting up automatically"]]
 			title = "Knocked out"
-	var compact := size.y < 620.0 or size.x < 850.0
-	var font_size := 16 if compact else 18
-	var key_size := 14 if compact else 16
-	var row_height := 30.0 if compact else 34.0
-	var width := minf(370.0 if compact else 410.0, size.x - 32.0)
-	var height := 82.0 + rows.size() * row_height
+	var compact := size.y < 620.0 or size.x < 1180.0
+	var font_size := 18 if compact else 24
+	var key_size := 16 if compact else 22
+	var row_height := 32.0 if compact else 44.0
+	var width := minf(410.0 if compact else 540.0, size.x - 32.0)
+	var height := (88.0 if compact else 104.0) + rows.size() * row_height
 	# In narrow windows the health/status line also reaches the right side.
 	var bottom_margin := 76.0 if compact else 24.0
 	var panel := Rect2(Vector2(size.x - width - 20.0, size.y - height - bottom_margin), Vector2(width, height))
 	_box(panel, BACKGROUND, Color(0.45, 0.55, 0.65))
 	draw_rect(Rect2(panel.position + Vector2(0.0, 8.0), Vector2(3.0, height - 16.0)), ACCENT)
-	draw_string(_font, panel.position + Vector2(16.0, 28.0), "CONTROLS  ·  " + title,
-		HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16, ACCENT)
-	var key_width := 130.0 if compact else 148.0
-	var at := panel.position + Vector2(16.0, 43.0)
+	draw_string(_font, panel.position + Vector2(16.0, 30.0 if compact else 36.0), "CONTROLS  ·  " + title,
+		HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18 if compact else 20, ACCENT)
+	var key_width := 148.0 if compact else 190.0
+	var at := panel.position + Vector2(16.0, 45.0 if compact else 55.0)
 	for row in rows:
 		var label_x := 0.0
 		if row[0] != "":
@@ -112,7 +112,7 @@ func _draw() -> void:
 			HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, Color.WHITE)
 		at.y += row_height
 	draw_string(_font, Vector2(panel.position.x + 16.0, panel.end.y - 14.0),
-		"H hide controls  ·  O options  ·  M co-op", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 14, Color(0.8, 0.86, 0.92))
+		"H hide controls  ·  O options  ·  M co-op", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16 if compact else 18, Color(0.8, 0.86, 0.92))
 
 
 func _key(at: Vector2, text: String, width: float, height: float, font_size: int) -> void:

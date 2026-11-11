@@ -2322,7 +2322,9 @@ deployed); in a computer's browser the co-op menu links to it.
 ## Readable in-game controls (2026-11-11)
 
 - Keyboard help is its own lower-right panel (`ControlsOverlay`), using
-  18 px action labels and bright keycaps on a dark background. It no longer
+  24 px action labels and 22 px keycaps on a dark background (18 px labels
+  in compact windows). The panel is 540 px wide on regular desktop windows,
+  with 44 px rows and an enlarged collapsed reminder. It no longer
   shares the small debug stats text and remains visible when those are off.
 - H collapses it to an "H Controls" badge and restores it; `show_controls`
   remembers the choice. The Controls menu and README list the shortcut.
