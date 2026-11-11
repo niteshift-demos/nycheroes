@@ -52,6 +52,7 @@ const KEYS: Array[Array] = [
 	["E, right mouse", "web swing (hold)"],
 	["M", "co-op"],
 	["O", "options (this menu)"],
+	["H", "show or hide the on-screen keyboard controls"],
 	["N", "sound off and on"],
 	["T", "time of day"],
 	["F1", "free camera (wheel: its speed)"],

@@ -31,6 +31,7 @@
 [ext_resource type="Script" path="res://scripts/world/traffic.gd" id="40_traffic"]
 [ext_resource type="Script" path="res://scripts/world/trains.gd" id="41_trains"]
 [ext_resource type="Script" path="res://scripts/audio/game_audio.gd" id="50_audio"]
+[ext_resource type="Script" path="res://scripts/ui/controls_overlay.gd" id="51_controls"]
 
 [sub_resource type="ShaderMaterial" id="SkyMaterial_sky"]
 shader = ExtResource("19_sky")
@@ -237,6 +238,18 @@ city = NodePath("../../City")
 hero = NodePath("../../Hero")
 free_camera = NodePath("../../FreeCamera")
 time_of_day = NodePath("../../TimeOfDay")
+
+[node name="ControlsOverlay" type="Control" parent="HUD" node_paths=PackedStringArray("hero", "free_camera")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("51_controls")
+hero = NodePath("../../Hero")
+free_camera = NodePath("../../FreeCamera")
 
 [node name="CoopPanel" type="Control" parent="HUD"]
 layout_mode = 3

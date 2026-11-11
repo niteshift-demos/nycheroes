@@ -38,9 +38,15 @@ Windows and Mac versions are on the site's download page.
 | Attack | Left mouse | X |
 | Co-op menu | M | |
 | Hero and options | O or Esc | |
+| Show / hide keyboard controls | H | |
 | Time of day | T | |
 
 Phones and tablets get touch controls.
+
+The game shows a readable keyboard guide over the lower-right corner, with
+separate hints for flight, web swinging and the free camera. H collapses it
+to a small reminder; the choice is remembered. It stays available when FPS
+stats are off. Touch screens use their labeled touch buttons instead.
 
 ## Running it locally
 

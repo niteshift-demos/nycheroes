@@ -2319,6 +2319,18 @@ deployed); in a computer's browser the co-op menu links to it.
   a code-signing certificate, so SmartScreen stops warning ("More info, Run
   anyway" until then); an icon.
 
+## Readable in-game controls (2026-11-11)
+
+- Keyboard help is its own lower-right panel (`ControlsOverlay`), using
+  18 px action labels and bright keycaps on a dark background. It no longer
+  shares the small debug stats text and remains visible when those are off.
+- H collapses it to an "H Controls" badge and restores it; `show_controls`
+  remembers the choice. The Controls menu and README list the shortcut.
+- Flight, swinging, diving and free-camera modes show the relevant actions.
+  The panel ignores mouse input, is behind menus and loading screens, and
+  uses smaller spacing in short windows. Touch screens keep their own
+  labeled buttons instead of the keyboard guide.
+
 ## Options menu (done; added 2026-10-16 at the user's request)
 
 - **Opening it:** O in every build (Esc too in the desktop builds: browsers

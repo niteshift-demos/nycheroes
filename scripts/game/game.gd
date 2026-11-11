@@ -208,6 +208,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			free_camera.global_transform = hero_camera.camera.global_transform
 			free_camera.sync_rotation()
 		_set_free_camera(not _free_camera_on)
+	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_H \
+			and not coop_panel.visible and not _options.visible:
+		(hud.get_node("ControlsOverlay") as ControlsOverlay).toggle_expanded()
+		get_viewport().set_input_as_handled()
 	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11 \
 			and not Device.is_web():
 		var on := not Device.is_fullscreen()
@@ -343,6 +347,8 @@ func _add_options(quality: Quality) -> void:
 ## On-screen controls for touch screens. The UI is then measured in CSS
 ## pixels, which browsers keep about the same physical size on every phone.
 func _add_touch_controls(started_by_touch: bool) -> void:
+	# Touch buttons already label their actions; don't cover them with keyboard help.
+	hud.get_node("ControlsOverlay").hide()
 	get_window().content_scale_factor = Device.touch_ui_scale()
 	_touch_controls = TouchControls.new()
 	_touch_controls.name = "TouchControls"

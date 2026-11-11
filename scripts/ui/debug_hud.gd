@@ -1,8 +1,9 @@
 class_name DebugHud
 extends Label
 ## Debug overlay: frame rate, hero (or free camera) status and position, the
-## time of day, tile streaming, and controls. Shown on computers and hidden
-## on phones and tablets unless the options menu's "Show FPS and stats" says
+## time of day and tile streaming. ControlsOverlay shows keyboard help
+## separately so it stays readable with or without stats. Stats are shown on
+## computers and hidden on phones and tablets unless "Show FPS and stats" says
 ## otherwise (Settings "show_stats"); ?stats (--stats on desktop) shows it
 ## for the session and also logs it to the console. It keeps counting while
 ## the options menu pauses the game (to see what a preset does).
@@ -12,8 +13,6 @@ const ORIGIN_LON := -73.9855
 const METERS_PER_DEGREE := 111320.0
 const REFRESH_INTERVAL := 0.25
 const LOG_INTERVAL := 2.0
-const HERO_HELP := "WASD move  ·  Left mouse punch (in the air: dive)  ·  Space jump (hold: super jump)  ·  Shift super speed  ·  F fly (Space/C up/down)  ·  E / right mouse web  ·  M co-op  ·  O options  ·  T time of day  ·  N mute  ·  F1 free camera"
-const FREE_CAMERA_HELP := "Free camera: WASD move  ·  Space/C up/down  ·  Shift boost  ·  Wheel speed  ·  O options  ·  T time of day  ·  N mute  ·  F1 back to hero"
 
 @export var city: CityStreamer
 @export var hero: Hero
@@ -80,7 +79,7 @@ func _process(delta: float) -> void:
 		people += "  ·  co-op: %sroom %s, player %d of %d" % ["public " if Net.is_public else "", Net.room_code,
 			Net.local_id(), Net.peers().size() + 1]
 	tiles += "  ·  " + people
-	text = "\n".join([render, status, tiles, FREE_CAMERA_HELP if free else HERO_HELP])
+	text = "\n".join([render, status, tiles])
 
 	if _log_stats:
 		_log_cooldown -= REFRESH_INTERVAL
