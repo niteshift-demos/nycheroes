@@ -56,6 +56,6 @@ at speed and the remote car snapshot. Keep `hero_moves_test`, `traffic_test`,
 
 Add `?car=1` (desktop: `-- --car=1`) to place a parked starter sedan 2.5 m
 beside the spawn once the city loads. For a quiet road check, combine it with
-`?car=1&spawn=420,3,-220,29&quality=low&solo=1`; add traffic to check stopping
+`?car=1&spawn=420,20,-220,-29&quality=low&solo=1`; add traffic to check stopping
 and hijacking. This option does not start driving: enter with the same
 interact control as any parked car.

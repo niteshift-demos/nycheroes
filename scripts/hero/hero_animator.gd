@@ -17,6 +17,8 @@ var _up := Vector3.UP
 var _land_timer := 0.0
 var _hard_landing := false
 var _punch_id := -1
+## Seat immediately even while the browser holds animation for skin warm-up.
+var _driving := false
 var outfit: HeroOutfit
 var appearance: Dictionary = {}
 
@@ -59,6 +61,11 @@ func hand_position() -> Vector3:
 
 
 func _process(delta: float) -> void:
+	var driving := hero.mode.name == &"Drive"
+	if driving != _driving:
+		_player.play(&"Crouch_Idle" if driving else &"Idle", 0.0)
+		_player.advance(0.0)
+	_driving = driving
 	if outfit:
 		outfit.set_motion(hero.velocity.length())
 	_land_timer -= delta
