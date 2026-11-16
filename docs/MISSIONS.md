@@ -3,6 +3,9 @@
 Heroes keep every power. Walk into a purple contract marker to start a
 local job; the title and introduction appear above the gold objective.
 Reach gold checkpoints by running, super speed, jumping, swinging or flying.
+The race checkpoints also accept cars: Drive mode keeps the hero at the
+car, and all checkpoint checks read `hero.world_position()`. Bridge Run
+radii include the road deck as well as airborne approaches.
 Pickup diamonds disappear when collected. Timed legs show a countdown;
 running out of time or getting knocked out fails the job. Use **Retry job**
 after a result, or **Abandon** during a job. These buttons work on touch.
@@ -118,5 +121,6 @@ no artwork, map extract or new downloaded asset is bundled.
 persistence/validation/signals, progress and targets, origin shifts,
 timeout/retry, single payouts, collectible de-duplication, giver entry, and
 tracked EncounterDirector gangs with local assist rewards, arrests and
-capped fines, and police defeats paying no bounty. It uses synthetic
+capped fines, police defeats paying no bounty, and timed checkpoints while
+the hero follows a DriveVehicle in Drive mode. It uses synthetic
 ground and a settings file of its own, without downloads.

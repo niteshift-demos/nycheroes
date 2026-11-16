@@ -119,6 +119,26 @@ func _run() -> void:
 	director.finish(false)
 	_check(canceled.all(func(thug: Thug) -> bool: return not Combat.thugs.has(thug) and thug.is_queued_for_deletion()), "abandon removes standing crew before retry")
 	hero.frozen = false
+	var car := DriveVehicle.new()
+	car.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(car)
+	car.global_position = Vector3(100, 0, 0)
+	var drive := hero.get_mode(&"Drive") as DriveMode
+	drive.car = car
+	hero.set_mode(&"Drive")
+	var race := MissionCatalog.make("car_race", "Car checkpoint", 700, "Drive through", Vector3(9000, 0, 0))
+	race.steps = [Mission.reach_in_time(Vector3(140, 0, 0), 10.0, "Drive to the checkpoint", 5.0)]
+	director.start_mission(race)
+	director._process(0.1)
+	_check(director.active == race, "car outside checkpoint does not advance race")
+	car.global_position = Vector3(140, 0, 0)
+	drive._follow_car()
+	director._process(0.1)
+	_check(hero.mode.name == &"Drive" and director.active == null and wallet.balance == 28250,
+		"Drive mode follows the car through a timed checkpoint and earns cash")
+	hero.set_mode(&"OnFoot")
+	hero.global_position = Vector3.ZERO
+	car.queue_free()
 	var wanted := Wanted.new()
 	wanted.hero = hero
 	wanted.process_mode = Node.PROCESS_MODE_DISABLED

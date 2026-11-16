@@ -378,10 +378,10 @@ func _play(animation: StringName, speed: float) -> void:
 
 ## Called only for our hero's damaging strike. Report before falling so this
 ## victim is a witness; further hits while down cannot farm heat.
-func take_hit(push: Vector3) -> void:
+func take_hit(push: Vector3, kind: StringName = &"assault_civilian") -> void:
 	if _down_time > 0.0:
 		return
-	Combat.report_crime(&"assault_civilian", world_position, 0.65)
+	Combat.report_crime(kind, world_position, 0.65)
 	scare(world_position - push)
 	_down_time = 4.0
 	_player.pause()
@@ -402,3 +402,8 @@ func _on_origin_shifted(_delta: Vector3) -> void:
 	global_position = WorldOrigin.to_local(world_position)
 	for i in positions.size():
 		(_ragdoll.get_child(i) as PhysicalBone3D).global_position = positions[i]
+
+
+## Vehicles skip fallen bystanders so one collision cannot repeatedly add heat.
+func is_knocked_down() -> bool:
+	return _down_time > 0.0

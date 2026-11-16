@@ -17,6 +17,8 @@ var _up := Vector3.UP
 var _land_timer := 0.0
 var _hard_landing := false
 var _punch_id := -1
+## Seat immediately even while the browser holds animation for skin warm-up.
+var _driving := false
 var outfit: HeroOutfit
 var appearance: Dictionary = {}
 
@@ -59,6 +61,11 @@ func hand_position() -> Vector3:
 
 
 func _process(delta: float) -> void:
+	var driving := hero.mode.name == &"Drive"
+	if driving != _driving:
+		_player.play(&"Crouch_Idle" if driving else &"Idle", 0.0)
+		_player.advance(0.0)
+	_driving = driving
 	if outfit:
 		outfit.set_motion(hero.velocity.length())
 	_land_timer -= delta
@@ -70,6 +77,8 @@ func _process(delta: float) -> void:
 	var basis := _tilt_to(_up) * Basis(Vector3.UP, _yaw)
 	var pivot := hero.get_visual_position() + Vector3.UP * PIVOT_HEIGHT
 	global_transform = Transform3D(basis, pivot - basis * (Vector3.UP * PIVOT_HEIGHT))
+	if hero.mode.name == &"Drive":
+		global_position += basis * Vector3(-0.3, 0.3, 0.15)
 	var choice := _choose_animation()
 	_play(choice[0], choice[1], choice.size() > 2 and choice[2])
 
@@ -114,6 +123,8 @@ func _choose_animation() -> Array:
 			return [&"Jump", 0.6] if hero.velocity.length() > 8.0 else [&"Idle", 0.6]
 		&"Swing", &"Dive":
 			return [&"Jump", 1.0]
+		&"Drive":
+			return [&"Crouch_Idle", 1.0]
 		&"KnockedOut":
 			return [&"Death01", 1.0]
 		&"Melee":
