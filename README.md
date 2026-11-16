@@ -36,6 +36,9 @@ Windows and Mac versions are on the site's download page.
 | Toggle flight | F | Y |
 | Web | E or right mouse | Right trigger |
 | Attack | Left mouse | X |
+| Enter / exit nearby car | G | R3 (right stick click) |
+| Drive / steer; brake then reverse | WASD | Left stick |
+| Handbrake while driving | Space | A |
 | Co-op menu | M | |
 | Hero and options | O or Esc | |
 | Time of day | T | |

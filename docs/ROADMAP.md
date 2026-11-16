@@ -2321,6 +2321,10 @@ deployed); in a computer's browser the co-op menu links to it.
 
 ## 10. Open-world (GTA-style) play
 
+- Driving and car hijacking: [DRIVING.md](DRIVING.md), including controls,
+  physical cars, chase camera, co-op snapshots, crime hooks and current limits.
+  Run `res://tests/drive_test.tscn`; `?car=1` places a starter sedan by the hero.
+
 - [Wanted levels and foot police](WANTED.md): witnessed civilian assaults and
   attacks on police raise 0–5 stars, officers pursue the suspect, and escaping
   their sight clears stars. Knockouts while wanted result in BUSTED and a
@@ -2522,7 +2526,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and
-  `res://tests/traffic_test.tscn` (75 s of
+  `res://tests/drive_test.tscn` (synthetic car hijack, driving, exit,
+  co-op appearance and origin shift) and `res://tests/traffic_test.tscn` (75 s of
   midtown traffic: no red light run, no overlaps, cars stop for the hero,
   and leave with their tiles) and `res://tests/trains_test.tscn` (the 7 at
   74th Street for 2 minutes with an express train on its middle track: no
@@ -2536,7 +2541,7 @@ deployed); in a computer's browser the co-op menu links to it.
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?police=0` disables wanted levels and police, `?wanted=N` starts with
-  0–5 stars for testing, `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  0–5 stars for testing, `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?car=1` (starter sedan), `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server
