@@ -229,7 +229,7 @@ func draw_overlay(canvas: Control) -> void:
 	canvas.draw_rect(Rect2(0, 0, size.x, _header_height()), Color("101c26"))
 	canvas.draw_rect(Rect2(0, size.y - 42, size.x, 42), Color("101c26"))
 	canvas.draw_string(font, Vector2(20, 36), "NEW YORK", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("ffdc86"))
-	var hint := "N ↑   LOADED STREETS  ·  Drag to pan · Tap to place a waypoint" if size.x >= 650 else "N ↑   Loaded streets · Drag / tap to pin"
+	var hint := "NORTH UP   ·   LOADED STREETS  ·  Drag to pan · Tap to place a waypoint" if size.x >= 650 else "N UP · Loaded streets · Drag / tap to pin"
 	canvas.draw_string(font, Vector2(20, _header_height() - 10), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("b4c5d2"))
 	var text := "Tap to set waypoint" if size.x < 650 else "Click to set waypoint · Wheel / + − to zoom"
 	if radar.waypoint_active:
