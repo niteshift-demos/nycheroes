@@ -2,7 +2,9 @@
 
 The radar shows the real streets around the hero, rotating with the active
 camera. Its white arrow follows the hero's facing; N shows north. Its range
-smoothly grows from 180 m on foot to 850 m at speed. It sits above health at
+smoothly grows from 180 m on foot to 850 m at speed. Driving uses five
+seconds of look-ahead (330 m at the car's 30 m/s top speed); other powers
+use three seconds. Position-derived speed also covers a carried hero. It sits above health at
 bottom-left on computers and below health at top-left on touch screens,
 clear of the movement stick. Enemy triangles match the HUD's nearest thug;
 colored dots track other co-op players. While the local hero is wanted,
@@ -98,7 +100,8 @@ After `godot --headless --path . --import`:
 - `godot --headless --path . res://tests/radar_test.tscn`: synthetic blip
   kinds/lifecycle, tracking/freeing, coordinate round trips, edge clamping,
   actual origin shift, cached streets unloading, map zoom/pan/click,
-  visibility settings and standing police appearing only while wanted. Needs no city download.
+  visibility settings, standing police appearing only while wanted, driving
+  zoom and the separate comma/G input bindings. Needs no city download.
 - Keep `options_test`, `streaming_test`, and `hero_moves_test` passing.
 - Export with `.niteshift/files/build-web`; in the browser check a street
   radar, camera rotation, a map click and its game marker, pan/zoom/clear,

@@ -97,6 +97,23 @@ func _ready() -> void:
 	hero.wanted_stars = 0
 	radar._refresh_builtins()
 	_check(not radar.blips.has(police_id), "cleared stars remove police blips")
+	var car := DriveVehicle.new()
+	car.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(car)
+	car.velocity = Vector3(0, 0, 30)
+	var drive := hero.get_mode(&"Drive") as DriveMode
+	drive.car = car
+	hero.set_mode(&"Drive")
+	radar.radius_m = 180.0
+	radar._previous_world = Vector3.INF
+	radar._process(1.0)
+	_check(hero.mode.name == &"Drive" and radar.radius_m > 300.0, "driving at 30 m/s zooms radar beyond 300 m")
+	hero.set_mode(&"OnFoot")
+	car.free()
+	WorldMap.add_action()
+	var map_key := InputMap.action_get_events(&"world_map")[0] as InputEventKey
+	var car_key := InputMap.action_get_events(&"interact")[0] as InputEventKey
+	_check(map_key.physical_keycode == KEY_COMMA and car_key.physical_keycode == KEY_G, "comma map key stays separate from G car interaction")
 	radar.hero = null
 	officer.free()
 	hero.free()

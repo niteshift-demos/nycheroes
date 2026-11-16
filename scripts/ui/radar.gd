@@ -159,7 +159,8 @@ func _process(delta: float) -> void:
 		if _previous_world != Vector3.INF:
 			speed = maxf(speed, world_center.distance_to(_previous_world) / maxf(delta, 0.001))
 		_previous_world = world_center
-		radius_m = lerpf(radius_m, clampf(180.0 + speed * 3.0, 180.0, 850.0), 1.0 - exp(-3.0 * delta))
+		var look_ahead := 5.0 if hero.mode and hero.mode.name == &"Drive" else 3.0
+		radius_m = lerpf(radius_m, clampf(180.0 + speed * look_ahead, 180.0, 850.0), 1.0 - exp(-3.0 * delta))
 	var camera := get_viewport().get_camera_3d()
 	if camera:
 		var forward := -camera.global_basis.z
