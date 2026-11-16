@@ -123,12 +123,10 @@ func _hit_people(before: Vector3) -> void:
 	var push := velocity * 0.8 + Vector3.UP * 5.0
 	for pedestrian: Pedestrian in get_tree().get_nodes_in_group("pedestrians"):
 		if not pedestrian.is_knocked_down() and _contains_swept(WorldOrigin.to_local(pedestrian.world_position), start, size):
-			pedestrian.knock_down(push)
-			Combat.crime.emit(&"vehicular_assault", pedestrian.world_position, 1.0)
+			pedestrian.take_hit(push, &"vehicular_assault")
 	for thug: Thug in Combat.thugs:
 		if not thug.is_down() and _contains_swept(thug.global_position, start, size):
 			Combat.strike(thug.body_center(), 0.4, 100.0, push, true)
-			Combat.crime.emit(&"vehicular_assault", WorldOrigin.to_world(thug.global_position), 1.0)
 
 
 func _contains_swept(at: Vector3, start: Vector3, size: Vector3) -> bool:

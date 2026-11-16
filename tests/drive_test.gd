@@ -60,9 +60,12 @@ func _ready() -> void:
 	WorldOrigin.shift(Vector3(1500, 0, -500))
 	_check(WorldOrigin.to_world(car.global_position).distance_to(world_before) < 0.01, "origin shift preserves car world position")
 	_check(car.velocity == velocity_before and hero.global_position.distance_to(car.global_position) < 0.01, "origin shift preserves velocity and driver seat")
+	hero.wanted_stars = 3
+	hero.wanted_searching = true
 	var sync := PlayerSync.new()
 	var state := sync._encode(hero)
-	_check(state.size() == 16 and state[4] == 6 and state[13] == car.model and state[14] == car.paint, "snapshot carries driving model and paint")
+	_check(state.size() == 18 and state[4] == 6 and state[15] == car.model and state[16] == car.paint, "snapshot carries driving model and paint")
+	_check(state[13] == 3 and state[14] == true, "driving snapshot preserves wanted fields")
 	var remote: Hero = load("res://scenes/hero/hero.tscn").instantiate()
 	remote.remote_id = 2
 	add_child(remote)
@@ -71,6 +74,7 @@ func _ready() -> void:
 	sync._follow(remote, snapshots)
 	var remote_drive := remote.get_mode(&"Drive") as DriveMode
 	_check(remote.mode.name == &"Drive" and is_instance_valid(remote_drive.car) and remote_drive.car.model == car.model, "remote snapshot displays matching car")
+	_check(remote.wanted_stars == 3 and remote.wanted_searching, "remote car retains wanted state")
 	remote.queue_free()
 	sync.free()
 	hero.input.stick = Vector2.ZERO
@@ -118,6 +122,19 @@ func _ready() -> void:
 	_check(pedestrian.is_knocked_down(), "moving car knocks down a pedestrian")
 	_check(_crimes.count(&"vehicular_assault") == 1, "pedestrian impact emits one crime event")
 	pedestrian.queue_free()
+	car.global_position = WorldOrigin.to_local(Vector3.ZERO)
+	car.heading = 0.0
+	car.velocity = Vector3.ZERO
+	var officer: PoliceOfficer = load("res://scenes/npc/police_officer.tscn").instantiate()
+	add_child(officer)
+	officer.setup(hero, 100, 0)
+	officer.suspect_id = Net.local_id()
+	officer.set_physics_process(false)
+	officer.global_position = WorldOrigin.to_local(Vector3(0, 0, 6))
+	_check(officer._nearest_hero() == hero, "police keep tracking a suspect who enters a car")
+	await _ticks(90)
+	_check(officer.is_down() and _crimes.count(&"assault_police") == 1, "car knocks down police through existing crime path")
+	officer.queue_free()
 	car.global_position = WorldOrigin.to_local(Vector3.ZERO)
 	car.heading = PI / 4.0
 	car.velocity = Vector3.ZERO

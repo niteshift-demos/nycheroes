@@ -4,7 +4,7 @@ Walk close to the middle of a traffic car and press **G**, **R3** (right
 stick click), or the touch **CAR** button. The traffic slot is removed from
 its lane and intersection before the physical car takes over. The car keeps
 its model and paint. Hijacking raises danger and emits
-`Combat.crime(&"carjack", world_position, 1.0)` for the wanted system.
+`Combat.report_crime(&"carjack", world_position, 1.0)` for the wanted system.
 
 **W / left stick up** accelerates to about 30 m/s (108 km/h). **S / stick
 down** brakes and then reverses to 9 m/s. **A/D / stick left/right** steers
@@ -16,16 +16,19 @@ right stick and touch still orbit it.
 
 Press interact again to get out. Either door or the space behind the car
 must fit the hero capsule; if all are blocked, the driver stays inside.
-The car coasts to rest and remains a solid body that heroes collide with and other driven
-cars can push. It can be entered again and disappears past 420 m from the
+The car coasts to rest and remains a solid body that heroes collide with
+and other driven cars can push. It can be entered again and disappears past 420 m from the
 camera. Superpowers are available again after leaving the car.
 
 Traffic brakes for samples across driven and abandoned cars' footprints.
 Traffic cars remain inexpensive lane simulations: the player can collide
 with buildings and physical cars, but ordinary traffic has no rigid bodies.
-Impacts above 4 m/s knock down pedestrians with their existing fallen pose
-for six seconds, after which they flee; thugs use Combat's network-aware
-launch/ragdoll path. Each hit emits `vehicular_assault` with severity 1.
+Impacts above 4 m/s knock down pedestrians for four seconds (up to four
+civilian ragdolls, then a fallen pose). Thugs and police use Combat's
+network-aware launch/ragdoll path. Pedestrian hits report `vehicular_assault`
+with severity 0.65 through
+`Pedestrian.take_hit`; police hits use Combat's `assault_police` path. Gang
+members do not add wanted heat.
 There is no driver-ejection animation or extra fleeing driver yet.
 
 ## Implementation and co-op
@@ -38,11 +41,12 @@ world scene and game controller need no driving setup. The crouched driver
 sits inside the tinted cabin; it is a placeholder seated pose.
 
 The driver continues receiving plain `HeroInput`. `PlayerSync` adds Drive
-at the end of its mode list and appends model, paint and seed to snapshots.
+at the end of its mode list and appends model, paint and seed after wanted
+stars/searching in snapshots (indices 15–17).
 Remote cars draw at the interpolated hero position without local simulation.
 Only occupied cars are network-visible; abandoned cars are currently local,
 and traffic populations are local, so simultaneous claims across peers are
-not arbitrated. New receivers also accept the original 13-field snapshots;
+not arbitrated. New receivers also accept the original 13-field and wanted-only 15-field snapshots;
 all peers need the new build to see driving. Car and hero separately join
 `floating`, so origin shifts preserve their world positions and velocity.
 

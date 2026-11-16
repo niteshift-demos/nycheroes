@@ -30,7 +30,7 @@ func interact() -> void:
 		for traffic: Traffic in hero.get_tree().get_nodes_in_group("traffic"):
 			car = traffic.take_car(hero.world_position(), 3.5)
 			if car:
-				Combat.crime.emit(&"carjack", hero.world_position(), 1.0)
+				Combat.report_crime(&"carjack", hero.world_position(), 1.0)
 				Combat.raise_danger(hero.world_position(), 20.0)
 				break
 	if car:

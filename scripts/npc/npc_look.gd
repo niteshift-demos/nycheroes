@@ -100,6 +100,21 @@ static func paint_thug(model: Node, gang: int, net_id: int) -> void:
 	_dress(model, clothes, rng)
 
 
+## Navy uniform and cap, pale blue trim; heavy response wears darker armor.
+static func paint_police(model: Node, net_id: int, heavy: bool) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = net_id
+	_dress(model, {
+		top_color = Color(0.035, 0.06, 0.12) if heavy else Color(0.07, 0.16, 0.34),
+		bottom_color = Color(0.035, 0.065, 0.14),
+		shoe_color = Color(0.025, 0.025, 0.03),
+		cuts = Vector4(0.9, BOOT_TOP, BOOT_TOP, LONG_SLEEVES),
+		joint_color = Color(0.36, 0.58, 0.85),
+		hair_color = Color(0.025, 0.05, 0.12),
+		hairline = HAT,
+	}, rng)
+
+
 static func _pedestrian_clothes(rng: RandomNumberGenerator) -> Dictionary:
 	var top: Color
 	var bottom: Color = _pick(rng, JEANS) if rng.randf() < 0.55 else _pick(rng, TROUSERS)
