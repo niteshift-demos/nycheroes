@@ -39,6 +39,9 @@ var mode: HeroMode
 ## Physics waits until the ground under the spawn point has loaded.
 var frozen := true
 var health := MAX_HEALTH
+## Per-player pursuit state, carried to copies by PlayerSync.
+var wanted_stars := 0
+var wanted_searching := false
 ## Seconds left of being staggered by a hit.
 var hurt_time := 0.0
 ## Set by a dive attack: the next landing slams, however slow it is.

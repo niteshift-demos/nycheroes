@@ -97,6 +97,7 @@ func _draw() -> void:
 	_text(Vector2(bar.end.x + 24.0, bar.end.y - 2.0), "Thugs down: %d" % Combat.defeated_count, 18)
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
+	_draw_wanted()
 	_draw_coop_status()
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
@@ -116,7 +117,7 @@ func _draw() -> void:
 		ids.resize(MAX_PLAYER_MARKERS)
 	for id: int in ids:
 		var other: Hero = players.remote_heroes[id]
-		_draw_marker(other.global_position + Vector3.UP * 2.6, Net.player_name(id).to_upper(),
+		_draw_marker(other.global_position + Vector3.UP * 2.6, Net.player_name(id).to_upper() + ("  WANTED %d★" % other.wanted_stars if other.wanted_stars > 0 else ""),
 			Net.player_color(id).lightened(0.35), PLAYER_NEAR_ENOUGH)
 
 
@@ -228,3 +229,31 @@ func _add_options_button() -> void:
 func _text(at: Vector2, text: String, font_size: int, color := Color.WHITE) -> void:
 	draw_string_outline(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, 4, Color.BLACK)
 	draw_string(_font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, color)
+
+
+## Five polygon stars avoid relying on a font's star glyph on web/phones.
+func _draw_wanted() -> void:
+	if hero.wanted_stars <= 0:
+		return
+	var right := size.x - 28.0
+	var y := 70.0
+	var debug := get_parent().get_node_or_null("DebugLabel") as Control
+	if debug and debug.visible:
+		y = 132.0  # Below the four desktop stats/control lines.
+	if touch_controls:
+		right -= touch_controls.safe_insets.z + TOUCH_BUTTONS_WIDTH
+		y = touch_controls.safe_insets.y + 112.0
+	var flashing := hero.wanted_searching and fmod(Time.get_ticks_msec() / 1000.0, 0.8) > 0.4
+	for i in 5:
+		var center := Vector2(right - (4 - i) * 29.0, y)
+		var points := PackedVector2Array()
+		for k in 10:
+			var angle := -PI / 2.0 + k * PI / 5.0
+			points.append(center + Vector2(cos(angle), sin(angle)) * (12.0 if k % 2 == 0 else 5.5))
+		var color := Color(1.0, 0.85, 0.25) if i < hero.wanted_stars else Color(0.25, 0.28, 0.34)
+		if flashing:
+			color.a = 0.35
+		draw_colored_polygon(points, color)
+		points.append(points[0])
+		draw_polyline(points, Color.BLACK, 1.5, true)
+	_text(Vector2(right - 128.0, y + 30.0), "SEARCHING" if hero.wanted_searching else "WANTED", 14, NOTICE_COLOR)
