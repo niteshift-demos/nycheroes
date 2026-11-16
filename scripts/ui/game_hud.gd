@@ -237,6 +237,9 @@ func _draw_wanted() -> void:
 		return
 	var right := size.x - 28.0
 	var y := 70.0
+	var debug := get_parent().get_node_or_null("DebugLabel") as Control
+	if debug and debug.visible:
+		y = 132.0  # Below the four desktop stats/control lines.
 	if touch_controls:
 		right -= touch_controls.safe_insets.z + TOUCH_BUTTONS_WIDTH
 		y = touch_controls.safe_insets.y + 112.0
