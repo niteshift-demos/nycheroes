@@ -2326,6 +2326,10 @@ deployed); in a computer's browser the co-op menu links to it.
   and world-space waypoints on the radar and HUD. Options → Show radar or
   `?radar=0` hides it. `tests/radar_test.tscn` checks blips, transforms, tile
   unloads, waypoints and floating-origin shifts. No new tiles needed.
+- [Wanted levels and foot police](WANTED.md): witnessed civilian assaults and
+  attacks on police raise 0–5 stars, officers pursue the suspect, and escaping
+  their sight clears stars. Knockouts while wanted result in BUSTED and a
+  nearby sidewalk respawn. Heroes keep all their powers; gang fights are legal.
 
 ## Options menu (done; added 2026-10-16 at the user's request)
 
@@ -2507,9 +2511,11 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
   `res://tests/radar_test.tscn` (synthetic blips, map coordinates, waypoints,
   tile unloads and floating origin),
+  `res://tests/combat_test.tscn`, `res://tests/wanted_test.tscn` (witnessed
+  crime, police pursuit, escape, replication and BUSTED on a synthetic street),
+  `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
@@ -2537,7 +2543,8 @@ deployed); in a computer's browser the co-op menu links to it.
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?police=0` disables wanted levels and police, `?wanted=N` starts with
+  0–5 stars for testing, `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

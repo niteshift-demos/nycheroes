@@ -1,7 +1,7 @@
 class_name Pedestrian
 extends Node3D
 ## A bystander walking a sidewalk lane. Runs from fights, slams and heroes
-## tearing past, and can't be hurt. Its position is kept in world space (see
+## tearing past, and can be knocked down by a hero's attacks. Its position is kept in world space (see
 ## WorldOrigin) and turned into scene space every frame, so it isn't in the
 ## "floating" group.
 
@@ -53,6 +53,11 @@ const VISIBLE_DISTANCE := 120.0
 const DETAIL_CHECK := 0.5
 const HIDDEN_CHECK := 0.2
 
+## Keep civilian ragdolls bounded on phones; further victims use a fallen pose.
+const MAX_RAGDOLLS := 4
+var _down_time := 0.0
+var _ragdoll: PhysicalBoneSimulator3D
+
 var world_position := Vector3.ZERO
 var hero: Hero
 
@@ -89,6 +94,7 @@ var _pose_time := 0.0
 
 func _ready() -> void:
 	add_to_group("pedestrians")
+	WorldOrigin.shifted.connect(_on_origin_shifted)
 	_player = find_child("AnimationPlayer", true, false) as AnimationPlayer
 	_play(&"Walk", 1.0)
 	_player.seek(randf() * 1.3)
@@ -132,6 +138,19 @@ func scare(from_world: Vector3) -> void:
 
 
 func _process(delta: float) -> void:
+	if _down_time > 0.0:
+		_down_time -= delta
+		global_position = WorldOrigin.to_local(world_position)
+		if _down_time <= 0.0:
+			if _ragdoll:
+				_ragdoll.physical_bones_stop_simulation()
+				_ragdoll.queue_free()
+				_ragdoll = null
+			remove_from_group("fallen_pedestrians")
+			_model.rotation.z = 0.0
+			_player.active = true
+			_play(&"Walk", 1.0)
+		return
 	var speed := _walk(delta)
 	var from_hero := world_position - hero.world_position()
 	from_hero.y = 0.0
@@ -355,3 +374,31 @@ func _play(animation: StringName, speed: float) -> void:
 	if _player.assigned_animation != animation:
 		_player.play(animation, 0.25)
 	_player.speed_scale = speed
+
+
+## Called only for our hero's damaging strike. Report before falling so this
+## victim is a witness; further hits while down cannot farm heat.
+func take_hit(push: Vector3) -> void:
+	if _down_time > 0.0:
+		return
+	Combat.report_crime(&"assault_civilian", world_position, 0.65)
+	scare(world_position - push)
+	_down_time = 4.0
+	_player.pause()
+	if get_tree().get_node_count_in_group("fallen_pedestrians") < MAX_RAGDOLLS:
+		var skeleton := find_child("Skeleton3D", true, false) as Skeleton3D
+		_ragdoll = Ragdoll.start(skeleton, push.limit_length(12.0))
+		add_to_group("fallen_pedestrians")
+	else:
+		_model.rotation.z = PI * 0.5
+
+
+func _on_origin_shifted(_delta: Vector3) -> void:
+	if not _ragdoll:
+		return
+	var positions: Array[Vector3] = []
+	for bone: PhysicalBone3D in _ragdoll.get_children():
+		positions.append(bone.global_position - _delta)
+	global_position = WorldOrigin.to_local(world_position)
+	for i in positions.size():
+		(_ragdoll.get_child(i) as PhysicalBone3D).global_position = positions[i]
