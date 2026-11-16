@@ -42,6 +42,9 @@ var touch_controls: TouchControls:
 		if _options_button:
 			_options_button.visible = value == null
 
+## Set by Game; mission logic and text live in their own nodes.
+var missions: MissionDirector
+
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
 var _options_button: Button
@@ -98,6 +101,9 @@ func _draw() -> void:
 	if hero.mode.name == &"KnockedOut":
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
 	_draw_coop_status()
+	if missions:
+		for marker in missions.markers():
+			_draw_marker(WorldOrigin.to_local(marker.position) + Vector3.UP * 2.0, marker.label, marker.color, 0.0)
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
 		var at := Vector2(size.x - width - 16.0, size.y - 12.0)

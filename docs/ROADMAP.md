@@ -2319,6 +2319,13 @@ deployed); in a computer's browser the co-op menu links to it.
   a code-signing certificate, so SmartScreen stops warning ("More info, Run
   anyway" until then); an icon.
 
+## 10. Open-world (GTA-style) play
+
+- Local cash and replayable city contracts: [Missions and cash](MISSIONS.md).
+  Five starter routes, nearby street bounties, touch actions and gold target
+  markers. `missions_test.tscn` covers wallet saves and mission progression.
+  Launch with `?mission=<id>` and `?cash=N` to exercise a route and balance.
+
 ## Options menu (done; added 2026-10-16 at the user's request)
 
 - **Opening it:** O in every build (Esc too in the desktop builds: browsers
@@ -2508,7 +2515,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `--net=webrtc`; none joins the public game unless it means to),
   `res://tests/coop_load_test.tscn` (not a pass/fail test: what 3 and 7
   players far off cost a host's frames, physics and memory),
-  `res://tests/audio_test.tscn`, `res://tests/options_test.tscn` (the
+  `res://tests/missions_test.tscn` (wallet saves, mission steps, fail/retry,
+  timers, collectibles and tracked gangs), `res://tests/audio_test.tscn`, `res://tests/options_test.tscn` (the
   options menu and the settings, with a settings file of its own),
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
@@ -2524,7 +2532,8 @@ deployed); in a computer's browser the co-op menu links to it.
   with the trains surface around the 7, the 4 on Jerome Avenue and
   Woodlawn; `TRAINS_TERMINAL_ONLY=1` goes straight to Woodlawn).
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
-  free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
+  free camera, `?spawn=x,y,z,yaw` hero start, `?mission=<id>` start a local
+  contract ([ids and routes](MISSIONS.md)), `?cash=N` set and save cash, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no

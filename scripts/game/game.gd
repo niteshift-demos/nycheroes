@@ -70,6 +70,9 @@ var _arrival := Vector3.INF
 var _touch_controls: TouchControls
 var _options: OptionsPanel
 var _name_prompt: NamePrompt
+## Local economy and objectives; radar integrations can use Game.missions.
+var wallet: Wallet
+var missions: MissionDirector
 var _loading: LoadingScreen
 
 
@@ -97,6 +100,7 @@ func _ready() -> void:
 	_add_options(quality)
 	_add_loading_screen()
 	_add_name_prompt()
+	_add_missions()
 	if not Device.is_web() and bool(Settings.get_value("fullscreen", false)) and not LaunchOptions.has("screenshot"):
 		Device.set_fullscreen(true)
 	if Device.wants_touch_controls() and not LaunchOptions.has("demo"):
@@ -367,3 +371,27 @@ func _add_touch_controls(started_by_touch: bool) -> void:
 		debug_label.add_theme_font_size_override("font_size", 10)
 		debug_label.position = Vector2(_touch_controls.safe_insets.x + 20.0, _touch_controls.safe_insets.y + 56.0)
 	Device.set_page_touch_mode(true)
+
+
+## Keep mission setup additive so other open-world systems can share Game.
+func _add_missions() -> void:
+	wallet = Wallet.new()
+	wallet.name = "Wallet"
+	add_child(wallet)
+	missions = MissionDirector.new()
+	missions.name = "Missions"
+	missions.hero = hero
+	missions.encounters = encounters
+	missions.wallet = wallet
+	missions.can_progress = func() -> bool:
+		return not is_instance_valid(_loading) and not _name_prompt.visible and not LaunchOptions.has("demo")
+	add_child(missions)
+	var overlay := MissionHud.new()
+	overlay.name = "MissionHud"
+	overlay.director = missions
+	overlay.wallet = wallet
+	hud.add_child(overlay)
+	hud.move_child(overlay, 0)  # Menus and the loading screen stay above it.
+	var game_hud := hud.get_node_or_null("GameHud") as GameHud
+	if game_hud:
+		game_hud.missions = missions
