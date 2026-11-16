@@ -9,6 +9,8 @@ signal mission_finished(id: String, success: bool)
 
 const THUG_BOUNTY := 50
 const GIVER_RADIUS := 10.0
+## Geographic references have no elevation; allow street grades around them.
+const GIVER_HEIGHT_ALLOWANCE := 30.0
 const RESULT_SECONDS := 9.0
 var hero: Hero
 var encounters: EncounterDirector
@@ -210,7 +212,8 @@ func markers() -> Array[Dictionary]:
 
 func _update_givers(position: Vector3) -> void:
 	for mission in catalog:
-		var inside := position.distance_to(mission.giver) <= GIVER_RADIUS
+		var horizontal := Vector2(position.x - mission.giver.x, position.z - mission.giver.z)
+		var inside := horizontal.length() <= GIVER_RADIUS and absf(position.y - mission.giver.y) <= GIVER_HEIGHT_ALLOWANCE
 		if inside and not _inside_givers.has(mission.id):
 			_inside_givers.append(mission.id)
 			if active == null and banner_remaining <= 0.0:

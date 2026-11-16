@@ -70,7 +70,7 @@ func _process(delta: float) -> void:
 	var card_width := minf(620.0, size.x - (32.0 if touch else 400.0))
 	card_width = maxf(250.0, card_width)
 	var left := (size.x - card_width) * 0.5
-	var top := 138.0 if touch else 54.0
+	var top := 138.0 if touch else 120.0
 	_cash.position = Vector2(size.x - 230.0, 84.0 if touch else 52.0)
 	_cash.size = Vector2(205.0, 42.0)
 	var running := director.active != null

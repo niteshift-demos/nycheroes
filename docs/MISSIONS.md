@@ -38,7 +38,8 @@ Both work as desktop `-- --mission=<id> --cash=N` too. Example:
 
 The clock waits while the hero is frozen for city loading or Go to travel;
 opening a menu pauses it only when the existing single-player pause does.
-Givers trigger on entry: after finishing, leave the marker and re-enter,
+Givers use a 10 m horizontal radius and allow 30 m of street elevation
+variation around the geographic reference. They trigger on entry: after finishing, leave the marker and re-enter,
 or press Retry job. They never repeatedly restart under a stationary hero.
 
 ## Public API and co-op

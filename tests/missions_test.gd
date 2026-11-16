@@ -107,7 +107,7 @@ func _run() -> void:
 	director.advance(0.1, mission.giver)
 	# Use a catalog giver to exercise the same entry path as touch movement.
 	var giver: Mission = director.catalog[0]
-	director.advance(0.1, giver.giver)
+	director.advance(0.1, giver.giver - Vector3.UP * 18.0)
 	_check(director.active == giver, "walking into giver starts mission without keyboard")
 	director.finish(false)
 	director.banner_remaining = 0.0
