@@ -2319,6 +2319,14 @@ deployed); in a computer's browser the co-op menu links to it.
   a code-signing certificate, so SmartScreen stops warning ("More info, Run
   anyway" until then); an icon.
 
+## 10. Open-world (GTA-style) play
+
+- [Radar and waypoint map](RADAR.md): camera-relative loaded streets, speed
+  zoom, co-op/target blips, comma to open a pan/zoom map, touch radar access,
+  and world-space waypoints on the radar and HUD. Options → Show radar or
+  `?radar=0` hides it. `tests/radar_test.tscn` checks blips, transforms, tile
+  unloads, waypoints and floating-origin shifts. No new tiles needed.
+
 ## Options menu (done; added 2026-10-16 at the user's request)
 
 - **Opening it:** O in every build (Esc too in the desktop builds: browsers
@@ -2500,6 +2508,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
   `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+  `res://tests/radar_test.tscn` (synthetic blips, map coordinates, waypoints,
+  tile unloads and floating origin),
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
@@ -2526,6 +2536,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
+  `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
   `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a

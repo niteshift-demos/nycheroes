@@ -37,10 +37,12 @@ Windows and Mac versions are on the site's download page.
 | Web | E or right mouse | Right trigger |
 | Attack | Left mouse | X |
 | Co-op menu | M | |
+| Map / waypoint | Comma (`,`); drag to pan, wheel or +/− to zoom, click to pin | |
 | Hero and options | O or Esc | |
 | Time of day | T | |
 
-Phones and tablets get touch controls.
+Phones and tablets get touch controls. Tap the radar to open the map; drag
+to pan, use +/− to zoom, and tap a street to set a waypoint.
 
 ## Running it locally
 
@@ -80,7 +82,7 @@ Add them to the URL (`?quality=low&time=21:00`) or, on desktop, after
 `--` on the command line (`-- --quality=low`). A few useful ones:
 `?quality=low|medium|high`, `?time=HH:MM`, `?spawn=x,y,z,yaw`,
 `?peds=N`, `?traffic=N`, `?gangs=N`, `?solo=1`, `?host`, `?join=CODE`,
-`?stats`. The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
+`?stats`, `?radar=0` (hide the radar). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Tests
 

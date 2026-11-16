@@ -51,6 +51,7 @@ const KEYS: Array[Array] = [
 	["F", "fly; Space and C go up and down"],
 	["E, right mouse", "web swing (hold)"],
 	["M", "co-op"],
+	[",", "map and waypoint"],
 	["O", "options (this menu)"],
 	["N", "sound off and on"],
 	["T", "time of day"],
@@ -69,6 +70,7 @@ const TOUCH_HELP: Array[Array] = [
 	["FLY", "fly; DOWN goes down"],
 	["SPEED", "super speed, on and off"],
 	["CO-OP", "play with friends"],
+	["Radar", "tap for map and waypoint"],
 ]
 
 ## Set by Game.
@@ -79,6 +81,7 @@ var time_of_day: TimeOfDay
 var city: CityStreamer
 ## The ?stats text (DebugHud): "Show FPS and stats" shows and hides it.
 var debug_label: Control
+var radar: Radar
 
 var _touch := false
 var _panel: PanelContainer
@@ -93,6 +96,7 @@ var _quality_picked := false
 var _time_buttons: Array[Button] = []
 var _fullscreen: Button
 var _stats: Button
+var _radar: Button
 var _public: Button
 var _sound: Button
 var _invert: Button
@@ -290,6 +294,7 @@ func _refresh() -> void:
 		for i in _time_buttons.size():
 			_time_buttons[i].set_pressed_no_signal(i == phase)
 	_set_toggle(_fullscreen, Device.is_fullscreen())
+	_set_toggle(_radar, radar.enabled if radar else bool(Settings.get_value("show_radar", true)))
 	_set_toggle(_stats, debug_label != null and debug_label.visible)
 	_set_toggle(_public, bool(Settings.get_value("online_public", true)))
 	_set_toggle(_sound, not GameAudio.is_muted())
@@ -496,6 +501,11 @@ func _game_page() -> VBoxContainer:
 		if debug_label:
 			debug_label.visible = on)
 	_row(page, "Show FPS and stats", _stats)
+	_radar = _switch(func(on: bool) -> void:
+		Settings.set_value("show_radar", on)
+		if radar:
+			radar.enabled = on)
+	_row(page, "Show radar", _radar)
 	_public = _switch(func(on: bool) -> void: Settings.set_value("online_public", on))
 	_row(page, "Join the public game automatically", _public)
 	return page
