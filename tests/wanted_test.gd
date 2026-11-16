@@ -113,7 +113,7 @@ func _run() -> void:
 	copy.queue_free()
 	var sync := PlayerSync.new()
 	var state := sync._encode(hero)
-	_check(state.size() == 15 and state[13] == wanted.stars, "wanted stars travel in plain hero state")
+	_check(state.size() == 18 and state[13] == wanted.stars, "wanted stars travel in plain hero state")
 	var remote: Hero = load("res://scenes/hero/hero.tscn").instantiate()
 	remote.remote_id = 2
 	add_child(remote)
