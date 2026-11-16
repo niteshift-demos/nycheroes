@@ -68,7 +68,8 @@ func drive(input: HeroInput, delta: float) -> void:
 	var throttle := -input.stick.y
 	_braking = input.jump_held or throttle * speed < -0.5
 	var acceleration := 16.0 if _braking else 8.0
-	speed = move_toward(speed, throttle * (TOP_SPEED if throttle >= 0.0 else 9.0), acceleration * delta)
+	var target_speed := 0.0 if input.jump_held else throttle * (TOP_SPEED if throttle >= 0.0 else 9.0)
+	speed = move_toward(speed, target_speed, acceleration * delta)
 	if is_on_floor():
 		var turn := input.stick.x * clampf(speed / 7.0, -1.0, 1.0)
 		heading -= turn * (1.8 if input.jump_held else 1.2) * delta

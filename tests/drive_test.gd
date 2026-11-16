@@ -46,6 +46,11 @@ func _ready() -> void:
 	hero.input.stick = Vector2(0, -1)
 	await _ticks(120)
 	_check(car.velocity.length() > 12.0 and car.global_position.distance_to(start) > 10.0, "accelerates along the road")
+	hero.input.jump_held = true
+	await _ticks(60)
+	_check(car.velocity.length() < 1.0, "handbrake wins over held throttle")
+	hero.input.jump_held = false
+	await _ticks(90)
 	var heading := car.heading
 	hero.input.stick = Vector2(0.8, -1)
 	await _ticks(30)
