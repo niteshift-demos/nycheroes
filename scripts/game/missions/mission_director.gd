@@ -15,6 +15,7 @@ const RESULT_SECONDS := 9.0
 var hero: Hero
 var encounters: EncounterDirector
 var wallet: Wallet
+var wanted: Wanted
 ## Game blocks startup while loading or choosing a name covers the controls.
 var can_progress: Callable
 var catalog: Array[Mission] = []
@@ -37,6 +38,8 @@ func _ready() -> void:
 	if catalog.is_empty():
 		catalog = MissionCatalog.all()
 	Combat.thug_defeated.connect(_on_thug_defeated)
+	if wanted:
+		wanted.busted.connect(_on_busted)
 	if LaunchOptions.has("mission"):
 		if not start(LaunchOptions.get_string("mission")):
 			push_warning("Unknown mission: " + LaunchOptions.get_string("mission"))
@@ -258,3 +261,15 @@ func _on_thug_defeated(thug: Thug) -> void:
 	# A shared local assist bounty, not a claim about who dealt the last hit.
 	if wallet and hero and hero.world_position().distance_to(WorldOrigin.to_world(thug.global_position)) < 120.0:
 		wallet.add(THUG_BOUNTY, "Gang takedown assist")
+
+
+## Arrests cost a small local fine even when no contract is active.
+func _on_busted() -> void:
+	var on_mission := active != null
+	finish(false)
+	var fine := mini(1000, ceili(float(wallet.balance) * 0.1)) if wallet else 0
+	if wallet:
+		wallet.spend(fine)
+	if not on_mission:
+		banner = "BUSTED  -" + Wallet.format_cash(fine)
+		banner_remaining = RESULT_SECONDS

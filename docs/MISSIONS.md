@@ -18,7 +18,10 @@ no mission is active; move near a road if none is available.
 | `broadway_dash` | Times Square, east of the starting spot | Two short timed checkpoints south along Broadway | $1,500 |
 | — | Side job HUD button | A random nearby street crew of 3–5 thugs | $1,200 |
 
-The green cash display counts toward the new balance when it changes.
+The green cash display sits below the wanted stars and counts toward the
+new balance when it changes. Being BUSTED fails an active mission and costs
+10% of the balance, rounded up and capped at $1,000; the fine also applies
+outside a mission. Police officers never pay gang bounties.
 Mission rewards are paid once per successful run; routes are replayable.
 Every defeated thug within 120 m grants a $50 local assist bounty (including
 thugs defeated by a friend). Cash survives visits through Settings' `cash`

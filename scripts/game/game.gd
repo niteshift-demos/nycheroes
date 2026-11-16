@@ -383,6 +383,7 @@ func _add_missions() -> void:
 	missions.hero = hero
 	missions.encounters = encounters
 	missions.wallet = wallet
+	missions.wanted = get_node_or_null("Wanted") as Wanted
 	missions.can_progress = func() -> bool:
 		return not is_instance_valid(_loading) and not _name_prompt.visible and not LaunchOptions.has("demo")
 	add_child(missions)

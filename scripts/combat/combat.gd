@@ -17,6 +17,8 @@ signal danger(world_position: Vector3, radius: float)
 ## A heavy impact, for camera shake. Strength is 0..1.
 signal impact(position: Vector3, strength: float)
 signal thug_defeated(thug: Thug)
+## A crime committed by our hero; positions are world space.
+signal crime(kind: StringName, world_position: Vector3, severity: float)
 
 ## Physics layers (bit values): 1 world, 2 heroes, 3 npcs, 4 ragdolls (and
 ## 5 water, CityStreamer.WATER_LAYER; 6 trains, Trains.COLLISION_LAYER).
@@ -46,6 +48,10 @@ func _process(_delta: float) -> void:
 	if _hit_stop_end_msec > 0 and Time.get_ticks_msec() >= _hit_stop_end_msec:
 		_hit_stop_end_msec = 0
 		Engine.time_scale = 1.0
+
+
+func report_crime(kind: StringName, world_position: Vector3, severity: float) -> void:
+	crime.emit(kind, world_position, severity)
 
 
 func register(thug: Thug) -> void:
@@ -81,6 +87,7 @@ func strike(center: Vector3, radius: float, damage: float, push: Vector3, launch
 		if not thug.is_down() and thug.body_center().distance_to(center) <= radius:
 			hits.append([thug, damage, push, launch])
 	_hit_thugs(hits)
+	_hit_bystanders(center, radius, damage, push)
 	if not hits.is_empty():
 		raise_danger(WorldOrigin.to_world(center), 35.0)
 		hit_stop(0.09 if launch else 0.04)
@@ -105,6 +112,7 @@ func shockwave(center: Vector3, radius: float, damage: float, launch_speed: floa
 		var strength := launch_speed * (1.0 - 0.5 * distance / radius)
 		hits.append([thug, damage, away * strength + Vector3.UP * strength * 0.6, damage > 0.0])
 	_hit_thugs(hits)
+	_hit_bystanders(center, radius, damage, Vector3.UP * launch_speed)
 	show_shockwave(WorldOrigin.to_world(center), radius)
 	raise_danger(WorldOrigin.to_world(center), radius * 6.0)
 	impact.emit(center, clampf(radius / 10.0, 0.3, 1.0))
@@ -121,8 +129,9 @@ func hurt_hero(hero: Hero, damage: float, push: Vector3) -> void:
 
 
 func on_thug_down(thug: Thug, launch: Vector3) -> void:
-	defeated_count += 1
-	thug_defeated.emit(thug)
+	if not thug is PoliceOfficer:
+		defeated_count += 1
+		thug_defeated.emit(thug)
 	if Net.is_online() and not thug.puppet:
 		for id in players_near(WorldOrigin.to_world(thug.global_position)):
 			_thug_down.rpc_id(id, thug.net_id, launch)
@@ -179,6 +188,8 @@ func _hit_thugs(hits: Array) -> void:
 	var reports := {}  # player number -> [net id, damage, push, launch] each
 	for hit: Array in hits:
 		var thug: Thug = hit[0]
+		if thug is PoliceOfficer and float(hit[1]) > 0.0:
+			report_crime(&"assault_police", WorldOrigin.to_world(thug.global_position), 1.0)
 		if thug.puppet:
 			reports.get_or_add(thug.run_by, []).append([thug.net_id, hit[1], hit[2], hit[3]])
 		else:
@@ -269,3 +280,12 @@ func _shockwave(world_position: Vector3, radius: float) -> void:
 @rpc("any_peer", "call_remote", "unreliable")
 func _danger(world_position: Vector3, radius: float) -> void:
 	danger.emit(world_position, radius)
+
+
+## Only actual damaging attacks count; a harmless jump shockwave only scares.
+func _hit_bystanders(center: Vector3, radius: float, damage: float, push: Vector3) -> void:
+	if damage <= 0.0:
+		return
+	for ped: Pedestrian in get_tree().get_nodes_in_group("pedestrians"):
+		if (ped.global_position + Vector3.UP).distance_to(center) <= radius:
+			ped.take_hit(push)

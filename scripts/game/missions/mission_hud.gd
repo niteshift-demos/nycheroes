@@ -5,6 +5,7 @@ extends Control
 
 var director: MissionDirector
 var wallet: Wallet
+var _game_hud: GameHud
 var _cash: Label
 var _title: Label
 var _objective: Label
@@ -21,6 +22,7 @@ var _display_cash := 0.0
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_game_hud = get_parent().get_node_or_null("GameHud") as GameHud
 	_card = ColorRect.new()
 	_card.color = Color(0.015, 0.02, 0.035, 0.78)
 	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -70,8 +72,9 @@ func _process(delta: float) -> void:
 	var card_width := minf(620.0, size.x - (32.0 if touch else 400.0))
 	card_width = maxf(250.0, card_width)
 	var left := (size.x - card_width) * 0.5
-	var top := 138.0 if touch else 120.0
-	_cash.position = Vector2(size.x - 230.0, 84.0 if touch else 52.0)
+	var anchor := _game_hud.wanted_anchor() if _game_hud else Vector2(size.x - 28.0, 70.0)
+	var top := anchor.y + 94.0 if touch else 120.0
+	_cash.position = Vector2(anchor.x - 202.0, anchor.y + 38.0)
 	_cash.size = Vector2(205.0, 42.0)
 	var running := director.active != null
 	_card.position = Vector2(left - 12.0, top)
@@ -96,7 +99,10 @@ func _process(delta: float) -> void:
 	_side_job.size = Vector2(156.0, 44.0)
 	_retry.position = Vector2(size.x * 0.5 - 136.0, buttons_y)
 	_retry.size = Vector2(108.0, 44.0)
-	_abandon.position = Vector2(size.x * 0.5 + card_width * 0.5 - 100.0, buttons_y)
+	if size.x < 600.0:
+		_side_job.position.x = size.x * 0.5 - 78.0
+		_retry.position = Vector2(size.x * 0.5 - 54.0, buttons_y + 48.0)
+	_abandon.position = Vector2(size.x * 0.5 - 50.0, buttons_y)
 	_abandon.size = Vector2(100.0, 44.0)
 	_timer.visible = running and director.remaining >= 0.0
 	_timer.position = Vector2(left, top + (132.0 if _intro.visible else 72.0))

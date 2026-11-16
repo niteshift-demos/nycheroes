@@ -118,6 +118,30 @@ func _run() -> void:
 	var canceled := director.gang.duplicate()
 	director.finish(false)
 	_check(canceled.all(func(thug: Thug) -> bool: return not Combat.thugs.has(thug) and thug.is_queued_for_deletion()), "abandon removes standing crew before retry")
+	var wanted := Wanted.new()
+	wanted.hero = hero
+	wanted.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(wanted)
+	var arrested := MissionDirector.new()
+	arrested.process_mode = Node.PROCESS_MODE_DISABLED
+	arrested.wallet = wallet
+	arrested.wanted = wanted
+	add_child(arrested)
+	wallet.spend(wallet.balance - 5000)
+	arrested.start_mission(mission)
+	wanted.set_stars(2)
+	hero.take_hit(1000.0, Vector3.ZERO)
+	_check(arrested.active == null and arrested.banner == "MISSION FAILED" and wallet.balance == 4500,
+		"Wanted.busted fails the mission and fines ten percent")
+	wanted._physics_process(2.1)
+	wallet.add(15500, "fine cap test")
+	wanted.set_stars(2)
+	hero.take_hit(1000.0, Vector3.ZERO)
+	_check(wallet.balance == 19000 and arrested.banner == "BUSTED  -$1,000", "bust fine is capped at one thousand outside missions")
+	var officer: PoliceOfficer = load("res://scenes/npc/police_officer.tscn").instantiate()
+	add_child(officer)
+	officer.go_down(Vector3.UP)
+	_check(wallet.balance == 19000, "police defeats never pay a gang bounty")
 	city.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	print("Missions: %d failure(s)" % _failed)
