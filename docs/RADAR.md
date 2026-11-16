@@ -5,7 +5,10 @@ camera. Its white arrow follows the hero's facing; N shows north. Its range
 smoothly grows from 180 m on foot to 850 m at speed. It sits above health at
 bottom-left on computers and below health at top-left on touch screens,
 clear of the movement stick. Enemy triangles match the HUD's nearest thug;
-colored dots track other co-op players. Off-radar icons stop at the edge.
+colored dots track other co-op players. While the local hero is wanted,
+standing PoliceOfficers in `Combat.thugs` appear as shields flashing blue
+and red every 400 ms. Downed officers and cleared wanted stars remove those
+blips. Off-radar icons stop at the edge.
 
 Press comma (`,`) or tap/click the radar to open the north-up map. Drag to
 pan, use the wheel or +/− buttons/keys to zoom, and click/tap to set a purple
@@ -37,7 +40,7 @@ func clear_waypoint() -> void
 Kinds are `player` (dot), `mission` and `waypoint` (diamond), `enemy`
 (triangle), `police` (shield), and `shop` (square). Unknown kinds use a dot.
 IDs are caller-owned: use a prefix such as `missions/delivery`. The `radar/`
-prefix is reserved for co-op players, the nearest thug, and the waypoint.
+prefix is reserved for co-op players, police, the nearest thug, and the waypoint.
 Adding an existing ID replaces it; updating a missing ID does nothing;
 removing is safe to repeat. Updating a node blip makes it a fixed blip.
 Tracked nodes use weak references, so freeing one removes its blip.
@@ -84,8 +87,9 @@ in the current streaming API. Empty space must not be read as water.
 
 Waypoints last for this game session and remain until cleared or replaced;
 they do not auto-clear on arrival. Blips use the game's existing co-op
-PlayerSync state; police, missions and shops register through the API when
-those systems are present. No gameplay or networking is added for them.
+PlayerSync state. Police blips follow `Hero.wanted_stars` and the existing
+PoliceOfficer nodes; missions and shops register through the API. No
+gameplay or networking is added for them.
 
 ## Checks
 
@@ -93,8 +97,8 @@ After `godot --headless --path . --import`:
 
 - `godot --headless --path . res://tests/radar_test.tscn`: synthetic blip
   kinds/lifecycle, tracking/freeing, coordinate round trips, edge clamping,
-  actual origin shift, cached streets unloading, map zoom/pan/click and
-  visibility settings. Needs no city download.
+  actual origin shift, cached streets unloading, map zoom/pan/click,
+  visibility settings and standing police appearing only while wanted. Needs no city download.
 - Keep `options_test`, `streaming_test`, and `hero_moves_test` passing.
 - Export with `.niteshift/files/build-web`; in the browser check a street
   radar, camera rotation, a map click and its game marker, pan/zoom/clear,

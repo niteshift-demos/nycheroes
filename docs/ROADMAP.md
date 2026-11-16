@@ -2322,7 +2322,8 @@ deployed); in a computer's browser the co-op menu links to it.
 ## 10. Open-world (GTA-style) play
 
 - [Radar and waypoint map](RADAR.md): camera-relative loaded streets, speed
-  zoom, co-op/target blips, comma to open a pan/zoom map, touch radar access,
+  zoom, co-op/target blips and flashing wanted police, comma to open a pan/zoom
+  map, touch radar access,
   and world-space waypoints on the radar and HUD. Options → Show radar or
   `?radar=0` hides it. `tests/radar_test.tscn` checks blips, transforms, tile
   unloads, waypoints and floating-origin shifts. No new tiles needed.

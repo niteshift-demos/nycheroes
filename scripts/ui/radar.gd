@@ -195,6 +195,14 @@ func _refresh_builtins() -> void:
 			var id := StringName("radar/player/%d" % peer)
 			add_node_blip(id, players.remote_heroes[peer], &"player", Net.player_color(peer).lightened(0.35))
 			_builtins.append(id)
+	if hero and hero.wanted_stars > 0:
+		var color := Color("57a5ff") if (Time.get_ticks_msec() / 400) % 2 == 0 else Color("ff5967")
+		for thug: Thug in Combat.thugs:
+			if not is_instance_valid(thug) or not thug is PoliceOfficer or thug.is_down():
+				continue
+			var id := StringName("radar/police/%d" % thug.get_instance_id())
+			add_node_blip(id, thug, &"police", color)
+			_builtins.append(id)
 	if encounters and hero:
 		var thug := encounters.nearest_thug(hero.world_position())
 		if thug:

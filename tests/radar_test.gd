@@ -1,6 +1,7 @@
 extends Node
 ## Synthetic radar regression: blip lifecycle, node tracking, camera-relative
-## transforms, origin shifts, street unloads, map pan/zoom and waypoint input.
+## transforms, origin shifts, street unloads, map pan/zoom, waypoint input
+## and standing police shown only while the local hero is wanted.
 ## Run: godot --headless --path . res://tests/radar_test.tscn
 
 var _failed := 0
@@ -75,6 +76,30 @@ func _ready() -> void:
 	Settings.set_value("show_radar", true)
 	_check(radar.enabled, "setting restores radar")
 	map.close()
+	var hero: Hero = load("res://scenes/hero/hero.tscn").instantiate()
+	hero.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(hero)
+	radar.hero = hero
+	var officer: PoliceOfficer = load("res://scenes/npc/police_officer.tscn").instantiate()
+	officer.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(officer)
+	var police_id := StringName("radar/police/%d" % officer.get_instance_id())
+	radar._refresh_builtins()
+	_check(not radar.blips.has(police_id), "police hidden when local hero has no stars")
+	hero.wanted_stars = 2
+	radar._refresh_builtins()
+	_check(radar.blips.has(police_id) and radar.blips[police_id].kind == &"police", "standing officers become police blips while wanted")
+	_check(radar.blips[police_id].color in [Color("57a5ff"), Color("ff5967")], "police use blue/red flashing colors")
+	officer.state = Thug.State.DOWN
+	radar._refresh_builtins()
+	_check(not radar.blips.has(police_id), "downed officers lose their blips")
+	officer.state = Thug.State.IDLE
+	hero.wanted_stars = 0
+	radar._refresh_builtins()
+	_check(not radar.blips.has(police_id), "cleared stars remove police blips")
+	radar.hero = null
+	officer.free()
+	hero.free()
 	print("radar test finished: %d failures" % _failed)
 	get_tree().quit(1 if _failed else 0)
 
