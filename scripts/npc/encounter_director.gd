@@ -28,6 +28,7 @@ extends Node3D
 ## above every number it has seen.
 
 const THUG_SCENE := preload("res://scenes/npc/thug.tscn")
+const POLICE_SCENE := preload("res://scenes/npc/police_officer.tscn")
 const UPDATE_INTERVAL := 0.5
 const MAX_SPAWN_ALTITUDE := 150.0
 ## Spacing between gang members along the sidewalk.
@@ -129,7 +130,7 @@ func nearest_thug(world_position: Vector3) -> Thug:
 	var best: Thug = null
 	var best_distance := INF
 	for thug in Combat.thugs:
-		if thug.is_down():
+		if thug.is_down() or thug is PoliceOfficer:
 			continue
 		var distance := WorldOrigin.to_world(thug.global_position).distance_to(world_position)
 		if distance < best_distance:
@@ -158,6 +159,20 @@ func spawn_gang(world_center: Vector3, count: int, direction: Vector3, target: H
 	_gangs.append(gang)
 	_gang_count += 1
 	return gang
+
+
+## Police use the same ids, authoritative hits and nearby snapshots as gangs.
+func spawn_police(world_position: Vector3, target: Hero, stars: int) -> PoliceOfficer:
+	var officer: PoliceOfficer = POLICE_SCENE.instantiate()
+	officer.net_id = _next_id * ID_STRIDE + Net.local_id() % ID_STRIDE
+	_next_id += 1
+	officer.suspect_id = target.remote_id if target.is_remote() else Net.local_id()
+	officer.response_stars = stars
+	officer.health = 180.0 if stars >= 5 else 100.0
+	add_child(officer)
+	officer.global_position = WorldOrigin.to_local(world_position) + Vector3.UP * 0.2
+	officer.setup(target, 0, randf() * TAU)
+	return officer
 
 
 ## Our gangs go once every hero is far off (other players' too: one may still
@@ -193,7 +208,7 @@ func _spawn_near_hero() -> void:
 func _gangs_near(center: Vector3) -> int:
 	var gangs := {}
 	for thug in Combat.thugs:
-		if not thug.is_down() and WorldOrigin.to_world(thug.global_position).distance_to(center) < despawn_distance:
+		if not thug is PoliceOfficer and not thug.is_down() and WorldOrigin.to_world(thug.global_position).distance_to(center) < despawn_distance:
 			gangs[Vector2i(thug.run_by if thug.puppet else 0, thug.gang)] = true
 	return gangs.size()
 
@@ -297,13 +312,18 @@ func _share_thugs() -> void:
 ## What another game needs to set a thug up: [net id, world position,
 ## facing, gang, health, down].
 func _describe(thug: Thug) -> Array:
-	return [thug.net_id, WorldOrigin.to_world(thug.global_position), thug.facing(), thug.gang, thug.health, thug.is_down()]
+	return [thug.net_id, WorldOrigin.to_world(thug.global_position), thug.facing(), thug.gang, thug.health, thug.is_down(),
+		thug.suspect_id if thug is PoliceOfficer else 0, thug.response_stars if thug is PoliceOfficer else 0]
 
 
 ## A thug as another game described it: a copy of one player `runner`'s game
 ## runs, or (runner 0) one we run from now on.
 func _spawn_thug(description: Array, runner: int) -> Thug:
-	var thug: Thug = THUG_SCENE.instantiate()
+	var police := description.size() > 7 and int(description[7]) > 0
+	var thug: Thug = POLICE_SCENE.instantiate() if police else THUG_SCENE.instantiate()
+	if police:
+		thug.suspect_id = int(description[6])
+		thug.response_stars = int(description[7])
 	thug.net_id = int(description[0])
 	thug.puppet = runner != 0
 	thug.run_by = runner
@@ -473,7 +493,7 @@ func _adopt(thugs: Array) -> void:
 func _regroup() -> void:
 	var gangs := {}
 	for thug in Combat.thugs:
-		if thug.puppet:
+		if thug.puppet or thug is PoliceOfficer:
 			continue
 		gangs.get_or_add(thug.gang, []).append(thug)
 		if thug.is_down() and not _bodies.has(thug):

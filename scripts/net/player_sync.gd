@@ -114,7 +114,8 @@ func _encode(source: Hero) -> Array:
 		| (CHARGING if on_foot.charging else 0) | (IN_WATER if source.is_in_water() else 0)
 	return [Time.get_ticks_msec(), source.world_position(), source.velocity, source.facing,
 		MODES.find(source.mode.name), flags, on_foot.charge, source.health, source.hurt_time,
-		melee.step, melee.punch_id, WorldOrigin.to_world(swing.anchor), WorldOrigin.to_world(swing.web_point)]
+		melee.step, melee.punch_id, WorldOrigin.to_world(swing.anchor), WorldOrigin.to_world(swing.web_point),
+		source.wanted_stars, source.wanted_searching]
 
 
 ## Moves a copy to where its player's hero was a moment ago.
@@ -140,6 +141,11 @@ func _follow(copy: Hero, snapshots: SnapshotBuffer) -> void:
 	on_foot.charging = flags & CHARGING != 0
 	on_foot.charge = latest[6]
 	copy.health = latest[7]
+	copy.wanted_stars = clampi(int(latest[13]), 0, 5) if latest.size() > 13 else 0
+	copy.wanted_searching = bool(latest[14]) if latest.size() > 14 else false
+	var tag := copy.get_node_or_null("NameTag") as Label3D
+	if tag:
+		tag.text = Net.player_name(copy.remote_id) + ("  •  WANTED %d" % copy.wanted_stars if copy.wanted_stars > 0 else "")
 	copy.hurt_time = latest[8]
 	var melee := copy.get_mode(&"Melee") as MeleeMode
 	melee.step = clampi(latest[9], 0, MeleeMode.COMBO.size() - 1)
@@ -154,7 +160,7 @@ func _follow(copy: Hero, snapshots: SnapshotBuffer) -> void:
 @rpc("any_peer", "call_remote", "unreliable_ordered")
 func _hero_state(state: Array) -> void:
 	var snapshots: SnapshotBuffer = _snapshots.get(multiplayer.get_remote_sender_id())
-	if snapshots and state.size() == 13:
+	if snapshots and state.size() in [13, 15]:
 		snapshots.push(float(state[0]), state)
 
 
