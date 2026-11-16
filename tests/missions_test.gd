@@ -118,6 +118,7 @@ func _run() -> void:
 	var canceled := director.gang.duplicate()
 	director.finish(false)
 	_check(canceled.all(func(thug: Thug) -> bool: return not Combat.thugs.has(thug) and thug.is_queued_for_deletion()), "abandon removes standing crew before retry")
+	hero.frozen = false
 	var wanted := Wanted.new()
 	wanted.hero = hero
 	wanted.process_mode = Node.PROCESS_MODE_DISABLED

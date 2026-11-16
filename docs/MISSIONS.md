@@ -117,5 +117,6 @@ no artwork, map extract or new downloaded asset is bundled.
 `godot --headless --path . res://tests/missions_test.tscn` checks wallet
 persistence/validation/signals, progress and targets, origin shifts,
 timeout/retry, single payouts, collectible de-duplication, giver entry, and
-tracked EncounterDirector gangs with local assist rewards. It uses synthetic
+tracked EncounterDirector gangs with local assist rewards, arrests and
+capped fines, and police defeats paying no bounty. It uses synthetic
 ground and a settings file of its own, without downloads.
