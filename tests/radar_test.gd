@@ -9,6 +9,7 @@ var _failed := 0
 func _ready() -> void:
 	var radar := Radar.new()
 	add_child(radar)
+	_check(radar.enabled == (LaunchOptions.get_string("radar", "1") != "0"), "launch option sets initial radar visibility")
 	radar.set_process(false)
 	radar.size = Vector2(204, 204)
 	radar.world_center = Vector3(1000, 0, -2000)
