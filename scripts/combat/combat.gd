@@ -17,6 +17,8 @@ signal danger(world_position: Vector3, radius: float)
 ## A heavy impact, for camera shake. Strength is 0..1.
 signal impact(position: Vector3, strength: float)
 signal thug_defeated(thug: Thug)
+## Observed wrongdoing in world coordinates, consumed by the wanted system.
+signal crime(kind: StringName, world_position: Vector3, severity: float)
 
 ## Physics layers (bit values): 1 world, 2 heroes, 3 npcs, 4 ragdolls (and
 ## 5 water, CityStreamer.WATER_LAYER; 6 trains, Trains.COLLISION_LAYER).

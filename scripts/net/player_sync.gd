@@ -32,7 +32,7 @@ const THUG_NEAR := 150.0
 const SHOW_DISTANCE := 800.0
 const ANIMATE_DISTANCE := 150.0
 ## Modes, in the order they're numbered when sent.
-const MODES: Array[StringName] = [&"OnFoot", &"Flight", &"Swing", &"Melee", &"Dive", &"KnockedOut"]
+const MODES: Array[StringName] = [&"OnFoot", &"Flight", &"Swing", &"Melee", &"Dive", &"KnockedOut", &"Drive"]
 const GROUNDED := 1
 const FROZEN := 2
 const CHARGING := 4
@@ -112,9 +112,13 @@ func _encode(source: Hero) -> Array:
 	var swing := source.get_mode(&"Swing") as SwingMode
 	var flags := (GROUNDED if source.is_on_floor() else 0) | (FROZEN if source.frozen else 0) \
 		| (CHARGING if on_foot.charging else 0) | (IN_WATER if source.is_in_water() else 0)
+	var drive := source.get_mode(&"Drive") as DriveMode
+	var car := drive.car
 	return [Time.get_ticks_msec(), source.world_position(), source.velocity, source.facing,
 		MODES.find(source.mode.name), flags, on_foot.charge, source.health, source.hurt_time,
-		melee.step, melee.punch_id, WorldOrigin.to_world(swing.anchor), WorldOrigin.to_world(swing.web_point)]
+		melee.step, melee.punch_id, WorldOrigin.to_world(swing.anchor), WorldOrigin.to_world(swing.web_point),
+		car.model if is_instance_valid(car) else 0, car.paint if is_instance_valid(car) else 0.0,
+		car.seed if is_instance_valid(car) else 0.0]
 
 
 ## Moves a copy to where its player's hero was a moment ago.
@@ -147,6 +151,8 @@ func _follow(copy: Hero, snapshots: SnapshotBuffer) -> void:
 	var swing := copy.get_mode(&"Swing") as SwingMode
 	swing.anchor = WorldOrigin.to_local((older[11] as Vector3).lerp(newer[11], weight))
 	swing.web_point = WorldOrigin.to_local((older[12] as Vector3).lerp(newer[12], weight))
+	(copy.get_mode(&"Drive") as DriveMode).show_remote(int(latest[13]) if latest.size() >= 16 else 0,
+		float(latest[14]) if latest.size() >= 16 else 0.0, float(latest[15]) if latest.size() >= 16 else 0.0)
 	if copy.remote_grounded and not was_grounded:
 		copy.landed.emit(fall_speed)
 
@@ -154,7 +160,7 @@ func _follow(copy: Hero, snapshots: SnapshotBuffer) -> void:
 @rpc("any_peer", "call_remote", "unreliable_ordered")
 func _hero_state(state: Array) -> void:
 	var snapshots: SnapshotBuffer = _snapshots.get(multiplayer.get_remote_sender_id())
-	if snapshots and state.size() == 13:
+	if snapshots and state.size() in [13, 16]:
 		snapshots.push(float(state[0]), state)
 
 

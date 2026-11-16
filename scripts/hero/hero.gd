@@ -75,6 +75,11 @@ func _ready() -> void:
 		if child is HeroMode:
 			child.hero = self
 			_modes[child.name] = child
+	var drive := DriveMode.new()
+	drive.name = "Drive"
+	drive.hero = self
+	add_child(drive)
+	_modes[&"Drive"] = drive
 	set_mode(&"OnFoot")
 	_prev_position = global_position
 
@@ -99,6 +104,10 @@ func _physics_process(delta: float) -> void:
 	_regen_delay -= delta
 	if _regen_delay <= 0.0:
 		health = minf(health + REGEN_RATE * delta, MAX_HEALTH)
+
+	if input.interact_pressed:
+		(get_mode(&"Drive") as DriveMode).interact()
+	input.interact_pressed = false
 
 	var fall_speed := -velocity.y
 	var next := mode.physics_update(delta)
@@ -176,7 +185,7 @@ func is_in_water() -> bool:
 
 
 func can_be_attacked() -> bool:
-	return not frozen and mode.name != &"KnockedOut"
+	return not frozen and mode.name not in [&"KnockedOut", &"Drive"]
 
 
 ## Turns `facing` toward a horizontal direction, at most max_step radians.

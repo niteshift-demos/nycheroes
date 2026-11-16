@@ -138,6 +138,7 @@ func _ready() -> void:
 	_pill_style_pressed = _pill(FILL_PRESSED)
 	_pill_style_on = _pill(FILL_ON)
 	_muted = GameAudio.is_muted()
+	_add(&"interact", "CAR", &"interact")
 	_add(&"punch", "PUNCH", &"attack")
 	_add(&"jump", "JUMP", &"jump", false, true)
 	_add(&"down", "DOWN", &"descend")
@@ -400,12 +401,17 @@ func _update_hero_state(delta: float) -> void:
 		return
 	_mode = mode
 	_airborne = airborne
+	var driving := mode == &"Drive"
+	(_by_id[&"interact"] as TouchButton).label = "EXIT" if driving else "CAR"
+	_show(&"punch", not driving)
+	_show(&"fly", not driving)
+	_show(&"speed", not driving)
 	var flying := mode == &"Flight"
 	(_by_id[&"punch"] as TouchButton).label = "DIVE" if airborne or flying else "PUNCH"
-	(_by_id[&"jump"] as TouchButton).label = "UP" if flying else "JUMP"
+	(_by_id[&"jump"] as TouchButton).label = "BRAKE" if driving else ("UP" if flying else "JUMP")
 	(_by_id[&"fly"] as TouchButton).on = flying
 	_show(&"down", flying)
-	_show(&"web", not flying)
+	_show(&"web", not flying and not driving)
 	queue_redraw()
 
 
@@ -438,6 +444,7 @@ func _layout() -> void:
 	var bottom := size.y - safe_insets.w - MARGIN
 	# A thumb's arc around PUNCH in the bottom right corner.
 	var punch := Vector2(right - 44.0, bottom - 44.0)
+	_place(&"interact", punch + Vector2(-174.0, -86.0), 30.0)
 	_place(&"punch", punch, 44.0)
 	_place(&"jump", punch + Vector2(-104.0, 8.0), 36.0)
 	_place(&"down", punch + Vector2(-190.0, 8.0), 32.0)

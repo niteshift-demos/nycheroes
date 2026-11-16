@@ -70,6 +70,8 @@ func _process(delta: float) -> void:
 	var basis := _tilt_to(_up) * Basis(Vector3.UP, _yaw)
 	var pivot := hero.get_visual_position() + Vector3.UP * PIVOT_HEIGHT
 	global_transform = Transform3D(basis, pivot - basis * (Vector3.UP * PIVOT_HEIGHT))
+	if hero.mode.name == &"Drive":
+		global_position += basis * Vector3(-0.3, 0.3, 0.15)
 	var choice := _choose_animation()
 	_play(choice[0], choice[1], choice.size() > 2 and choice[2])
 
@@ -114,6 +116,8 @@ func _choose_animation() -> Array:
 			return [&"Jump", 0.6] if hero.velocity.length() > 8.0 else [&"Idle", 0.6]
 		&"Swing", &"Dive":
 			return [&"Jump", 1.0]
+		&"Drive":
+			return [&"Crouch_Idle", 1.0]
 		&"KnockedOut":
 			return [&"Death01", 1.0]
 		&"Melee":

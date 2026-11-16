@@ -53,6 +53,9 @@ const VISIBLE_DISTANCE := 120.0
 const DETAIL_CHECK := 0.5
 const HIDDEN_CHECK := 0.2
 
+## Knockdowns use the existing fallen pose, avoiding a skeleton of bodies per bystander.
+var _down_time := 0.0
+var _down_velocity := Vector3.ZERO
 var world_position := Vector3.ZERO
 var hero: Hero
 
@@ -132,6 +135,19 @@ func scare(from_world: Vector3) -> void:
 
 
 func _process(delta: float) -> void:
+	if _down_time > 0.0:
+		_down_time -= delta
+		var from := WorldOrigin.to_local(world_position) + Vector3.UP * 0.5
+		var to := from + _down_velocity * delta
+		var query := PhysicsRayQueryParameters3D.create(from, to, Combat.WORLD_LAYER)
+		if get_world_3d().direct_space_state.intersect_ray(query).is_empty():
+			world_position += _down_velocity * delta
+		else:
+			_down_velocity = Vector3.ZERO
+		_down_velocity = _down_velocity.move_toward(Vector3.ZERO, 12.0 * delta)
+		global_position = WorldOrigin.to_local(world_position)
+		_play(&"Death01", 1.0)
+		return
 	var speed := _walk(delta)
 	var from_hero := world_position - hero.world_position()
 	from_hero.y = 0.0
@@ -355,3 +371,19 @@ func _play(animation: StringName, speed: float) -> void:
 	if _player.assigned_animation != animation:
 		_player.play(animation, 0.25)
 	_player.speed_scale = speed
+
+
+func is_knocked_down() -> bool:
+	return _down_time > 0.0
+
+
+## A car knocks the pedestrian over, then they recover and flee.
+func knock_down(push: Vector3) -> void:
+	_down_time = 6.0
+	_down_velocity = Vector3(push.x, 0, push.z) * 0.25
+	if not _off_lane:
+		_off_lane = true
+		_trail = PackedVector3Array([world_position])
+	_steer_wait = 0.0
+	_cornered = false
+	scare(world_position - push)

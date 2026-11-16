@@ -278,6 +278,7 @@ var _full_radius := Vector3.ZERO
 
 
 func _ready() -> void:
+	add_to_group("traffic")
 	if LaunchOptions.has("traffic"):
 		max_cars = maxi(int(LaunchOptions.get_string("traffic")), 0)
 	_log_stats = LaunchOptions.has("stats")
@@ -990,6 +991,11 @@ func _find_people() -> void:
 	_people.clear()
 	for hero in Combat.heroes:
 		_people.append(hero.world_position())
+	for car: DriveVehicle in get_tree().get_nodes_in_group("drive_cars"):
+		var size := PropMeshes.CAR_SIZES[car.model]
+		for z in range(-ceili(size.x * 0.5), ceili(size.x * 0.5) + 1):
+			for x: float in [-size.y * 0.5, 0.0, size.y * 0.5]:
+				_people.append(WorldOrigin.to_world(car.global_position + Basis(Vector3.UP, car.heading) * Vector3(x, 0, z)))
 	for thug in Combat.thugs:
 		_people.append(WorldOrigin.to_world(thug.ground_position()))
 	if crowd:
@@ -1309,3 +1315,30 @@ func _car_material() -> Material:
 	var own := ShaderMaterial.new()
 	own.shader = load("res://shaders/car.gdshader")
 	return own
+
+
+## Takes a traffic slot out of every lane/box before handing it to a real body.
+func take_car(world_at: Vector3, reach: float) -> DriveVehicle:
+	var best := -1
+	var distance := reach
+	for i in _highest + 1:
+		if _path[i] == null or _shrinking[i] or _grow[i] < 0.9:
+			continue
+		var next := _at[i].distance_to(world_at)
+		if next < distance:
+			best = i
+			distance = next
+	if best < 0:
+		return null
+	var car := DriveVehicle.new()
+	car.model = _model[best]
+	car.paint = _buffer[best * STRIDE + 12]
+	car.seed = _buffer[best * STRIDE + 18]
+	car.heading = _yaw[best]
+	car.traffic = self
+	add_child(car)
+	car.global_position = WorldOrigin.to_local(_at[best])
+	car.velocity = Vector3(sin(car.heading), 0, cos(car.heading)) * _v[best]
+	_despawn(best)
+	_draw()
+	return car
