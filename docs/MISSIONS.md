@@ -16,7 +16,7 @@ no mission is active; move near a road if none is available.
 | `bridge_run` | Manhattan approach to Brooklyn Bridge | Four timed checkpoints across to Brooklyn | $4,500 |
 | `central_park` | Bethesda Terrace | Collect eight power cells around the terrace | $3,500 |
 | `broadway_dash` | Times Square, east of the starting spot | Two short timed checkpoints south along Broadway | $1,500 |
-| `side_job` | Side job HUD button | A random nearby street crew of 3–5 thugs | $1,200 |
+| — | Side job HUD button | A random nearby street crew of 3–5 thugs | $1,200 |
 
 The green cash display counts toward the new balance when it changes.
 Mission rewards are paid once per successful run; routes are replayable.
