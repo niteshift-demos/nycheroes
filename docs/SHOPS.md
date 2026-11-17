@@ -92,6 +92,10 @@ hero_moves_test, options_test and radar_test passing.
 For the web check, export with `.niteshift/files/build-web`, then visit
 `?quality=low&name=Agent&solo=1&cash=50000&upgrades=reset&spawn=-372,20,2507,0`.
 The Union Square supply marker is nearby. For its garage, use
-`?quality=low&name=Agent&solo=1&cash=5000&wanted=3&car=1&spawn=-365,14,2620,0`.
+`?quality=low&name=Agent&solo=1&cash=5000&wanted=3&car=1&spawn=-367,14,2606,0`.
 Enter the starter car with G/R3, drive into the amber marker, and pay after
 breaking police sight. Remove cash/reset options for save/reload checks.
+For a deterministic unseen-payment check in a slow browser, replace
+`wanted=3` with `shop_check=garage`: entering a garage in a car seeds three
+stars immediately before opening the panel. The normal police sight and
+payment checks still apply. This is a QA fixture, not a normal gameplay mode.

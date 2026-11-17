@@ -2574,7 +2574,8 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?mission=<id>` start a local
   contract ([ids and routes](MISSIONS.md)), `?cash=N` set and save cash,
-  `?upgrades=reset` clear saved shop upgrades ([shops](SHOPS.md)), `?stats` the stats text
+  `?upgrades=reset` clear saved shop upgrades ([shops](SHOPS.md)),
+  `?shop_check=garage` seed three stars on garage entry for web QA, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
   `?police=0` disables wanted levels and police, `?wanted=N` starts with

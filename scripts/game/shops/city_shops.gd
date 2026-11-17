@@ -83,6 +83,11 @@ func _physics_process(_delta: float) -> void:
 			_inside = nearby
 			if location.kind == &"safehouse":
 				visit_safehouse()
+			# Reproducible web QA fixture: seed heat only once the car is inside.
+			# Sight and payment checks remain identical to ordinary play.
+			if LaunchOptions.get_string("shop_check") == "garage" and location.kind == &"garage" \
+					and hero.mode.name == &"Drive" and wanted:
+				wanted.set_stars(3)
 			entered.emit(location)
 		break
 	_inside = nearby
