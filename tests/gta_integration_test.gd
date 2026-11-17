@@ -32,6 +32,14 @@ func check(ok: bool, message: String) -> void:
 		_failed += 1
 
 
+func check_animation(hero: Hero, transition: String) -> void:
+	var animator := hero.get_node("Model") as HeroAnimator
+	animator._process(1.0 / 60.0)
+	animator._player.advance(0.2)
+	check(animator._player.is_playing() and animator._player.has_animation(animator._player.assigned_animation) \
+		and animator._player.assigned_animation != &"RESET", "hero animation plays after " + transition)
+
+
 func _run() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://gta_integration_test.cfg"))
 	Settings.use_file("user://gta_integration_test.cfg")
@@ -70,9 +78,38 @@ func _run() -> void:
 	check(parked.moves > moves and parked.global_position.distance_to(resting) > 0.2, "a hit wakes the parked car and moves its real body")
 	parked.queue_free()
 	var hero: Hero = load("res://scenes/hero/hero.tscn").instantiate()
+	hero.disable_mode = CollisionObject3D.DISABLE_MODE_KEEP_ACTIVE
 	hero.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(hero)
 	hero.frozen = false
+	var animator := hero.get_node("Model") as HeroAnimator
+	var skeleton := animator.find_child("Skeleton3D", true, false) as Skeleton3D
+	var arm := skeleton.find_bone("DEF-upper_arm.L")
+	check(animator._player.is_playing() and animator._player.assigned_animation == &"Idle" \
+		and not skeleton.get_bone_pose_rotation(arm).is_equal_approx(Quaternion.IDENTITY),
+		"first frame is posed Idle before browser skin warm-up can freeze the bind pose")
+	animator._player.process_mode = Node.PROCESS_MODE_DISABLED
+	check(not skeleton.get_bone_pose_rotation(arm).is_equal_approx(Quaternion.IDENTITY), "skin warm-up holds a posed arm")
+	animator._player.process_mode = Node.PROCESS_MODE_INHERIT
+	check_animation(hero, "skin warm-up release")
+	var ride := DriveVehicle.new()
+	add_child(ride)
+	await get_tree().physics_frame
+	(hero.get_mode(&"Drive") as DriveMode).car = ride
+	hero.set_mode(&"Drive")
+	check_animation(hero, "entering a car")
+	hero.set_mode(&"OnFoot")
+	check_animation(hero, "leaving a car")
+	ride.queue_free()
+	var placement := Game.new()
+	placement.hero = hero
+	placement.hero_camera = ThirdPersonCamera.new()
+	placement.travel_to(Vector3(20, 0, 20))
+	check_animation(hero, "story travel through Game.travel_to")
+	hero.global_position = Vector3.ZERO
+	hero.frozen = false
+	placement.hero_camera.free()
+	placement.free()
 	var city := Street.new()
 	add_child(city)
 	var encounters := EncounterDirector.new()
@@ -99,6 +136,25 @@ func _run() -> void:
 	missions.wallet = wallet
 	missions.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(missions)
+	var stats := PlayerStats.new()
+	add_child(stats)
+	var pause := PauseMenu.new()
+	pause.stats = stats
+	pause.missions = missions
+	pause.wallet = wallet
+	pause.radar = radar
+	add_child(pause)
+	var atlas := WorldMap.new()
+	atlas.radar = radar
+	add_child(atlas)
+	pause.map_requested.connect(atlas.open)
+	pause.open()
+	pause._leave(pause.map_requested)
+	atlas.close()
+	check(not get_tree().paused, "pause to map to resume restores simulation")
+	check_animation(hero, "pause → map → resume")
+	pause.queue_free()
+	atlas.queue_free()
 	check(radar.blips[&"mission/giver/times_square"].color == Radar.CONTRACT_COLOR,
 		"contract radar blip uses the same purple as its HUD label and map legend")
 	await get_tree().physics_frame
@@ -166,8 +222,13 @@ func _run() -> void:
 	Settings.set_value("safehouse_position", Vector3(100, 0, 100))
 	wanted._physics_process(2.1)
 	check(hero.mode.name == &"OnFoot" and hero.health == hero.max_health, "BUSTED recovery restores a playable hero")
+	check_animation(hero, "BUSTED at the saved safehouse")
 	check(hero.world_position().distance_to(Vector3(100, 0.3, 100)) < 0.01 and missions.story.completed == 0,
 		"safehouse arrest respawn keeps the unfinished story checkpoint")
+	hero.set_mode(&"KnockedOut")
+	(hero.mode as KnockedOutMode).physics_update(4.0)
+	hero.set_mode(&"OnFoot")
+	check_animation(hero, "ordinary knockout and safehouse respawn")
 	check(missions.retry() and missions.step_index == 0 and missions.story.completed == 0,
 		"retry returns to the same chapter's first step")
 	missions.finish(false)

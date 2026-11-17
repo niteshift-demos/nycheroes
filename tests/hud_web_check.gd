@@ -70,6 +70,31 @@ func _scenario(scenario: String) -> void:
 		_game.hero.set_mode(&"OnFoot")
 	(_game.hud.get_node("DebugLabel") as DebugHud).visible = scenario == "chase" and LaunchOptions.has("stats")
 	match scenario:
+		"polish":
+			_scenario("boss")
+			var camera := _game.hero_camera.camera
+			var forward := -camera.global_basis.z
+			forward.y = 0.0
+			var reference := _game.hero.world_position() + forward.normalized() * 8.0 + camera.global_basis.x * 5.0
+			var nearest := INF
+			var spot := reference
+			var yaw := 0.0
+			for lanes: Array in wanted.pursuit.graph.tiles.values():
+				for lane: TrafficLanes.Lane in lanes:
+					for i in lane.points.size() - 1:
+						var point := Geometry3D.get_closest_point_to_segment(reference, lane.points[i], lane.points[i + 1]) + Vector3.UP * 0.12
+						var score := point.distance_squared_to(reference)
+						if score < nearest and camera.is_position_in_frustum(WorldOrigin.to_local(point) + Vector3.UP) \
+								and wanted.pursuit._free_spot(point, lane.yaws[i]):
+							nearest = score
+							spot = point
+							yaw = lane.yaws[i]
+			var wreck := DriveVehicle.new()
+			wreck.health = 0.0
+			wreck.exploded = true
+			wreck.heading = yaw + 0.7  # three-quarter view of the shaded panels
+			_game.add_child(wreck)
+			wreck.global_position = WorldOrigin.to_local(spot)
 		"garage":
 			_scenario("car")
 			var drive := _game.hero.get_mode(&"Drive") as DriveMode
@@ -225,7 +250,7 @@ func _process(delta: float) -> void:
 		return
 	_telemetry = 0.5
 	var action := str(JavaScriptBridge.eval("window.nycPolishAction || ''"))
-	if action in ["call", "car", "chase", "foot", "boss", "explosion", "garage"]:
+	if action in ["call", "car", "chase", "foot", "boss", "explosion", "garage", "polish"]:
 		JavaScriptBridge.eval("window.nycPolishAction=''")
 		_scenario(action)
 	var officers := 0
@@ -237,6 +262,16 @@ func _process(delta: float) -> void:
 		paused = get_tree().paused, nodes = get_tree().get_node_count(),
 		position = _game.hero.world_position(), phone = _game.missions.phone_lines.size()}
 	state.blasts = Combat.effects._explosions.size() if Combat.effects else 0
+	var animator := _game.hero.get_node("Model") as HeroAnimator
+	state.animation = String(animator._player.assigned_animation)
+	state.animation_playing = animator._player.is_playing()
+	state.animation_process = animator._player.process_mode
+	for notifier in animator.find_children("*", "VisibleOnScreenNotifier3D", true, false):
+		if notifier is SkinWarmup:
+			state.skin_frames = notifier._frames_left
+			state.skin_holding = notifier.holding
+	var skin := animator.find_child("Skeleton3D", true, false) as Skeleton3D
+	state.arm_pose = str(skin.get_bone_pose_rotation(skin.find_bone("DEF-upper_arm.L")))
 	state.chase_seconds = _chase_elapsed
 	state.initial_officers = _chase_officers
 	state.initial_patrols = _chase_cars

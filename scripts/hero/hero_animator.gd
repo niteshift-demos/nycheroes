@@ -38,6 +38,10 @@ func _ready() -> void:
 	outfit.setup(skeleton, body, appearance)
 	if hero.remote_id == 0:
 		Settings.changed.connect(_appearance_changed)
+	# Warm-up may disable the player before its first animation tick. Pose
+	# the skeleton now so those first forty visible frames hold Idle, not bind.
+	_player.play(&"Idle", 0.0)
+	_player.advance(0.0)
 	SkinWarmup.add_to(self)
 	hero.landed.connect(_on_landed)
 	_yaw = hero.facing
