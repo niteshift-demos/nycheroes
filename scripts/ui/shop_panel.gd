@@ -18,20 +18,21 @@ var _paused := false
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	theme = HudStyle.theme()
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var shade := ColorRect.new()
-	shade.color = Color(0, 0, 0, 0.55)
+	shade.color = Color(0.02, 0.03, 0.04, 0.85)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(shade)
 	_panel = PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.09, 0.12, 0.97)
-	style.set_corner_radius_all(12)
+	style.bg_color = HudStyle.INK
 	style.set_content_margin_all(22)
 	_panel.add_theme_stylebox_override("panel", style)
 	add_child(_panel)
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_panel.add_child(scroll)
 	_rows = VBoxContainer.new()
@@ -39,8 +40,11 @@ func _ready() -> void:
 	_rows.add_theme_constant_override("separation", 12)
 	scroll.add_child(_rows)
 	_title = _label(24)
-	_balance = _label(18)
+	_title.add_theme_color_override("font_color", HudStyle.GOLD)
+	_balance = _label(20)
+	_balance.add_theme_color_override("font_color", HudStyle.GREEN)
 	_note = _label(16)
+	_note.add_theme_color_override("font_color", HudStyle.MUTED)
 	for id: String in HeroUpgrades.NAMES:
 		var button := _button("")
 		button.pressed.connect(func() -> void:
@@ -90,7 +94,7 @@ func _button(text: String) -> Button:
 func open(location: Dictionary) -> void:
 	visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	_title.text = location.label
+	_title.text = location.label.to_upper()
 	_note.text = "Each tier adds 25% of base. Prices: $2,000 / $8,000 / $25,000."
 	if location.kind == &"garage":
 		_note.text = "Drive in while wanted. Break police line of sight, then pay $500 per star for a respray."
@@ -125,13 +129,13 @@ func close() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if visible and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("options_menu")):
+	if visible and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("options_menu") or event.is_action_pressed("pause_menu")):
 		close()
 		get_viewport().set_input_as_handled()
 
 
 func _fit() -> void:
-	_panel.size = Vector2(minf(620.0, size.x - 32.0), minf(650.0, size.y - 32.0))
+	_panel.size = Vector2(minf(720.0, size.x - 32.0), minf(650.0, size.y - 32.0))
 	_panel.position = (size - _panel.size) * 0.5
 
 

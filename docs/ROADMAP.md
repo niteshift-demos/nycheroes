@@ -2321,6 +2321,14 @@ deployed); in a computer's browser the co-op menu links to it.
 
 ## 10. Open-world (GTA-style) play
 
+- [Cohesive HUD, pause and onboarding](HUD.md): radar health, wanted/cash,
+  bottom-centre objectives, top-left toasts and shared result banners with a
+  cheap neutral overlay and generated stinger. Esc/P/Start and the touch gear
+  open a navigable pause menu with map, contracts, persisted stats, Options
+  and Co-op, plus read-only owned upgrade tiers in Stats. Nearby services
+  share the HUD marker limits and panel style. First-visit title and contextual lessons; `?tutorial=reset`
+  restarts just onboarding. `hud_test.tscn` checks pause ownership, menu focus,
+  stats, lesson persistence and bindings. No new assets or tiles needed.
 - [Shops, upgrades and safehouses](SHOPS.md): three Hero Supply locations,
   six saved three-tier upgrades, two Precinct Payoff garages and two apartment
   recovery points with eight-hour sleep. Radar icons and entry panels support
@@ -2545,7 +2553,8 @@ deployed); in a computer's browser the co-op menu links to it.
   3 s. Co-op relay: TURN key "nycheroes-coop" in the Worker secrets
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
-- Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+- Tests (headless): `godot --headless --path . res://tests/hud_test.tscn`
+  (pause navigation, stats/tutorial persistence and menu bindings), `godot --headless --path . res://tests/hero_moves_test.tscn`,
   `res://tests/radar_test.tscn` (synthetic blips, map coordinates, waypoints,
   tile unloads and floating origin),
   `res://tests/combat_test.tscn`, `res://tests/wanted_test.tscn` (witnessed
@@ -2586,7 +2595,7 @@ deployed); in a computer's browser the co-op menu links to it.
   `?upgrades=reset` clear saved shop upgrades ([shops](SHOPS.md)),
   `?shop_check=garage` seed three stars on garage entry for web QA, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
+  `?tutorial=reset` resets first-run title and lessons, `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
   `?police=0` disables wanted levels and police, `?wanted=N` starts with
   0–5 stars for testing, `?police_profile=1` logs patrol decision cost, `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?car=1` (starter sedan), `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no

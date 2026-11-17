@@ -91,6 +91,7 @@ var hero: Hero
 var camera_rig: ThirdPersonCamera
 var coop_panel: CoopPanel
 var options_panel: OptionsPanel
+var pause_menu: PauseMenu
 var world_map: WorldMap
 var shop_panel: ShopPanel
 ## Turned on by a touch: Godot's mouse emulation stays on until that first
@@ -154,6 +155,8 @@ func _ready() -> void:
 	if not started_by_touch:
 		Input.emulate_mouse_from_touch = false
 	coop_panel.toggled.connect(_on_menu_toggled)
+	if pause_menu:
+		pause_menu.toggled.connect(_on_menu_toggled)
 	if world_map:
 		world_map.toggled.connect(_on_menu_toggled)
 	if options_panel:
@@ -317,9 +320,9 @@ func _press(button: TouchButton, index: int, at: Vector2) -> void:
 			GameAudio.toggle_mute()
 			_muted = GameAudio.is_muted()
 		&"options":
-			if options_panel:
+			if pause_menu:
 				coop_panel.close()
-				options_panel.open()
+				pause_menu.open()
 		_:
 			if button.toggle:
 				_set_toggle(button, not button.on)
@@ -395,7 +398,7 @@ func _on_menu_toggled(open: bool) -> void:
 
 
 func _menu_open() -> bool:
-	return coop_panel.visible or (options_panel != null and options_panel.visible) or (world_map != null and world_map.visible) or (shop_panel != null and shop_panel.visible)
+	return (pause_menu != null and pause_menu.visible) or coop_panel.visible or (options_panel != null and options_panel.visible) or (world_map != null and world_map.visible) or (shop_panel != null and shop_panel.visible)
 
 
 ## Labels and which buttons show follow what the hero is doing.

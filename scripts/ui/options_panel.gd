@@ -1,8 +1,7 @@
 class_name OptionsPanel
 extends Control
-## The options menu: O opens and closes it (Esc too in the desktop builds;
-## a gamepad's Start), and so do the gear button on touch screens and the
-## HUD's Options button. Four pages:
+## The options menu: O opens and closes it; Pause → Hero / Options
+## also reaches it on keyboard, gamepad and touch. Four pages:
 ##   Hero      saved costume, hair, headgear and colors with a live preview
 ##   Game      going to an address, graphics quality (Auto, Low, Medium,
 ##             High), time of day, full screen, FPS and stats, joining the
@@ -50,6 +49,10 @@ const KEYS: Array[Array] = [
 	["Shift", "super speed"],
 	["F", "fly; Space and C go up and down"],
 	["E, right mouse", "web swing (hold)"],
+	["G / R3", "enter or exit a nearby car"],
+	["WASD / left stick", "drive; brake then reverse"],
+	["Space / A", "handbrake while driving"],
+	["Esc / P / Start", "pause, missions and stats"],
 	["M", "co-op"],
 	[",", "map and waypoint"],
 	["O", "options (this menu)"],
@@ -58,7 +61,6 @@ const KEYS: Array[Array] = [
 	["F1", "free camera (wheel: its speed)"],
 ]
 const DESKTOP_KEYS: Array[Array] = [
-	["Esc", "options too"],
 	["F11", "full screen"],
 ]
 const TOUCH_HELP: Array[Array] = [
@@ -71,6 +73,8 @@ const TOUCH_HELP: Array[Array] = [
 	["SPEED", "super speed, on and off"],
 	["CO-OP", "play with friends"],
 	["Radar", "tap for map and waypoint"],
+	["CAR", "take or leave a nearby car"],
+	["Gear", "pause, missions, stats and options"],
 ]
 
 ## Set by Game.
@@ -114,23 +118,16 @@ var _save_at := 0
 var _fits_left := 0
 
 
-## Adds the "options_menu" action: O (and Esc in the desktop builds, where
-## it reaches the game; browsers keep it for leaving the pointer lock and
-## full screen) and a gamepad's Start.
+## O stays a dedicated Options shortcut. Esc/P/Start belong to PauseMenu.
 static func add_action() -> void:
 	if InputMap.has_action(&"options_menu"):
 		return
 	InputMap.add_action(&"options_menu")
 	var keys: Array[Key] = [KEY_O]
-	if not Device.is_web():
-		keys.append(KEY_ESCAPE)
 	for keycode in keys:
 		var key := InputEventKey.new()
 		key.physical_keycode = keycode
 		InputMap.action_add_event(&"options_menu", key)
-	var start := InputEventJoypadButton.new()
-	start.button_index = JOY_BUTTON_START
-	InputMap.action_add_event(&"options_menu", start)
 
 
 func _ready() -> void:

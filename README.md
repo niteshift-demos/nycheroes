@@ -44,10 +44,15 @@ Windows and Mac versions are on the site's download page.
 | Handbrake / drift while driving | Space | A |
 | Co-op menu | M | |
 | Map / waypoint | Comma (`,`); drag to pan, wheel or +/− to zoom, click to pin | |
-| Hero and options | O or Esc | |
+| Pause / missions / stats | Esc or P | Start |
+| Hero and options | O (also in pause) | Via pause |
 | Time of day | T | |
+| Toggle sound | N | |
 
-Phones and tablets get touch controls. Tap the radar to open the map; drag
+New players get a title card and contextual tips. Pause → Skip tutorial skips
+the tips; `?tutorial=reset` shows them again. See [HUD and pause](docs/HUD.md).
+
+Phones and tablets get touch controls. The gear opens pause. Tap the radar to open the map; drag
 to pan, use +/− to zoom, and tap a street to set a waypoint.
 
 ## Running it locally
@@ -89,7 +94,8 @@ Add them to the URL (`?quality=low&time=21:00`) or, on desktop, after
 `?quality=low|medium|high`, `?time=HH:MM`, `?spawn=x,y,z,yaw`,
 `?peds=N`, `?traffic=N`, `?gangs=N`, `?solo=1`, `?host`, `?join=CODE`,
 `?stats`, `?mission=<id>`, `?cash=N` ([missions](docs/MISSIONS.md)),
-`?upgrades=reset` ([shops](docs/SHOPS.md)), `?radar=0` (hide the radar). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
+`?upgrades=reset` ([shops](docs/SHOPS.md)), `?radar=0` (hide the radar),
+`?tutorial=reset` (restart onboarding). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Tests
 

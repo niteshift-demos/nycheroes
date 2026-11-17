@@ -23,8 +23,8 @@ extends Node3D
 ## T steps the time of day on to the next of dawn, day, dusk and night
 ## (TimeOfDay; ?time=HH:MM and ?daylength=MINUTES set the clock).
 ## Sound is the Audio node's (GameAudio): N switches it off and on.
-## O opens the options menu (OptionsPanel; Esc too in the desktop builds), as
-## do the HUD's Options button and the touch gear; one menu shows at a time.
+## O opens OptionsPanel; Esc/P/Start and the touch gear open PauseMenu.
+## Only one menu shows at a time.
 ## Its Go to box takes the hero to an address (travel_to): onto the sidewalk
 ## nearest it, facing it.
 ##
@@ -76,6 +76,9 @@ var _name_prompt: NamePrompt
 ## Local economy and objectives; radar integrations can use Game.missions.
 var wallet: Wallet
 var missions: MissionDirector
+var stats: PlayerStats
+var pause_menu: PauseMenu
+var onboarding: Onboarding
 var shops: CityShops
 var _shop_panel: ShopPanel
 var _loading: LoadingScreen
@@ -107,6 +110,7 @@ func _ready() -> void:
 	_add_loading_screen()
 	_add_name_prompt()
 	_add_missions()
+	_add_presentation()
 	_add_shops()
 	if not Device.is_web() and bool(Settings.get_value("fullscreen", false)) and not LaunchOptions.has("screenshot"):
 		Device.set_fullscreen(true)
@@ -199,11 +203,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch and _touch_controls == null and Device.touch_allowed() \
 			and not LaunchOptions.has("demo"):
 		_add_touch_controls(true)  # a touch screen the browser didn't tell us about
-	if _name_prompt.is_typing() or is_instance_valid(_loading):
+	if _name_prompt.is_typing() or is_instance_valid(_loading) or (onboarding and onboarding.title_pending):
 		return  # (menus would open under the loading screen)
 	if (_shop_panel and _shop_panel.visible) or _options.is_typing():
 		return
-	if event.is_action_pressed("world_map") and not coop_panel.is_typing():
+	if event.is_action_pressed("pause_menu") and not coop_panel.is_typing():
+		_options.close(false, false)
+		coop_panel.close()
+		world_map.close()
+		pause_menu.open()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("world_map") and not coop_panel.is_typing():
 		_open_world_map()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("options_menu") and not coop_panel.is_typing() and not LaunchOptions.has("demo"):
@@ -305,11 +315,13 @@ func _set_free_camera(on: bool) -> void:
 
 
 func _update_controls() -> void:
+	var menu_open := coop_panel.visible or (_options and _options.visible) \
+		or (world_map and world_map.visible) or (pause_menu and pause_menu.visible) \
+		or (_shop_panel and _shop_panel.visible)
+	var title_open := onboarding != null and onboarding.title_pending
 	if radar:
-		radar.set_process_input(not coop_panel.visible and not (_options and _options.visible) and not (world_map and world_map.visible) and not (_shop_panel and _shop_panel.visible))
-	player_input.enabled = not _free_camera_on and not coop_panel.visible and not (_options and _options.visible) \
-		and not (world_map and world_map.visible) \
-		and not (_shop_panel and _shop_panel.visible) \
+		radar.set_process_input(not menu_open and not title_open)
+	player_input.enabled = not _free_camera_on and not menu_open and not title_open \
 		and not (_name_prompt and _name_prompt.visible)
 
 
@@ -333,7 +345,8 @@ func _add_name_prompt() -> void:
 	coop_panel.rename_requested.connect(func() -> void:
 		coop_panel.close()
 		_name_prompt.open())
-	if NamePrompt.needs_name() and not LaunchOptions.has("demo") and not LaunchOptions.has("cam") \
+	if bool(Settings.get_value("title_seen", false)) and LaunchOptions.get_string("tutorial") != "reset" \
+			and NamePrompt.needs_name() and not LaunchOptions.has("demo") and not LaunchOptions.has("cam") \
 			and not LaunchOptions.has("screenshot") and DisplayServer.get_name() != "headless":
 		_name_prompt.open()
 
@@ -355,7 +368,8 @@ func _add_options(quality: Quality) -> void:
 	if game_hud:
 		game_hud.options_requested.connect(func() -> void:
 			coop_panel.close()
-			_options.open())
+			if pause_menu:
+				pause_menu.open())
 
 
 ## Navigation is independent of driving, missions, and police.
@@ -404,6 +418,7 @@ func _add_touch_controls(started_by_touch: bool) -> void:
 	_touch_controls.coop_panel = coop_panel
 	_touch_controls.options_panel = _options
 	_touch_controls.world_map = world_map
+	_touch_controls.pause_menu = pause_menu
 	_touch_controls.shop_panel = _shop_panel
 	radar.touch_controls = _touch_controls
 	_touch_controls.started_by_touch = started_by_touch
@@ -438,7 +453,8 @@ func _add_missions() -> void:
 	missions.wallet = wallet
 	missions.wanted = get_node_or_null("Wanted") as Wanted
 	missions.can_progress = func() -> bool:
-		return not is_instance_valid(_loading) and not _name_prompt.visible and not LaunchOptions.has("demo")
+		return not is_instance_valid(_loading) and not _name_prompt.visible and not LaunchOptions.has("demo") \
+			and not (onboarding and onboarding.title_pending) and not (pause_menu and pause_menu.visible)
 	add_child(missions)
 	var overlay := MissionHud.new()
 	overlay.name = "MissionHud"
@@ -449,6 +465,48 @@ func _add_missions() -> void:
 	var game_hud := hud.get_node_or_null("GameHud") as GameHud
 	if game_hud:
 		game_hud.missions = missions
+
+
+## Presentation nodes stay additive to keep driving, map and campaign integration small.
+func _add_presentation() -> void:
+	PauseMenu.add_action()
+	stats = PlayerStats.new()
+	stats.name = "Stats"
+	stats.hero = hero
+	stats.missions = missions
+	add_child(stats)
+	pause_menu = PauseMenu.new()
+	pause_menu.name = "PauseMenu"
+	pause_menu.missions = missions
+	pause_menu.wallet = wallet
+	pause_menu.stats = stats
+	pause_menu.radar = radar
+	hud.add_child(pause_menu)
+	pause_menu.toggled.connect(func(_open: bool) -> void: _update_controls())
+	pause_menu.map_requested.connect(_open_world_map)
+	pause_menu.options_requested.connect(func() -> void: _options.open(true))
+	pause_menu.coop_requested.connect(func() -> void: coop_panel.open())
+	for menu: Control in [_options, coop_panel, world_map]:
+		menu.toggled.connect(func(open: bool) -> void:
+			if open:
+				pause_menu.close(false))
+	var game_hud := hud.get_node("GameHud") as GameHud
+	var wanted := get_node_or_null("Wanted") as Wanted
+	if wanted:
+		wanted.busted.connect(func() -> void: game_hud.show_banner("BUSTED", "Arrested · cash fine paid", HudStyle.RED))
+	if not LaunchOptions.has("demo") and not LaunchOptions.has("cam") and not LaunchOptions.has("screenshot") \
+			and DisplayServer.get_name() != "headless":
+		onboarding = Onboarding.new()
+		onboarding.name = "Onboarding"
+		onboarding.game = self
+		onboarding.game_hud = game_hud
+		hud.add_child(onboarding)
+		onboarding.dismissed.connect(func() -> void:
+			if NamePrompt.needs_name():
+				_name_prompt.open()
+			_update_controls())
+		pause_menu.skip_tutorial_requested.connect(onboarding.skip)
+	_update_controls()
 
 
 ## Shops share the existing wallet, radar and loading-aware travel path.
@@ -477,6 +535,7 @@ func _add_shops() -> void:
 			_options.close(false, false)
 			coop_panel.close()
 			world_map.close()
+			pause_menu.close(false)
 		_update_controls())
 	_options.toggled.connect(func(open: bool) -> void:
 		if open:
@@ -485,6 +544,9 @@ func _add_shops() -> void:
 		if open:
 			_shop_panel.close())
 	world_map.toggled.connect(func(open: bool) -> void:
+		if open:
+			_shop_panel.close())
+	pause_menu.toggled.connect(func(open: bool) -> void:
 		if open:
 			_shop_panel.close())
 	(hud.get_node("GameHud") as GameHud).shops = shops

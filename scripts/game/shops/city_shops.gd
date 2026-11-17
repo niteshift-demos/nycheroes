@@ -192,6 +192,6 @@ func respawn() -> bool:
 func markers() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for location in locations:
-		if hero.world_position().distance_to(location.position) < 350.0:
+		if hero.world_position().distance_to(location.position) <= 150.0:
 			result.append(location)
 	return result
