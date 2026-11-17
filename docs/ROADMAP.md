@@ -1917,7 +1917,12 @@ phone, in the phone's browser, at https://nycheroes.party.
   cash and action arc based on visible height and safe insets; `visualViewport`
   accounts for Safari chrome while the canvas resizes. Geometry checks include
   844×320/340 and 874×344/292 with the island on either side and a home indicator.
-  Standalone mode suppresses the Add to Home Screen suggestion.
+  Standalone mode suppresses the Add to Home Screen suggestion. iOS 26 Safari
+  on a rented iPhone simulator verifies stick movement, charged JUMP, CAR/EXIT,
+  driving, native name entry and portrait/landscape transitions. Installing
+  through Share and launching the Home Screen icon verifies the standalone
+  prompt and play without browser bars. Safari shows its playback indicator
+  after input; audible output quality remains a physical-device check.
 - **Still to check on real phones:** frame rate and heat on low (and
   whether tablets should get medium), whether iOS Safari keeps the tab
   alive, fullscreen and landscape lock on Android, Add to Home Screen on

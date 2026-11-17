@@ -176,3 +176,14 @@ checks 844×340, 844×320 and 874×344/292 with left/right 59 px island insets a
 a 21 px home indicator, including radar/health/stick and every visible action
 button against the HUD, toolbar and safe edges. Standalone iOS omits the
 Add to Home Screen suggestion; the portrait rotation prompt still applies.
+
+On the iOS 26 simulator, use `lim ios perform` with touchDown, a 100 ms wait,
+touchMove, a 3000 ms wait and touchUp (`--timeout 7000`). Capture concurrently
+during the wait to see held movement. At the tested Safari tab-strip height,
+the stick is around (164,290); its forward drag ends near (164,225). Button
+positions change with visible height: inspect the current screen before using
+coordinates. Screenshots arrive in a portrait frame even in landscape; a
+90-degree counterclockwise rotation makes the evidence readable. Simulator
+checks include charged JUMP, CAR/EXIT, driving, native name entry, Safari's
+playback indicator and a real Add to Home Screen launch. Physical phone heat,
+performance, long-session survival and audible output quality remain to check.
