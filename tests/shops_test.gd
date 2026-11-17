@@ -93,8 +93,17 @@ func _run() -> void:
 	var before := wallet.balance
 	_check(shops.respray().contains("see you") and wanted.stars == 3 and wallet.balance == before, "visible police reject payment and keep wanted stars")
 	officer.global_position = Vector3(0, 0, 500)
+	var patrol := PoliceCar.new()
+	patrol.suspect_id = Net.local_id()
+	add_child(patrol)
+	patrol.global_position = Vector3(0, 0, 10)
+	patrol.set_physics_process(false)
+	wanted.pursuit.cars.append(patrol)
+	_check(shops.respray().contains("see you") and wallet.balance == before, "patrol car sight also blocks respray")
+	patrol.global_position = Vector3(0, 0, 500)
 	var paint := car.paint
 	_check(shops.respray().contains("Wanted cleared") and wanted.stars == 0 and wallet.balance == before - 1500 and car.paint != paint, "unseen respray charges $500 per star, changes paint and clears wanted")
+	_check(wanted.pursuit.cars.is_empty(), "paid garage removes the patrol response immediately")
 	_check(shops.respray().contains("No wanted") and wallet.balance == before - 1500, "repeat respray cannot charge after stars clear")
 	wanted.set_stars(5)
 	wallet.spend(wallet.balance)

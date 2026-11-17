@@ -58,6 +58,7 @@ func _ready() -> void:
 	_return = _button("Return to city")
 	_return.pressed.connect(close)
 	shops.entered.connect(open)
+	shops.exited.connect(close)
 	shops.changed.connect(_refresh)
 	shops.wallet.changed.connect(func(_cash: int) -> void: _refresh())
 	Net.state_changed.connect(func() -> void:

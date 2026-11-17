@@ -5,6 +5,7 @@ extends Node
 
 signal entered(location: Dictionary)
 signal changed
+signal exited
 
 const COLORS := {&"shop": Color(0.3, 0.9, 0.75), &"garage": Color(1.0, 0.65, 0.2), &"safehouse": Color(0.4, 0.7, 1.0)}
 var hero: Hero
@@ -85,6 +86,9 @@ func _physics_process(_delta: float) -> void:
 			entered.emit(location)
 		break
 	_inside = nearby
+	if not active.is_empty() and nearby != active.id:
+		close()
+		exited.emit()
 
 
 ## Snap authored doors to the nearest sidewalk segment, using its true altitude.
@@ -145,6 +149,8 @@ func respray() -> String:
 	drive.car._draw()
 	wanted.set_stars(0)
 	wanted._clear_response()
+	if wanted.pursuit:
+		wanted.pursuit.advance(0.0)
 	changed.emit()
 	return "Paid %s. New paint. Wanted cleared." % Wallet.format_cash(cost)
 
