@@ -44,6 +44,8 @@ var touch_controls: TouchControls:
 
 ## Set by Game; mission logic and text live in their own nodes.
 var missions: MissionDirector
+## Navigation pin uses the same projection and edge treatment as combat markers.
+var radar: Radar
 
 var _font: Font
 var _notices: Array = []  # [text, msec when it goes]
@@ -111,6 +113,10 @@ func _draw() -> void:
 		if touch_controls:  # bottom middle, between the thumbs
 			at = Vector2((size.x - width) * 0.5, size.y - touch_controls.safe_insets.w - 8.0)
 		_text(at, AERIAL_CREDIT, 12, Color(1.0, 1.0, 1.0, 0.8))
+	var mission_pin := missions != null and missions.active != null and radar != null \
+		and radar.waypoint_position.distance_squared_to(missions.current_target()) < 1.0
+	if radar and radar.waypoint_active and not mission_pin:
+		_draw_marker(WorldOrigin.to_local(radar.waypoint_position) + Vector3.UP * 2.0, "WAYPOINT", Radar.WAYPOINT_COLOR, 0.0)
 	var thug := encounters.nearest_thug(hero.world_position())
 	if thug:
 		_draw_marker(thug.global_position + Vector3.UP * 2.2, "THUGS", MARKER_COLOR, NEAR_ENOUGH)

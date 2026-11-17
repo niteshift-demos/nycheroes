@@ -93,6 +93,18 @@ The mission definitions, timer and pickups are local, so friends do not see
 your markers or collect your items. A live two-browser mission fight and
 host migration during a mission have not been verified.
 
+## Radar integration
+
+`MissionRadar` is a child adapter of MissionDirector. It discovers the
+`radar` group, registers yellow `mission/giver/<id>` blips while idle, and
+replaces those with `mission/objective` while a contract is active. Step
+changes set the world-space radar waypoint; finish clears it and restores
+the givers. Side-job crews additionally get tracked `enemy` blips under
+`mission/enemy/<instance id>`, removed when defeated or the job ends.
+The ordinary HUD suppresses a duplicate waypoint arrow when it matches the
+current gold mission marker. Radar and world-map positions stay absolute
+across origin shifts.
+
 ## Coordinates
 
 WGS84 coordinates were checked on 2026-11-16 against the linked place
@@ -122,5 +134,6 @@ persistence/validation/signals, progress and targets, origin shifts,
 timeout/retry, single payouts, collectible de-duplication, giver entry, and
 tracked EncounterDirector gangs with local assist rewards, arrests and
 capped fines, police defeats paying no bounty, and timed checkpoints while
-the hero follows a DriveVehicle in Drive mode. It uses synthetic
+the hero follows a DriveVehicle in Drive mode, plus giver/objective/enemy
+radar blips and waypoint cleanup. It uses synthetic
 ground and a settings file of its own, without downloads.

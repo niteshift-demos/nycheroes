@@ -44,6 +44,10 @@ func _ready() -> void:
 		if not start(LaunchOptions.get_string("mission")):
 			push_warning("Unknown mission: " + LaunchOptions.get_string("mission"))
 
+	var navigation := MissionRadar.new()
+	navigation.name = "MissionRadar"
+	navigation.director = self
+	add_child(navigation)
 
 func _process(delta: float) -> void:
 	if hero == null or hero.frozen or (can_progress.is_valid() and not can_progress.call()):

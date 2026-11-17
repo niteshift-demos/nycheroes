@@ -91,6 +91,7 @@ var hero: Hero
 var camera_rig: ThirdPersonCamera
 var coop_panel: CoopPanel
 var options_panel: OptionsPanel
+var world_map: WorldMap
 ## Turned on by a touch: Godot's mouse emulation stays on until that first
 ## finger lifts, so the mouse press it made is released too.
 var started_by_touch := false
@@ -152,6 +153,8 @@ func _ready() -> void:
 	if not started_by_touch:
 		Input.emulate_mouse_from_touch = false
 	coop_panel.toggled.connect(_on_menu_toggled)
+	if world_map:
+		world_map.toggled.connect(_on_menu_toggled)
 	if options_panel:
 		options_panel.toggled.connect(_on_menu_toggled)
 	_read_look_settings()
@@ -389,7 +392,7 @@ func _on_menu_toggled(open: bool) -> void:
 
 
 func _menu_open() -> bool:
-	return coop_panel.visible or (options_panel != null and options_panel.visible)
+	return coop_panel.visible or (options_panel != null and options_panel.visible) or (world_map != null and world_map.visible)
 
 
 ## Labels and which buttons show follow what the hero is doing.

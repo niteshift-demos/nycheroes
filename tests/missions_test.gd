@@ -43,10 +43,16 @@ func _run() -> void:
 	add_child(reloaded)
 	_check(reloaded.balance == 12450 and Wallet.format_cash(12450) == "$12,450", "saved balance reloads and formats")
 	reloaded.queue_free()
+	var radar := Radar.new()
+	radar.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(radar)
 	var director := MissionDirector.new()
 	director.process_mode = Node.PROCESS_MODE_DISABLED
 	director.wallet = wallet
 	add_child(director)
+	var navigation := director.get_node("MissionRadar") as MissionRadar
+	_check(radar.blips.has(&"mission/giver/times_square") and radar.blips[&"mission/giver/times_square"].kind == &"mission"
+		and radar.blips[&"mission/giver/times_square"].color == Color.YELLOW, "available givers have yellow mission radar blips")
 	director.mission_started.connect(func(id: String) -> void: _events.append("start:" + id))
 	director.mission_step_changed.connect(func(id: String, _at: Vector3) -> void: _events.append("step:" + id))
 	director.mission_finished.connect(func(id: String, success: bool) -> void: _events.append("end:" + id + str(success)))
@@ -61,8 +67,13 @@ func _run() -> void:
 	WorldOrigin.shift(Vector3(-500, 0, 0))
 	director.advance(0.1, Vector3(100, 0, 0))
 	_check(director.step_index == 1 and director.remaining == 2.0, "arrival advances and starts timer")
+	_check(radar.waypoint_active and radar.waypoint_position == Vector3(200, 0, 0)
+		and radar.blips[MissionRadar.OBJECTIVE_ID].world_position == Vector3(200, 0, 0)
+		and not radar.blips.has(&"mission/giver/times_square"), "step changes set the objective blip and world waypoint")
 	director.advance(2.1, Vector3.ZERO)
 	_check(director.active == null and director.banner == "MISSION FAILED" and wallet.balance == 12450, "expired timer fails without payout")
+	_check(not radar.waypoint_active and not radar.blips.has(MissionRadar.OBJECTIVE_ID)
+		and radar.blips.has(&"mission/giver/times_square"), "finish clears navigation and restores available givers")
 	_check(director.retry() and director.step_index == 0, "retry resets route")
 	director.advance(0.1, Vector3(100, 0, 0))
 	director.advance(0.5, Vector3(200, 0, 0))
@@ -89,10 +100,15 @@ func _run() -> void:
 	add_child(encounters)
 	director.hero = hero
 	director.encounters = encounters
+	mission.id = "side_job"
 	mission.steps = [Mission.defeat_gang_at(Vector3(12, 0, 0), 2, "Fight")]
 	director.start_mission(mission)
 	director.advance(0.1, Vector3.ZERO)
 	_check(director.gang.size() == 2, "mission spawns through EncounterDirector")
+	navigation.refresh()
+	var enemy_id := StringName("mission/enemy/%d" % director.gang[0].get_instance_id())
+	_check(radar.blips.has(enemy_id) and radar.blips[enemy_id].kind == &"enemy" and radar.blips[enemy_id].node != null,
+		"side-job crew members have tracked enemy radar blips")
 	var outsider: Thug = load("res://scenes/npc/thug.tscn").instantiate()
 	add_child(outsider)
 	outsider.global_position = Vector3(1000, 0, 0)
@@ -103,6 +119,7 @@ func _run() -> void:
 		thug.go_down(Vector3.UP)
 	director.advance(0.1, Vector3.ZERO)
 	_check(director.active == null and wallet.balance == 27550, "defeated mission gang pays mission plus local assist bounties")
+	_check(not radar.blips.has(enemy_id) and not radar.waypoint_active, "finished side jobs remove crew blips and waypoint")
 	director.banner_remaining = 0.0
 	director.advance(0.1, mission.giver)
 	# Use a catalog giver to exercise the same entry path as touch movement.

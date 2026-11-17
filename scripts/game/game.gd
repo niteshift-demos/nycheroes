@@ -68,6 +68,9 @@ var _drop_tries := 0
 ## travel_to's address, until the hero has stepped onto the street by it.
 var _arrival := Vector3.INF
 var _touch_controls: TouchControls
+## Shared navigation UI; other open-world systems can register blips here.
+var radar: Radar
+var world_map: WorldMap
 var _options: OptionsPanel
 var _name_prompt: NamePrompt
 ## Local economy and objectives; radar integrations can use Game.missions.
@@ -98,6 +101,7 @@ func _ready() -> void:
 	quality.apply(time_of_day.sun, get_world_3d().environment, city, get_node("Crowd") as CrowdManager, encounters,
 		get_node_or_null("Traffic") as Traffic, get_node_or_null("Trains") as Trains, time_of_day)
 	_add_options(quality)
+	_add_radar()
 	_add_loading_screen()
 	_add_name_prompt()
 	_add_missions()
@@ -196,7 +200,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return  # (menus would open under the loading screen)
 	if _options.is_typing():
 		return
-	if event.is_action_pressed("options_menu") and not coop_panel.is_typing() and not LaunchOptions.has("demo"):
+	if event.is_action_pressed("world_map") and not coop_panel.is_typing():
+		_open_world_map()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("options_menu") and not coop_panel.is_typing() and not LaunchOptions.has("demo"):
 		coop_panel.close()
 		_options.toggle(true)
 		get_viewport().set_input_as_handled()
@@ -295,7 +302,10 @@ func _set_free_camera(on: bool) -> void:
 
 
 func _update_controls() -> void:
+	if radar:
+		radar.set_process_input(not coop_panel.visible and not (_options and _options.visible) and not (world_map and world_map.visible))
 	player_input.enabled = not _free_camera_on and not coop_panel.visible and not (_options and _options.visible) \
+		and not (world_map and world_map.visible) \
 		and not (_name_prompt and _name_prompt.visible)
 
 
@@ -344,6 +354,41 @@ func _add_options(quality: Quality) -> void:
 			_options.open())
 
 
+## Navigation is independent of driving, missions, and police.
+func _add_radar() -> void:
+	WorldMap.add_action()
+	radar = Radar.new()
+	radar.name = "Radar"
+	radar.hero = hero
+	radar.city = city
+	radar.players = players
+	radar.encounters = encounters
+	hud.add_child(radar)
+	hud.move_child(radar, coop_panel.get_index())
+	world_map = WorldMap.new()
+	world_map.name = "WorldMap"
+	world_map.radar = radar
+	hud.add_child(world_map)
+	world_map.toggled.connect(func(_open: bool) -> void: _update_controls())
+	radar.map_requested.connect(_open_world_map)
+	_options.toggled.connect(func(open: bool) -> void:
+		if open:
+			world_map.close())
+	coop_panel.toggled.connect(func(open: bool) -> void:
+		if open:
+			world_map.close())
+	(hud.get_node("GameHud") as GameHud).radar = radar
+	_options.radar = radar
+
+
+func _open_world_map() -> void:
+	if is_instance_valid(_loading) or (_name_prompt and _name_prompt.visible):
+		return
+	_options.close(false, false)
+	coop_panel.close()
+	world_map.open()
+
+
 ## On-screen controls for touch screens. The UI is then measured in CSS
 ## pixels, which browsers keep about the same physical size on every phone.
 func _add_touch_controls(started_by_touch: bool) -> void:
@@ -354,9 +399,12 @@ func _add_touch_controls(started_by_touch: bool) -> void:
 	_touch_controls.camera_rig = hero_camera
 	_touch_controls.coop_panel = coop_panel
 	_touch_controls.options_panel = _options
+	_touch_controls.world_map = world_map
+	radar.touch_controls = _touch_controls
 	_touch_controls.started_by_touch = started_by_touch
 	hud.add_child(_touch_controls)
 	hud.move_child(_touch_controls, coop_panel.get_index())  # under the co-op menu
+	hud.move_child(radar, coop_panel.get_index())  # radar receives taps before the stick
 	var game_hud := hud.get_node_or_null("GameHud") as GameHud
 	if game_hud:
 		game_hud.touch_controls = _touch_controls
