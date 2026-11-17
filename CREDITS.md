@@ -5,6 +5,12 @@ lines below wherever a license asks for one (the aerial photos do).
 
 ## City data
 
+- **Mission landmark coordinate checks:** Wikipedia contributors, the
+  Times Square, Empire State Building, One World Trade Center, Brooklyn
+  Bridge and Bethesda Terrace place records linked in
+  [docs/MISSIONS.md](docs/MISSIONS.md) (CC BY-SA 4.0 for article text;
+  only factual coordinate checks were used, no text or artwork copied).
+
 - **Aerial photos:** NYC 2024 orthoimagery (6-inch, flown March 2024), by
   the NYC Office of Technology and Innovation and the New York State
   Statewide Digital Orthoimagery Program. License: CC BY 4.0, per the
