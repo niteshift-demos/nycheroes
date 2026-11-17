@@ -21,11 +21,14 @@ func interact() -> void:
 	var distance := 3.5
 	for parked: DriveVehicle in hero.get_tree().get_nodes_in_group("drive_cars"):
 		var reach := parked.global_position.distance_to(hero.global_position)
-		if parked.driver == null and parked.health > 0.0 and reach < distance:
+		if parked.driver == null and not parked.ai_controlled and parked.health > 0.0 and reach < distance:
 			nearest = parked
 			distance = reach
 	if nearest:
 		car = nearest
+		if car is PoliceCar and car.is_in_group("police_cars"):
+			Combat.report_crime(&"steal_police_car", hero.world_position(), 2.0)
+			car.abandon_pursuit()
 	else:
 		for traffic: Traffic in hero.get_tree().get_nodes_in_group("traffic"):
 			car = traffic.take_car(hero.world_position(), 3.5)
@@ -163,7 +166,7 @@ func _exit_tree() -> void:
 ## Matches interact's reach and excludes occupied, burning and burned cars.
 func can_take_car() -> bool:
 	for parked: DriveVehicle in hero.get_tree().get_nodes_in_group("drive_cars"):
-		if parked.driver == null and parked.health > 0.0 and parked.global_position.distance_to(hero.global_position) < 3.5:
+		if parked.driver == null and not parked.ai_controlled and parked.health > 0.0 and parked.global_position.distance_to(hero.global_position) < 3.5:
 			return true
 	for flow: Traffic in hero.get_tree().get_nodes_in_group("traffic"):
 		if flow.nearest_car(hero.world_position(), 3.5) >= 0:

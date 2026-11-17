@@ -94,3 +94,14 @@ hints, elevated traffic exclusion, fast sweeps and nearby-query cost with
 `traffic_test`, `combat_test`, `wanted_test`, `hero_moves_test`, `radar_test`
 and `audio_test` passing; tile-based tests can use
 `-- --tiles_url=http://localhost:8060/tiles/` in this sandbox.
+
+
+Police pursuit integration preserves AI controls, glancing contacts, ramming,
+police theft and livery. Active AI cars are excluded from takeover hints.
+Patrols use the same damage/fire path; destroyed patrols stop driving and
+silence their sirens and light bars. Fleet snapshots append health, body
+roll/pitch and destroyed state (13 fields, accepting older 9-field fleets).
+AI-caused crashes and explosions do not create hero crimes; hero attacks
+and driven impacts retain attribution through chain explosions.
+`police_cars_test` covers pursuit behavior plus patrol destruction,
+bystander injury without false crimes, and damage over real ENet snapshots.

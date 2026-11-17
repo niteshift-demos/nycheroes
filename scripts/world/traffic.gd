@@ -1403,9 +1403,9 @@ func solidify_sweep(at: Vector3, motion: Vector3, size: Vector3, yaw: float) -> 
 
 
 ## Punches and slams use the same row lookup as driving, without scanning the city.
-func strike_cars(center: Vector3, radius: float, damage: float, push: Vector3) -> void:
+func strike_cars(center: Vector3, radius: float, damage: float, push: Vector3, blame_hero := true) -> void:
 	var world := WorldOrigin.to_world(center)
 	for i in nearby_cars(world, radius + 8.0):
 		var size := PropMeshes.CAR_SIZES[_model[i]]
 		if DriveVehicle.box_distance(world, _at[i], size, _yaw[i]) <= radius:
-			promote_car(i).take_hit(damage, push)
+			promote_car(i).take_hit(damage, push, blame_hero)

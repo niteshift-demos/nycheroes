@@ -12,12 +12,16 @@ var seed := 0.0
 var heading := 0.0
 var driver: Hero
 var puppet := false
+## AI supplies the same input as a driver, without blaming NPC impacts on the hero.
+var ai_controlled := false
 var traffic: Traffic
 var _mesh: MultiMesh
 var _roll := 0.0
 var _braking := false
 ## Zero health burns for three seconds, leaving time to get out before the blast.
 var health := 100.0
+## NPC crashes must not blame the hero; hero attacks and driven impacts do.
+var _hero_damage := false
 var burn_time := 0.0
 var exploded := false
 var slip := 0.0
@@ -64,11 +68,13 @@ func _ready() -> void:
 	add_child(visual)
 	_engine = _loop(&"engine", -10.0)
 	_tyres = _loop(&"tyre_screech", -15.0)
+	if paint == PoliceLivery.PAINT:
+		add_child(PoliceLivery.new())
 	_draw()
 
 
 func _physics_process(delta: float) -> void:
-	if puppet or driver:
+	if puppet or driver or ai_controlled:
 		return
 	velocity.x = move_toward(velocity.x, 0.0, delta * 4.0)
 	velocity.z = move_toward(velocity.z, 0.0, delta * 4.0)
@@ -112,7 +118,8 @@ func drive(input: HeroInput, delta: float) -> void:
 	velocity.z = horizontal.z
 	var before := global_position
 	_step(delta)
-	_hit_people(before)
+	if driver:
+		_hit_people(before)
 
 
 func _step(delta: float) -> void:
@@ -146,17 +153,17 @@ func _step(delta: float) -> void:
 		# Plain car velocity survives origin shifts and gives the actual impact.
 		var relative := incoming - (other.velocity if other else Vector3.ZERO)
 		var closing := maxf(0.0, -relative.dot(normal))
-		if driver and absf(normal.y) < 0.3 and Vector2(velocity.x, velocity.z).length() > 0.5:
+		if (driver or ai_controlled) and absf(normal.y) < 0.3 and Vector2(velocity.x, velocity.z).length() > 0.5:
 			heading = rotate_toward(heading, atan2(velocity.x, velocity.z), 2.5 * delta)
 		if closing > 3.0 and _impact_cooldown <= 0.0 and (normal.y < 0.7 or incoming.y < -5.0):
 			_impact_cooldown = 0.35
-			take_hit((closing - 3.0) * 2.6, Vector3.ZERO)
+			take_hit((closing - 3.0) * 2.6, Vector3.ZERO, driver != null or (other != null and other.driver != null))
 			Combat.impact.emit(hit.get_position(), minf(closing / 25.0, 1.0))
 			GameAudio.play(&"car_crash", hit.get_position())
 			if Combat.effects:
 				Combat.effects.car_sparks(hit.get_position(), normal, closing)
 			if other:
-				other.take_hit((closing - 3.0) * 2.0, -normal * minf(closing * 0.65, 20.0) + Vector3.UP)
+				other.take_hit((closing - 3.0) * 2.0, -normal * minf(closing * 0.65, 20.0) + Vector3.UP, driver != null or _hero_damage)
 			velocity *= 0.72
 	_roll = fposmod(_roll + velocity.length() * delta / PropMeshes.CAR_WHEEL_RADII[model], TAU)
 	_draw()
@@ -170,7 +177,7 @@ func _draw() -> void:
 	# The shader rotates vertices itself, so cancel the body's basis in the instance.
 	_mesh.set_instance_transform(0, Transform3D(Basis(Vector3.UP, -heading).scaled_local(Vector3(size.x, size.z, size.x)), Vector3.ZERO))
 	_mesh.set_instance_custom_data(0, Color(heading, model, seed, 16.0))
-	_mesh.set_instance_color(0, Color(paint, 3.0 if _braking else 1.0, _roll, 0.0))
+	_mesh.set_instance_color(0, Color(0.0 if paint == PoliceLivery.PAINT else paint, 3.0 if _braking else 1.0, _roll, 0.0))
 
 
 ## Swept footprint catches people between ticks even at the 30 m/s speed limit.
@@ -202,12 +209,13 @@ static func _own_material() -> ShaderMaterial:
 
 
 ## Damage is separate from movement so punches, crashes and blasts share one path.
-func take_hit(damage: float, push: Vector3) -> void:
+func take_hit(damage: float, push: Vector3, blame_hero := true) -> void:
 	if puppet:
 		return
 	velocity += push.limit_length(45.0)
 	if exploded:
 		return
+	_hero_damage = _hero_damage or (blame_hero and damage > 0.0)
 	health = maxf(0.0, health - damage)
 	if health <= 0.0 and burn_time <= 0.0:
 		burn_time = 3.0
@@ -231,10 +239,10 @@ func _process(delta: float) -> void:
 		_tyres.silence()
 		return
 	var speed := velocity.length()
-	_engine.target = (0.5 + minf(speed / TOP_SPEED, 0.5)) if (driver or puppet) and health > 0.0 else 0.0
+	_engine.target = (0.5 + minf(speed / TOP_SPEED, 0.5)) if (driver or puppet or ai_controlled) and health > 0.0 else 0.0
 	_engine.pitch = 0.75 + minf(speed / TOP_SPEED, 1.0) * 1.5
 	_engine.update(delta, 5.0)
-	_tyres.target = clampf((slip - 2.0) / 6.0, 0.0, 1.0) if driver and is_on_floor() else 0.0
+	_tyres.target = clampf((slip - 2.0) / 6.0, 0.0, 1.0) if (driver or ai_controlled) and is_on_floor() else 0.0
 	_tyres.update(delta, 10.0)
 
 
@@ -243,6 +251,7 @@ func explode() -> void:
 	if exploded or puppet:
 		return
 	exploded = true
+	ai_controlled = false
 	health = 0.0
 	burn_time = 0.0
 	body_pitch = -0.1
@@ -250,12 +259,12 @@ func explode() -> void:
 	if is_instance_valid(occupant):
 		occupant.set_mode(&"OnFoot")
 		Combat.hurt_hero(occupant, 65.0, Vector3.UP * 12.0)
-	Combat.shockwave(global_position, 9.0, 80.0, 18.0)
+	Combat.shockwave(global_position, 9.0, 80.0, 18.0, _hero_damage)
 	for hero: Hero in Combat.heroes:
 		if hero != occupant and not hero.is_remote() and hero.global_position.distance_to(global_position) < 9.0:
 			Combat.hurt_hero(hero, 45.0, (hero.global_position - global_position).normalized() * 12.0 + Vector3.UP * 6.0)
 	for pedestrian: Pedestrian in get_tree().get_nodes_in_group("pedestrians"):
-		if pedestrian.global_position.distance_to(global_position) < 20.0:
+		if _hero_damage and pedestrian.global_position.distance_to(global_position) < 20.0:
 			Combat.report_crime(&"car_explosion", WorldOrigin.to_world(global_position), 1.5)
 			break
 	GameAudio.play(&"slam", global_position)
