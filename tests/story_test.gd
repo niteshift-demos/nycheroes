@@ -58,6 +58,9 @@ func _run() -> void:
 	add_child(wanted)
 	wallet = Wallet.new()
 	add_child(wallet)
+	var radar := Radar.new()
+	radar.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(radar)
 	director = MissionDirector.new()
 	director.hero = hero
 	director.encounters = encounters
@@ -68,6 +71,9 @@ func _run() -> void:
 	var chapters := StoryCatalog.all()
 	check(chapters.size() == 12 and director.available_missions().filter(func(m: Mission) -> bool: return m.chapter > 0).size() == 1,
 		"twelve chapters, exactly one story giver")
+	check(radar.blips.has(&"mission/giver/story_01") and radar.blips[&"mission/giver/story_01"].kind == &"story"
+		and radar.blips[&"mission/giver/story_01"].color == Color.GOLD
+		and not radar.blips.has(&"mission/giver/story_02"), "only the unlocked story has a gold S radar blip")
 	check(not director.start_mission(chapters[1]), "locked chapter cannot start")
 	var position := Vector3(0, 0, 30)
 	begin(Mission.drive_to(position, "Drive", 4))
@@ -114,10 +120,10 @@ func _run() -> void:
 	WorldOrigin.shift(Vector3(500, 0, 0))
 	check(director.current_target().distance_to(target) < 0.01, "moving target survives origin shift")
 	WorldOrigin.shift(Vector3(-500, 0, 0))
-	Combat.area_hit.emit(target + Vector3.UP, 3, 80)
+	Combat.strike(WorldOrigin.to_local(target) + Vector3.UP, 3, 80, Vector3.ZERO, false)
 	director.advance(0.1, Vector3.ZERO)
 	check(director.active != null and van.health == 80, "one punch damages only the chase relay without premature completion")
-	Combat.area_hit.emit(target + Vector3.UP, 3, 80)
+	Combat.strike(WorldOrigin.to_local(target) + Vector3.UP, 3, 80, Vector3.ZERO, false)
 	director.advance(0.1, Vector3.ZERO)
 	check(director.active == null, "disabled chase target completes")
 	begin(Mission.chase(Vector3.ZERO, "Timeout"))
@@ -175,9 +181,49 @@ func _run() -> void:
 	boss._advance_story_special(0.1)
 	check(boss._story_windup > 0 and boss._story_warning.visible, "boss warns before special attack")
 	director.finish(false)
+	var roof_job := MissionCatalog.make("roof", "Roof", 0, "", Vector3(9000, 0, 0))
+	roof_job.chapter = 1
+	roof_job.steps = [Mission.boss(Vector3(500, 314, 0), 4, "Roof fight")]
+	hero.global_position = Vector3(500, 340, 0)
+	director.start_mission(roof_job)
+	check(encounters._foci().has(Vector3(500, 314, 0)), "nearby elevated story objective retains tile collision at Low quality")
+	director.finish(false)
+	var platform := StaticBody3D.new()
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(10, 1, 10)
+	shape.shape = box
+	platform.add_child(shape)
+	add_child(platform)
+	platform.global_position = Vector3(500, 319.5, 0)
+	var edge_boss: Thug = load("res://scenes/npc/thug.tscn").instantiate()
+	add_child(edge_boss)
+	edge_boss.global_position = Vector3(503.5, 320.2, 0)
+	hero.global_position = Vector3(501, 320, 0)
+	edge_boss.setup(hero, 0, 0)
+	edge_boss.set_story_variant(4)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	edge_boss.take_hit(50, Vector3(50, 1, 0), true)
+	for tick in 30:
+		await get_tree().physics_frame
+	check(edge_boss.global_position.x < 504.5 and edge_boss.global_position.y > 319.5,
+		"surviving launch hit cannot push a powered boss off its rooftop")
+	edge_boss.queue_free()
+	platform.queue_free()
+	hero.global_position = Vector3.ZERO
 	for chapter in chapters:
 		check(director.start_mission(chapter), "chapter %d unlocks in order" % chapter.chapter)
+		if chapter.chapter == 1:
+			director.advance(0.1, chapter.steps[0].position)
+			check(director.step_index == 0 and director.phone_lines.size() == 2, "opening phone call holds objective progress")
+			director.next_call()
+			check(director.phone_lines.size() == 1, "phone Next advances a line")
+			director.skip_calls()
+			check(director.phone_lines.is_empty(), "phone Skip dismisses the call")
 		director.finish(true)
+		if chapter.chapter == 1:
+			check(radar.blips.has(&"mission/giver/story_02") and not radar.blips.has(&"mission/giver/story_01"), "finishing a chapter replaces its S giver with the next one")
 		var saved := StoryCampaign.new()
 		check(saved.completed == chapter.chapter, "chapter %d saved immediately" % chapter.chapter)
 	var before := wallet.balance

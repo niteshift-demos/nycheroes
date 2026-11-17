@@ -14,6 +14,7 @@ var _label: Label3D
 
 
 func _ready() -> void:
+	ai_controlled = fleeing
 	super._ready()
 	Combat.area_hit.connect(_on_area_hit)
 	_label = Label3D.new()
@@ -52,6 +53,7 @@ func damage(amount: float) -> void:
 	health = maxf(0.0, health - maxf(0.0, amount))
 	if health <= 0.0:
 		fleeing = false
+		ai_controlled = false
 		velocity *= 0.15
 		_label.text = "RELAY DISABLED"
 		_label.modulate = Color.GRAY

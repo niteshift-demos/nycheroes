@@ -21,6 +21,10 @@ Windows and Mac versions are on the site's download page.
 - **The hero:** running, super speed, charged super jumps, flight, web
   swinging, swimming, punch combos, dive attacks and landing slams; a
   customizable look and outfit.
+- **The Borrowed Skyline:** an original [twelve-chapter story](docs/STORY.md)
+  across all five boroughs: phone calls, car chases, witness protection,
+  flight routes and powered lieutenants. Follow the gold S; progress saves
+  between visits.
 - **Co-op:** one big public game by default, or a private game with a code.
   Peers connect over WebRTC (relayed through TURN when they must).
 
@@ -86,6 +90,7 @@ Add them to the URL (`?quality=low&time=21:00`) or, on desktop, after
 `?quality=low|medium|high`, `?time=HH:MM`, `?spawn=x,y,z,yaw`,
 `?peds=N`, `?traffic=N`, `?gangs=N`, `?solo=1`, `?host`, `?join=CODE`,
 `?stats`, `?mission=<id>`, `?cash=N` ([missions](docs/MISSIONS.md)),
+`?story=1`–`12` or `?story=reset` ([campaign](docs/STORY.md)),
 `?radar=0` (hide the radar). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Tests

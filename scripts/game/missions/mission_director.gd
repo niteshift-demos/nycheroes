@@ -212,7 +212,7 @@ func advance(delta: float, position: Vector3) -> void:
 					and encounters.city.has_collision_at(target):
 				if active.chapter > 0:
 					var ground := encounters.city.ground_height_at(target, 5.0)
-					if not is_finite(ground):
+					if not is_finite(ground) or absf(ground + WorldOrigin.offset.y - target.y) > 20.0:
 						return
 					target.y = ground + WorldOrigin.offset.y + 0.2
 				gang = encounters.spawn_gang(target, int(step.count), Vector3.RIGHT, hero)

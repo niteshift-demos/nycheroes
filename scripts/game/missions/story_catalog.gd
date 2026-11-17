@@ -38,7 +38,7 @@ static func all() -> Array[Mission]:
 	var bridge := at(40.7121, -74.0049, 10.6)
 	var astoria := at(40.77869, -73.92114, 15.2)
 	var trade := at(40.7120, -74.0130, 2.0)
-	var roof := at(40.748455, -73.985382, 314.0)
+	var roof := at(40.748365, -73.985914, 314.0)
 	return [
 		job(1, "A City on Loan", 10000, square, [
 			call_line("Mara Vale", "New in town? I dispatch night repairs. Someone is charging our crews to cross their own streets."),
@@ -111,7 +111,7 @@ static func all() -> Array[Mission]:
 			call_line("You", "I have been here one night. Long enough to know whose city this is.", HERO)], [
 			Mission.fly_through([roof + Vector3(70, 60, 0), roof + Vector3(0, 45, 0)], "Ascend to the Empire State Building", 35),
 			Mission.boss(roof, 4, "Defeat Alden Voss · charge and slam rig"),
-			with_call(Mission.fly_through([roof + Vector3(0, 70, 0), at(40.7580, -73.9855, 180)], "Return the skyline to the city"), "Mara Vale", "The network is public again. Welcome home. There is always another street that needs you.")])]
+			with_call(Mission.fly_through([roof + Vector3(0, 70, 0), at(40.7580, -73.9855, 400), at(40.7580, -73.9855, 180)], "Return the skyline to the city"), "Mara Vale", "The network is public again. Welcome home. There is always another street that needs you.")])]
 
 
 static func with_call(step: Dictionary, speaker: String, line: String) -> Dictionary:

@@ -252,6 +252,13 @@ func _ahead_of(target: Hero) -> Vector3:
 ## that we took over): the ground around them stays loaded for those thugs.
 func _foci() -> Array[Vector3]:
 	var foci: Array[Vector3] = []
+	# Rooftop story fights need collision even on phones whose normal near
+	# radius is lower than the roof. Keep only the nearby objective loaded.
+	var mission := get_tree().get_first_node_in_group("mission_director") as MissionDirector
+	if mission and mission.active and mission.active.chapter > 0:
+		var target := mission.current_target()
+		if target.y > 200.0 and target.distance_to(hero.world_position()) < 700.0:
+			foci.append(target)
 	for other in Combat.heroes:
 		if not other.is_remote():
 			continue

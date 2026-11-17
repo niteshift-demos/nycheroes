@@ -83,6 +83,7 @@ func advance(delta: float, position: Vector3) -> int:
 						targets.clear()
 						return 0
 					vehicle.fleeing = step.kind == "chase"
+					vehicle.ai_controlled = vehicle.fleeing
 					if vehicle.fleeing:
 						vehicle.remove_from_group("drive_cars")
 					targets.append(vehicle)
@@ -121,6 +122,9 @@ func advance(delta: float, position: Vector3) -> int:
 				mannequin.free()
 				witness.add_child(model)
 				NpcLook.paint_pedestrian(model)
+				var player := model.find_child("AnimationPlayer", true, false) as AnimationPlayer
+				if player:
+					player.play(&"Idle")
 				var label := Label3D.new()
 				label.text = "WITNESS · PROTECT"
 				label.position.y = 2.7

@@ -180,6 +180,7 @@ func take_hit(damage: float, push: Vector3, launch: bool) -> void:
 	# Powered rigs absorb launch attacks until their health is exhausted.
 	if story_variant > 0 and health - damage > 0.0:
 		launch = false
+		push *= 0.12  # Heavy rigs stay on their rooftop during a surviving hit.
 	health -= damage
 	_release_attack_slot()
 	if Combat.effects:
@@ -306,6 +307,9 @@ func _physics_process(delta: float) -> void:
 		velocity.y = 0.0
 	else:
 		velocity.y -= Hero.GRAVITY * delta
+	if story_variant > 0 and horizontal.length() > 0.1 and not _story_floor_ahead(horizontal.normalized(), 2.0):
+		velocity.x = 0.0
+		velocity.z = 0.0
 	var intended := velocity
 	move_and_slide()
 	LedgeClimb.climb(self, intended, delta)

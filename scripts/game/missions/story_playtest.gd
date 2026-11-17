@@ -8,11 +8,17 @@ var director: MissionDirector
 var _clock := 0.0
 var _report := 0.0
 var _enabled := false
+var _last_native := ""
 
 
 func _ready() -> void:
+	# Software-rendered QA can draw one frame per second. Preserve elapsed
+	# physics time instead of Godot capping each frame to eight ticks.
+	Engine.max_physics_steps_per_frame = 120
 	process_physics_priority = -5  # After keyboard, before Hero consumes input.
 	if OS.has_feature("web"):
+		# Keep full-size UI while making software-rendered QA practical.
+		get_tree().root.scaling_3d_scale = 0.25
 		JavaScriptBridge.eval("window.nycStoryPilot=false;window.nycStoryState={}")
 
 
@@ -33,6 +39,10 @@ func _physics_process(delta: float) -> void:
 	var target := director.current_target()
 	var to_target := target - hero.world_position()
 	var flat := Vector3(to_target.x, 0, to_target.z)
+	var camera := hero.get_parent().get_node_or_null("HeroCamera") as ThirdPersonCamera
+	if camera and flat.length() > 2.0:
+		camera.yaw = lerp_angle(camera.yaw, atan2(-flat.x, -flat.z), 1.0 - exp(-delta * 3.0))
+		camera.pitch = -0.16
 	var drive := hero.get_mode(&"Drive") as DriveMode
 	match String(step.kind):
 		"fly_through", "collect", "go_to", "reach_in_time":
@@ -74,7 +84,11 @@ func _physics_process(delta: float) -> void:
 			if hero.mode.name == &"Drive":
 				input.interact_pressed = true
 			elif hero.mode.name == &"Flight":
-				if flat.length() < 10:
+				if step.has("boss"):
+					_fly_to(target + Vector3.UP * 2.0, input, hero)
+					if offset.length() < 4.0:
+						input.fly_toggle_pressed = true
+				elif flat.length() < 10:
 					input.vertical = -1
 					input.attack_held = true
 				else:
@@ -99,10 +113,10 @@ func _fly_to(target: Vector3, input: HeroInput, hero: Hero) -> void:
 
 
 func _publish() -> void:
-	if not OS.has_feature("web"):
+	if OS.has_feature("web"):
+		_enabled = bool(JavaScriptBridge.eval("window.nycStoryPilot === true"))
+	else:
 		_enabled = true
-		return
-	_enabled = bool(JavaScriptBridge.eval("window.nycStoryPilot === true"))
 	var hero := director.hero
 	var at := hero.world_position()
 	var state := {active = director.active.id if director.active else "", step = director.step_index,
@@ -113,4 +127,10 @@ func _publish() -> void:
 		var target := director.current_target()
 		state.target = [target.x, target.y, target.z]
 		state.enemies = director.gang.filter(func(t: Thug) -> bool: return is_instance_valid(t) and not t.is_down()).size()
-	JavaScriptBridge.eval("window.nycStoryState=" + JSON.stringify(state))
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.nycStoryState=" + JSON.stringify(state))
+	else:
+		var summary := "%s step %d %s %s at %s target %s" % [state.active, state.step, state.objective, state.banner, at.round(), state.get("target", [])]
+		if summary != _last_native and int(_clock) % 5 == 0:
+			print("[story-playtest] " + summary)
+			_last_native = summary
