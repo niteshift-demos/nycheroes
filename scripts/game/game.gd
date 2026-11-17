@@ -76,6 +76,8 @@ var _name_prompt: NamePrompt
 ## Local economy and objectives; radar integrations can use Game.missions.
 var wallet: Wallet
 var missions: MissionDirector
+var shops: CityShops
+var _shop_panel: ShopPanel
 var _loading: LoadingScreen
 
 
@@ -109,6 +111,7 @@ func _ready() -> void:
 	_add_loading_screen()
 	_add_name_prompt()
 	_add_missions()
+	_add_shops()
 	if not Device.is_web() and bool(Settings.get_value("fullscreen", false)) and not LaunchOptions.has("screenshot"):
 		Device.set_fullscreen(true)
 	if Device.wants_touch_controls() and not LaunchOptions.has("demo"):
@@ -202,7 +205,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_add_touch_controls(true)  # a touch screen the browser didn't tell us about
 	if _name_prompt.is_typing() or is_instance_valid(_loading):
 		return  # (menus would open under the loading screen)
-	if _options.is_typing():
+	if (_shop_panel and _shop_panel.visible) or _options.is_typing():
 		return
 	if event.is_action_pressed("world_map") and not coop_panel.is_typing():
 		_open_world_map()
@@ -307,9 +310,10 @@ func _set_free_camera(on: bool) -> void:
 
 func _update_controls() -> void:
 	if radar:
-		radar.set_process_input(not coop_panel.visible and not (_options and _options.visible) and not (world_map and world_map.visible))
+		radar.set_process_input(not coop_panel.visible and not (_options and _options.visible) and not (world_map and world_map.visible) and not (_shop_panel and _shop_panel.visible))
 	player_input.enabled = not _free_camera_on and not coop_panel.visible and not (_options and _options.visible) \
 		and not (world_map and world_map.visible) \
+		and not (_shop_panel and _shop_panel.visible) \
 		and not (_name_prompt and _name_prompt.visible)
 
 
@@ -404,6 +408,7 @@ func _add_touch_controls(started_by_touch: bool) -> void:
 	_touch_controls.coop_panel = coop_panel
 	_touch_controls.options_panel = _options
 	_touch_controls.world_map = world_map
+	_touch_controls.shop_panel = _shop_panel
 	radar.touch_controls = _touch_controls
 	_touch_controls.started_by_touch = started_by_touch
 	hud.add_child(_touch_controls)
@@ -452,3 +457,42 @@ func _add_missions() -> void:
 	var game_hud := hud.get_node_or_null("GameHud") as GameHud
 	if game_hud:
 		game_hud.missions = missions
+
+
+## Shops share the existing wallet, radar and loading-aware travel path.
+func _add_shops() -> void:
+	shops = CityShops.new()
+	shops.name = "Shops"
+	shops.hero = hero
+	shops.wallet = wallet
+	shops.wanted = get_node_or_null("Wanted") as Wanted
+	shops.city = city
+	shops.radar = radar
+	shops.time_of_day = time_of_day
+	shops.travel = travel_to
+	shops.can_enter = func() -> bool:
+		return player_input.enabled and not is_instance_valid(_loading) and not LaunchOptions.has("demo")
+	add_child(shops)
+	_shop_panel = ShopPanel.new()
+	_shop_panel.name = "ShopPanel"
+	_shop_panel.shops = shops
+	hud.add_child(_shop_panel)
+	hero.mode_changed.connect(func(mode: StringName) -> void:
+		if mode == &"KnockedOut":
+			_shop_panel.close())
+	_shop_panel.toggled.connect(func(open: bool) -> void:
+		if open:
+			_options.close(false, false)
+			coop_panel.close()
+			world_map.close()
+		_update_controls())
+	_options.toggled.connect(func(open: bool) -> void:
+		if open:
+			_shop_panel.close())
+	coop_panel.toggled.connect(func(open: bool) -> void:
+		if open:
+			_shop_panel.close())
+	world_map.toggled.connect(func(open: bool) -> void:
+		if open:
+			_shop_panel.close())
+	(hud.get_node("GameHud") as GameHud).shops = shops

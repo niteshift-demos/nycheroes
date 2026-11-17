@@ -25,6 +25,9 @@ Windows and Mac versions are on the site's download page.
   across all five boroughs: phone calls, car chases, witness protection,
   flight routes and powered lieutenants. Follow the gold S; progress saves
   between visits.
+- **Shops and safehouses:** spend contract cash on six permanent hero upgrades,
+  pay for a garage respray to clear an unseen pursuit, and save an apartment
+  for healing, sleep and recovery. See [shops](docs/SHOPS.md).
 - **Co-op:** one big public game by default, or a private game with a code.
   Peers connect over WebRTC (relayed through TURN when they must).
 
@@ -91,7 +94,7 @@ Add them to the URL (`?quality=low&time=21:00`) or, on desktop, after
 `?peds=N`, `?traffic=N`, `?gangs=N`, `?solo=1`, `?host`, `?join=CODE`,
 `?stats`, `?mission=<id>`, `?cash=N` ([missions](docs/MISSIONS.md)),
 `?story=1`–`12` or `?story=reset` ([campaign](docs/STORY.md)),
-`?radar=0` (hide the radar). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
+`?upgrades=reset` ([shops](docs/SHOPS.md)), `?radar=0` (hide the radar). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Tests
 

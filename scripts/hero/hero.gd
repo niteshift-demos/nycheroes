@@ -39,6 +39,13 @@ var mode: HeroMode
 ## Physics waits until the ground under the spawn point has loaded.
 var frozen := true
 var health := MAX_HEALTH
+## Local upgrade tunables; resulting hits, health and movement already replicate.
+var max_health := MAX_HEALTH
+var punch_multiplier := 1.0
+var slam_multiplier := 1.0
+var car_armor_multiplier := 1.0
+## Game supplies a streaming-aware return to the saved safehouse.
+var safehouse_respawn: Callable
 ## Per-player pursuit state, carried to copies by PlayerSync.
 var wanted_stars := 0
 var wanted_searching := false
@@ -106,7 +113,7 @@ func _physics_process(delta: float) -> void:
 	hurt_time = maxf(hurt_time - delta, 0.0)
 	_regen_delay -= delta
 	if _regen_delay <= 0.0:
-		health = minf(health + REGEN_RATE * delta, MAX_HEALTH)
+		health = minf(health + REGEN_RATE * delta, max_health)
 
 	if input.interact_pressed:
 		(get_mode(&"Drive") as DriveMode).interact()
@@ -202,6 +209,8 @@ func face_toward(direction: Vector3, max_step := INF) -> void:
 func take_hit(damage: float, push: Vector3) -> void:
 	if not can_be_attacked() or mode.name == &"Dive":
 		return
+	if mode.name == &"Drive":
+		damage /= car_armor_multiplier
 	health = maxf(health - damage, 0.0)
 	hurt_time = HURT_TIME
 	_regen_delay = REGEN_DELAY
@@ -222,7 +231,7 @@ func _find_water_level() -> float:
 ## A hard landing: the faster the fall, the wider the blast.
 func _slam(impact_speed: float) -> void:
 	var power := clampf(inverse_lerp(SLAM_SPEED, MAX_FALL_SPEED, impact_speed), 0.0, 1.0)
-	Combat.shockwave(global_position, lerpf(5.0, 11.0, power), 100.0, lerpf(14.0, 26.0, power))
+	Combat.shockwave(global_position, lerpf(5.0, 11.0, power) * slam_multiplier, 100.0, lerpf(14.0, 26.0, power))
 
 
 func _on_origin_shifted(delta: Vector3) -> void:

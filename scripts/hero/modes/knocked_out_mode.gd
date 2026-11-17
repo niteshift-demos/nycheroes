@@ -21,6 +21,8 @@ func physics_update(delta: float) -> StringName:
 	hero.move_and_slide()
 	if _time < down_time:
 		return &""
-	hero.health = Hero.MAX_HEALTH
+	hero.health = hero.max_health
+	if hero.safehouse_respawn.is_valid():
+		hero.safehouse_respawn.call()
 	Combat.shockwave(hero.global_position, 6.0, 0.0, 12.0)
 	return &"OnFoot"
