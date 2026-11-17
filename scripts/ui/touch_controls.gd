@@ -440,6 +440,17 @@ func _poll_page() -> void:
 		_layout()
 
 
+## Safari's bars and the home indicator can leave less than a phone's full
+## landscape height. Reserve a separate upper radar and lower thumb region.
+func compact_landscape() -> bool:
+	return size.x > size.y and size.y - safe_insets.y - safe_insets.w < 390.0
+
+
+func radar_rect() -> Rect2:
+	var diameter := minf(112.0, size.y - safe_insets.y - safe_insets.w - 204.0) if compact_landscape() else 136.0
+	return Rect2(Vector2(safe_insets.x + 16.0, safe_insets.y + (42.0 if compact_landscape() else 94.0)), Vector2.ONE * diameter)
+
+
 func _layout() -> void:
 	if _buttons.is_empty():
 		return  # resized before _ready made them
@@ -451,15 +462,17 @@ func _layout() -> void:
 		_release_all()
 	var right := size.x - safe_insets.z - MARGIN
 	var bottom := size.y - safe_insets.w - MARGIN
-	# A thumb's arc around PUNCH in the bottom right corner.
-	var punch := Vector2(right - 44.0, bottom - 44.0)
-	_place(&"interact", punch + Vector2(-174.0, -86.0), 30.0)
-	_place(&"punch", punch, 44.0)
-	_place(&"jump", punch + Vector2(-104.0, 8.0), 36.0)
-	_place(&"down", punch + Vector2(-190.0, 8.0), 32.0)
-	_place(&"web", punch + Vector2(6.0, -100.0), 36.0)
-	_place(&"speed", punch + Vector2(-88.0, -84.0), 31.0)
-	_place(&"fly", punch + Vector2(-14.0, -182.0), 31.0)
+	# A thumb's arc around PUNCH in the bottom right corner. Its full
+	# height is 257 px; leave 90 px for the toolbar and clearance in Safari.
+	var arc := clampf((size.y - safe_insets.y - safe_insets.w - 90.0) / 257.0, 0.70, 0.82) if compact_landscape() else 1.0
+	var punch := Vector2(right - 44.0 * arc, bottom - 44.0 * arc)
+	_place(&"interact", punch + Vector2(-174.0, -86.0) * arc, maxf(22.0, 30.0 * arc))
+	_place(&"punch", punch, 44.0 * arc)
+	_place(&"jump", punch + Vector2(-104.0, 8.0) * arc, maxf(22.0, 36.0 * arc))
+	_place(&"down", punch + Vector2(-190.0, 8.0) * arc, maxf(22.0, 32.0 * arc))
+	_place(&"web", punch + Vector2(6.0, -100.0) * arc, maxf(22.0, 36.0 * arc))
+	_place(&"speed", punch + Vector2(-88.0, -84.0) * arc, maxf(22.0, 31.0 * arc))
+	_place(&"fly", punch + Vector2(-14.0, -182.0) * arc, maxf(22.0, 31.0 * arc))
 	# The gear in the top right corner, co-op to its left, then full screen
 	# and the speaker.
 	var top := safe_insets.y + 10.0

@@ -174,7 +174,9 @@ func _radar_timed_process(delta: float) -> void:
 	var viewport_size := get_viewport_rect().size
 	position = Vector2(24.0, viewport_size.y - diameter - 80.0)
 	if touch_controls:
-		position = Vector2(touch_controls.safe_insets.x + 16.0, touch_controls.safe_insets.y + 94.0)
+		var area := touch_controls.radar_rect()
+		position = area.position
+		size = area.size
 	if hero:
 		world_center = hero.world_position()
 		var speed := hero.velocity.length()

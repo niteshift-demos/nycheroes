@@ -199,8 +199,8 @@ func _check_touch(hero: Hero) -> void:
 	add_child(display)
 	display.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	var message := "Tap the radar for the map. Tap the map to set a waypoint."
-	for viewport: Vector2 in [Vector2(844, 390), Vector2(915, 412), Vector2(1616, 720), Vector2(390, 844)]:
-		for insets: Vector4 in [Vector4.ZERO, Vector4(54, 0, 0, 0)]:
+	for viewport: Vector2 in [Vector2(844, 390), Vector2(915, 412), Vector2(1616, 720), Vector2(390, 844), Vector2(844, 340), Vector2(844, 320), Vector2(874, 344), Vector2(874, 292)]:
+		for insets: Vector4 in [Vector4.ZERO, Vector4(54, 0, 0, 0), Vector4(59, 0, 59, 21), Vector4(0, 0, 59, 21)]:
 			touch.size = viewport
 			touch.safe_insets = insets
 			touch._can_fullscreen = true
@@ -208,11 +208,26 @@ func _check_touch(hero: Hero) -> void:
 			display.size = viewport
 			var notice := display.notice_rect(message)
 			var cash := Rect2(display.wanted_anchor() + Vector2(-210, 32), Vector2(224, 40))
-			var radar := Rect2(insets.x + 16, insets.y + 66, 136, 164)
+			var radar := touch.radar_rect()
+			var health := Rect2(radar.position - Vector2(0, 28), Vector2(radar.size.x, 28))
 			var clear := not notice.intersects(radar) and not notice.intersects(cash) and notice.end.x <= viewport.x and notice.end.y <= viewport.y
 			for id: StringName in [&"options", &"coop", &"sound", &"fullscreen"]:
 				clear = clear and not notice.intersects(touch._by_id[id].rect)
 			_check(clear, "touch toast clears radar, health, cash and toolbar at %s / inset %d" % [viewport, insets.x])
+			if viewport.x > viewport.y:
+				var stick := Rect2(touch._stick_home - Vector2.ONE * TouchControls.STICK_RADIUS, Vector2.ONE * TouchControls.STICK_RADIUS * 2)
+				_check(not radar.intersects(stick) and not health.intersects(stick), "radar and health clear the stick at %s / %s" % [viewport, insets])
+				var wanted := Rect2(display.wanted_anchor() + Vector2(-128, -12), Vector2(140, 42))
+				var areas: Array[Rect2] = [radar, health, notice, cash, stick, wanted]
+				for button: TouchControls.TouchButton in touch._buttons:
+					if not button.shown:
+						continue
+					var area := Rect2(button.center - Vector2.ONE * button.radius, Vector2.ONE * button.radius * 2) if button.is_round() else button.rect
+					var inside := area.position.x >= insets.x and area.position.y >= insets.y and area.end.x <= viewport.x - insets.z and area.end.y <= viewport.y - insets.w
+					for reserved: Rect2 in areas:
+						inside = inside and not area.intersects(reserved)
+					_check(inside, "%s clears HUD and safe edges at %s / %s" % [button.id, viewport, insets])
+					areas.append(area)
 	_check(MissionCatalog.all().back().intro.contains("SPEED"), "mission introduction names SPEED on touch")
 	display.free()
 	touch.camera_rig.free()
