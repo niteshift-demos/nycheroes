@@ -69,6 +69,22 @@ func _run() -> void:
 	_check(not get_tree().paused, "co-op pause leaves the shared world running")
 	pause.close(false)
 	Net.state = Net.State.OFFLINE
+	var map := WorldMap.new()
+	map.radar = radar
+	add_child(map)
+	map.size = Vector2(844, 390)
+	map.open()
+	_check(map.visible and get_tree().paused, "map preserves a solo pause while planning a route")
+	map.close()
+	_check(not get_tree().paused, "closing the map releases its owned pause")
+	Net.state = Net.State.HOSTING
+	map.open()
+	_check(not get_tree().paused, "co-op map leaves shared simulation running")
+	map.close()
+	Net.state = Net.State.OFFLINE
+	map.open()
+	map.free()
+	_check(not get_tree().paused, "removing an open map cannot strand a paused tree")
 	var tutorial := Onboarding.new()
 	add_child(tutorial)
 	_check(tutorial.title_pending, "new save has title card pending")

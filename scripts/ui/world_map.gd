@@ -24,6 +24,7 @@ var _zoom_tween: Tween
 var _zoom_target := 0.65
 var _recapture := false
 var _refresh := 0.0
+var _paused_game := false
 
 class MapOverlay extends Control:
 	var map: WorldMap
@@ -66,6 +67,9 @@ func _ready() -> void:
 	_add_button("Close  ,", func() -> void: close(true))
 	resized.connect(_layout)
 	_layout()
+	Net.state_changed.connect(func() -> void:
+		if _paused_game and Net.state != Net.State.OFFLINE:
+			_release_pause())
 
 
 func _add_button(text: String, action: Callable) -> void:
@@ -94,6 +98,9 @@ func open() -> void:
 	visible = true
 	_recapture = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_paused_game = Net.state == Net.State.OFFLINE and not get_tree().paused
+	if _paused_game:
+		get_tree().paused = true
 	if not _opened_once:
 		fit_city()
 		_opened_once = true
@@ -104,6 +111,7 @@ func close(by_pointer := false) -> void:
 	if not visible:
 		return
 	visible = false
+	_release_pause()
 	_dragging = false
 	_touch_id = -1
 	_touches.clear()
@@ -111,6 +119,18 @@ func close(by_pointer := false) -> void:
 	if _recapture and (by_pointer or not Device.is_web()):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	toggled.emit(false)
+
+
+## Navigation from Pause must not spend a solo mission's clock. Only release
+## the pause this map owns; online rooms keep their shared simulation running.
+func _release_pause() -> void:
+	if _paused_game:
+		_paused_game = false
+		get_tree().paused = false
+
+
+func _exit_tree() -> void:
+	_release_pause()
 
 
 func recenter() -> void:

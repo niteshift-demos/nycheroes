@@ -138,6 +138,7 @@ static func _soft_puff() -> QuadMesh:
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	material.billboard_keep_scale = true
 	material.vertex_color_use_as_albedo = true
 	material.albedo_texture = texture
 	var mesh := QuadMesh.new()
@@ -262,6 +263,7 @@ func car_explosion(at: Vector3) -> void:
 		lobe.mesh = _fire_mesh
 		var glow := (_fire_mesh.material as StandardMaterial3D).duplicate() as StandardMaterial3D
 		glow.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		glow.billboard_keep_scale = true
 		glow.albedo_color = Color(1.0, 0.6, 0.08, 1.0)
 		lobe.material_override = glow
 		lobe.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

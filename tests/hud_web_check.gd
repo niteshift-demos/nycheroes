@@ -11,6 +11,8 @@ var _drive_lane: TrafficLanes.Lane
 var _drive_distance := 0.0
 var _drive_recovery := AiRecovery.new()
 var _chase_elapsed := -1.0
+var _chase_officers := 0
+var _chase_cars := 0
 
 
 func _ready() -> void:
@@ -77,6 +79,9 @@ func _scenario(scenario: String) -> void:
 				if wanted.pursuit.cars.size() >= PolicePursuit.cap(5):
 					break
 				wanted.pursuit._spawn_patrol(false)
+			_chase_officers = wanted.response_count()
+			_chase_cars = get_tree().get_node_count_in_group("police_cars")
+			print("[hud-check] chase seeded: %d officers, %d patrols" % [_chase_officers, _chase_cars])
 			JavaScriptBridge.eval("window.nycDrivePilot=true")
 		"call":
 			_game.missions.finish(false)
@@ -189,6 +194,8 @@ func _process(delta: float) -> void:
 		position = _game.hero.world_position(), phone = _game.missions.phone_lines.size()}
 	state.blasts = Combat.effects._explosions.size() if Combat.effects else 0
 	state.chase_seconds = _chase_elapsed
+	state.initial_officers = _chase_officers
+	state.initial_patrols = _chase_cars
 	state.speed = _game.hero.velocity.length()
 	var rectangles := {}
 	for child in _game.hud.get_children():
@@ -260,7 +267,7 @@ func _physics_process(delta: float) -> void:
 		return
 	if _chase_elapsed >= 0.0:
 		_chase_elapsed += delta
-		if _chase_elapsed >= 8.0:
+		if _chase_elapsed >= clampf(float(LaunchOptions.get_string("hud_hold", "8")), 1.0, 30.0):
 			(_game.hud.get_node("DebugLabel") as DebugHud).visible = false
 			get_tree().paused = true
 			print("[hud-check] chase held after %.1f seconds of ordinary driving" % _chase_elapsed)

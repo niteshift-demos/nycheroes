@@ -2363,7 +2363,7 @@ All gameplay positions use the floating origin; no city tiles need rebuilding.
   use one palette. Esc/P/Start or the touch gear opens pause with Map,
   Missions, saved Stats, upgrades, Hero/Options and Co-op. Locked chapters are
   compact grey rows without unusable waypoint buttons. First-visit title and
-  contextual lessons persist; solo menus pause simulation, co-op menus release
+  contextual lessons persist; solo menus and the whole-city map pause simulation, co-op menus release
   local controls while the shared world runs.
 
 **Launch checks:** `?car=1`, `?car_crash=1`, `?wanted=1`–`5`, `?police=0`,

@@ -129,3 +129,12 @@ Foot police use their uniforms and shield blips for identification, avoiding
 a cloud of aliased 3-D labels over a full response. The stress fixture waits
 for city streaming to settle before starting and holds its chase after eight
 seconds, so captures and measurements exclude the initial city build.
+
+The whole-city map owns a solo pause too, including when reached from
+Pause → Map: mission clocks, calls and pursuits remain stopped while planning
+a route. Closing it resumes only the pause it owns. Online co-op map use
+keeps the shared world running with local controls released.
+
+For a still capture before a dangerous chase can end, `?hud_hold=2.5` changes
+the fixture's eight-second hold to 2.5 seconds. Telemetry retains the seeded
+officer and fleet counts as well as the live response.
