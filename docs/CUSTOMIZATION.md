@@ -1,7 +1,7 @@
 # Hero customization
 
-Open **O → Hero**, or click **HERO / OPTIONS** and select the Hero tab. On
-mobile, open the gear menu and select Hero. Choices update the character and
+Open **O → Hero**, or use **Pause → Hero / Options → Hero**. On
+mobile, the gear opens Pause; choose Hero / Options and then Hero. Choices update the character and
 live 3D preview immediately. Use the preview slider to turn the character,
 and its animation menu to inspect Idle, Walk, Sprint or Jump. Touch layouts
 stack the preview above the controls and scroll on smaller screens.
