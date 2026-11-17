@@ -98,7 +98,8 @@ func _process(delta: float) -> void:
 		&"Drive":
 			distance = 7.0 + clampf(speed / 30.0, 0.0, 1.0) * 4.0
 			if stick.length() < 0.1:
-				yaw = lerp_angle(yaw, target.facing, 1.0 - exp(-2.0 * delta))
+				var reversing := target.velocity.dot(target.forward()) < -1.0
+				yaw = lerp_angle(yaw, target.facing + (PI if reversing else 0.0), 1.0 - exp(-2.0 * delta))
 			pitch = lerpf(pitch, -0.22, 1.0 - exp(-2.0 * delta))
 	distance += clampf(speed / 60.0, 0.0, 1.0) * 2.0
 	_distance = lerpf(_distance, distance, 1.0 - exp(-3.0 * delta))

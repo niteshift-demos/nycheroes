@@ -63,6 +63,10 @@ const SOUNDS := {
 	&"thug_shout": {count = 4, db = -6.0, pitch = 0.05, unit = 8.0, reach = 120.0, voices = 1, gap = 3.0},
 	&"scream": {count = 5, db = -9.0, pitch = 0.06, unit = 8.0, reach = 120.0, voices = 1, gap = 4.0},
 
+	# Physical cars: synthesized friction and metal/glass, plus the existing engine.
+	&"tyre_screech": {count = 1, db = -15.0, unit = 8.0, reach = 65.0, loop = true},
+	&"car_crash": {count = 1, db = -7.0, pitch = 0.08, unit = 10.0, reach = 130.0, voices = 3, gap = 0.1},
+
 	# The city (CityAmbience, TrafficSounds).
 	&"horn": {count = 5, db = -9.0, pitch = 0.04, unit = 25.0, reach = 500.0, voices = 2, gap = 1.2, bus = &"Ambience"},
 	&"siren": {count = 2, db = -12.0, pitch = 0.03, unit = 80.0, reach = 1500.0, voices = 1, bus = &"Ambience"},

@@ -81,7 +81,9 @@ func unregister_hero(hero: Hero) -> void:
 ## Our hero hits every standing thug within `radius` of `center`. `push` is the
 ## knockback velocity; with `launch`, thugs go flying as ragdolls whatever
 ## their health. Returns how many thugs were hit.
-func strike(center: Vector3, radius: float, damage: float, push: Vector3, launch: bool) -> int:
+func strike(center: Vector3, radius: float, damage: float, push: Vector3, launch: bool, hit_cars := true) -> int:
+	if hit_cars:
+		_hit_cars(center, radius, damage, push)
 	var hits: Array = []
 	for thug: Thug in thugs:
 		if not thug.is_down() and thug.body_center().distance_to(center) <= radius:
@@ -99,6 +101,7 @@ func strike(center: Vector3, radius: float, damage: float, push: Vector3, launch
 ## Our hero's ground slam: launches standing thugs away from `center`, harder
 ## the closer they are.
 func shockwave(center: Vector3, radius: float, damage: float, launch_speed: float) -> void:
+	_hit_cars(center, radius, damage, Vector3.UP * launch_speed)
 	var hits: Array = []
 	for thug: Thug in thugs:
 		if thug.is_down():
@@ -289,3 +292,13 @@ func _hit_bystanders(center: Vector3, radius: float, damage: float, push: Vector
 	for ped: Pedestrian in get_tree().get_nodes_in_group("pedestrians"):
 		if (ped.global_position + Vector3.UP).distance_to(center) <= radius:
 			ped.take_hit(push)
+
+
+## Snapshot physical cars before promotion, so a traffic car takes each blow once.
+func _hit_cars(center: Vector3, radius: float, damage: float, push: Vector3) -> void:
+	for car: DriveVehicle in get_tree().get_nodes_in_group("drive_cars"):
+		if DriveVehicle.box_distance(center, car.global_position, PropMeshes.CAR_SIZES[car.model], car.heading) <= radius:
+			var away := (car.global_position - center).normalized() * push.length() * 0.5
+			car.take_hit(damage, push + away)
+	for flow: Traffic in get_tree().get_nodes_in_group("traffic"):
+		flow.strike_cars(center, radius, damage, push)

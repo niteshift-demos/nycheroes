@@ -149,3 +149,31 @@ static func _material(color: Color, roughness: float) -> StandardMaterial3D:
 	material.albedo_color = color
 	material.roughness = roughness
 	return material
+
+
+## A bounded burst of hot metal and chips; reuses the fight particle lifetime path.
+func car_sparks(at: Vector3, direction: Vector3, speed: float) -> void:
+	var mesh := _sphere(0.055, _material(Color(1.0, 0.48, 0.07), 0.7))
+	var sparks := _burst(mesh, at, 18, 0.7)
+	sparks.direction = direction
+	sparks.spread = 65.0
+	sparks.initial_velocity_min = 3.0
+	sparks.initial_velocity_max = minf(speed, 18.0)
+	sparks.gravity = Vector3(0, -20, 0)
+
+
+## Small CPU puffs keep hood smoke/fire affordable on WebGL and phones.
+func car_smoke(at: Vector3, burning: bool) -> void:
+	var puff := _burst(_dust_mesh, at, 5, 1.6)
+	puff.direction = Vector3.UP
+	puff.spread = 18.0
+	puff.initial_velocity_min = 1.5
+	puff.initial_velocity_max = 3.0
+	puff.gravity = Vector3(0, 0.8, 0)
+	puff.scale_amount_min = 0.4
+	puff.scale_amount_max = 1.4
+	var fade := Gradient.new()
+	fade.set_color(0, Color(1.0, 0.25, 0.02, 0.9) if burning else Color(0.18, 0.18, 0.18, 0.65))
+	fade.set_color(1, Color(0.1, 0.1, 0.1, 0.0))
+	fade.add_point(0.35, Color(0.12, 0.12, 0.12, 0.6))
+	puff.color_ramp = fade

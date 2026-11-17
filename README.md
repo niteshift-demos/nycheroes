@@ -36,9 +36,9 @@ Windows and Mac versions are on the site's download page.
 | Toggle flight | F | Y |
 | Web | E or right mouse | Right trigger |
 | Attack | Left mouse | X |
-| Enter / exit nearby car | G | R3 (right stick click) |
+| Enter available car within 3.5 m / exit (G hint appears in reach) | G | R3 (right stick click) |
 | Drive / steer; brake then reverse | WASD | Left stick |
-| Handbrake while driving | Space | A |
+| Handbrake / drift while driving | Space | A |
 | Co-op menu | M | |
 | Map / waypoint | Comma (`,`); drag to pan, wheel or +/− to zoom, click to pin | |
 | Hero and options | O or Esc | |

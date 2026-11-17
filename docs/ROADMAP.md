@@ -2327,6 +2327,12 @@ deployed); in a computer's browser the co-op menu links to it.
   and world-space waypoints on the radar and HUD. Options → Show radar or
   `?radar=0` hides it. `tests/radar_test.tscn` checks blips, transforms, tile
   unloads, waypoints and floating-origin shifts. No new tiles needed.
+- Solid traffic collisions, superpowered car shoves, damage/smoke/fire and
+  timed explosions, engine and tyre audio, seated driving animation, body
+  weight transfer, reverse camera and contextual takeover hints. Nearby car
+  collision queries use a world-space grid and swept footprints; wrecks
+  retain the existing traffic braking path. `?car=1&car_crash=1` adds the
+  repeatable crash fixture described in DRIVING.md.
 - Driving and car hijacking: [DRIVING.md](DRIVING.md), including controls,
   physical cars, chase camera, co-op snapshots, crime hooks and current limits.
   Run `res://tests/drive_test.tscn`; `?car=1` places a starter sedan by the hero.
@@ -2534,7 +2540,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and
-  `res://tests/drive_test.tscn` (synthetic car hijack, driving, exit,
+  `res://tests/drive_test.tscn` (synthetic car hijack, driving, exit, traffic crashes,
+  damage/explosion/driver injury, contextual hints, query cost,
   co-op appearance and origin shift) and `res://tests/traffic_test.tscn` (75 s of
   midtown traffic: no red light run, no overlaps, cars stop for the hero,
   and leave with their tiles) and `res://tests/trains_test.tscn` (the 7 at

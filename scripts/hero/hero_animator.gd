@@ -63,7 +63,7 @@ func hand_position() -> Vector3:
 func _process(delta: float) -> void:
 	var driving := hero.mode.name == &"Drive"
 	if driving != _driving:
-		_player.play(&"Crouch_Idle" if driving else &"Idle", 0.0)
+		_player.play(&"Driving" if driving else &"Idle", 0.0)
 		_player.advance(0.0)
 	_driving = driving
 	if outfit:
@@ -78,7 +78,7 @@ func _process(delta: float) -> void:
 	var pivot := hero.get_visual_position() + Vector3.UP * PIVOT_HEIGHT
 	global_transform = Transform3D(basis, pivot - basis * (Vector3.UP * PIVOT_HEIGHT))
 	if hero.mode.name == &"Drive":
-		global_position += basis * Vector3(-0.3, 0.3, 0.15)
+		global_position += basis * Vector3(0.35, 0.05, 0.1)
 	var choice := _choose_animation()
 	_play(choice[0], choice[1], choice.size() > 2 and choice[2])
 
@@ -124,7 +124,7 @@ func _choose_animation() -> Array:
 		&"Swing", &"Dive":
 			return [&"Jump", 1.0]
 		&"Drive":
-			return [&"Crouch_Idle", 1.0]
+			return [&"Driving", 1.0]
 		&"KnockedOut":
 			return [&"Death01", 1.0]
 		&"Melee":
