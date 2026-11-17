@@ -37,7 +37,8 @@ Browser Esc may first release pointer lock; P is always available.
   status. Set waypoint pins the giver, or the active objective. Side jobs,
   abandon and retry live here. Walk into a giver to start its contract.
 - Stats shows current cash, successful missions, distinct cars taken during a
-  session, highest wanted level and kilometres flown/driven.
+  session, highest wanted level, kilometres flown/driven, and the owned tier of
+  each of the six shop upgrades. This list is read-only.
 - Hero / Options and Co-op open the existing menus. O and M remain direct
   shortcuts, respectively. T changes time; N toggles sound.
 - Skip tutorial permanently marks the contextual lessons as seen.
@@ -81,8 +82,15 @@ banners for capture. It does not replace the interactive pause/navigation check.
 
 In that fixture, F5 resumes play, F6 enters the starter car on a wanted
 mission, F7 completes the real contract, F8 triggers an arrest through lethal
-damage while wanted, and F9 triggers a knockout without police heat.
+damage while wanted, and F9 triggers a knockout without police heat. F10
+opens the real Hero Supply panel; its normal buttons buy upgrades.
 
 The fixture suppresses rendering only while the city assembles, then restores
 normal rendering before the title or any interaction. This speeds software
 rendering checks; it does not measure normal startup time.
+
+Service panels share HudStyle typography, gold headings, green cash and
+charcoal panels. Shop, garage and safehouse labels use the same 150 m limit,
+on-screen-only projection and overlap avoidance as mission givers. Their
+radar blips remain available for navigation beyond that distance. The health
+strip uses upgraded maximum health when computing its percentage.

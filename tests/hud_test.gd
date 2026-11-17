@@ -57,8 +57,10 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(pause._page == "missions", "mission button safely replaces its own page while emitting")
 	_check(pause._content.find_children("*", "Button", false, false).size() >= director.catalog.size() + 2, "all contracts have waypoint actions and side job is in menu")
+	Settings.set_value("upgrade_health", 2)
 	pause.show_page("stats")
 	_check(pause._content.get_child(0).text.begins_with("Cash"), "stats includes current wallet")
+	_check((pause._content.get_child(7) as Label).text.ends_with("2 / 3") and HeroUpgrades.tier("health") == 2, "Stats lists owned upgrade tiers without changing them")
 	pause.close(false)
 	_check(not get_tree().paused, "Resume releases owned pause")
 	Net.state = Net.State.HOSTING
@@ -91,6 +93,12 @@ func _run() -> void:
 	var hero: Hero = load("res://scenes/hero/hero.tscn").instantiate()
 	hero.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(hero)
+	var services := CityShops.new()
+	services.hero = hero
+	var here := hero.world_position()
+	services.locations = [{"position": here + Vector3.RIGHT * 25.0}, {"position": here + Vector3.RIGHT * 150.0}, {"position": here + Vector3.RIGHT * 150.1}]
+	_check(services.markers().size() == 2, "service labels include 150 metres and exclude farther doors")
+	services.free()
 	var display := GameHud.new()
 	display.hero = hero
 	display.missions = director

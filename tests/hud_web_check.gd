@@ -32,7 +32,7 @@ func _run() -> void:
 func _input(event: InputEvent) -> void:
 	if not _ready_for_checks or not event is InputEventKey or not event.pressed or event.echo:
 		return
-	var cases := {KEY_F5: "foot", KEY_F6: "car", KEY_F7: "passed", KEY_F8: "busted", KEY_F9: "knocked"}
+	var cases := {KEY_F5: "foot", KEY_F6: "car", KEY_F7: "passed", KEY_F8: "busted", KEY_F9: "knocked", KEY_F10: "shop"}
 	if cases.has(event.keycode):
 		get_viewport().set_input_as_handled()
 		_scenario(cases[event.keycode])
@@ -46,7 +46,7 @@ func _scenario(scenario: String) -> void:
 		"foot":
 			display.banner_remaining = 0.0
 			_game.missions.banner_remaining = 0.0
-			_game.hero.health = Hero.MAX_HEALTH
+			_game.hero.health = _game.hero.max_health
 			if _game.hero.mode.name == &"KnockedOut":
 				_game.hero.set_mode(&"OnFoot")
 		"car":
@@ -54,17 +54,21 @@ func _scenario(scenario: String) -> void:
 			(_game.hero.get_mode(&"Drive") as DriveMode).interact()
 			wanted.set_stars(2)
 			print("[hud-check] car mode=" + str(_game.hero.mode.name))
+		"shop":
+			_game.pause_menu.close(false)
+			_game.shops.active = _game.shops.locations[0]
+			_game.shops.entered.emit(_game.shops.active)
 		"passed":
 			_game.missions.start("rooftop_courier")
 			_game.missions.finish(true)
 			print("[hud-check] mission finished; cash=" + str(_game.wallet.balance))
 		"busted":
-			_game.hero.health = Hero.MAX_HEALTH
+			_game.hero.health = _game.hero.max_health
 			wanted.set_stars(2)
 			_game.hero.take_hit(1000.0, Vector3.ZERO)
 			print("[hud-check] arrest event; stars=" + str(_game.hero.wanted_stars))
 		"knocked":
-			_game.hero.health = Hero.MAX_HEALTH
+			_game.hero.health = _game.hero.max_health
 			wanted.set_stars(0)
 			_game.hero.set_mode(&"OnFoot")
 			_game.hero.take_hit(1000.0, Vector3.ZERO)

@@ -21,6 +21,9 @@ Windows and Mac versions are on the site's download page.
 - **The hero:** running, super speed, charged super jumps, flight, web
   swinging, swimming, punch combos, dive attacks and landing slams; a
   customizable look and outfit.
+- **Shops and safehouses:** spend contract cash on six permanent hero upgrades,
+  pay for a garage respray to clear an unseen pursuit, and save an apartment
+  for healing, sleep and recovery. See [shops](docs/SHOPS.md).
 - **Co-op:** one big public game by default, or a private game with a code.
   Peers connect over WebRTC (relayed through TURN when they must).
 
@@ -91,7 +94,8 @@ Add them to the URL (`?quality=low&time=21:00`) or, on desktop, after
 `?quality=low|medium|high`, `?time=HH:MM`, `?spawn=x,y,z,yaw`,
 `?peds=N`, `?traffic=N`, `?gangs=N`, `?solo=1`, `?host`, `?join=CODE`,
 `?stats`, `?mission=<id>`, `?cash=N` ([missions](docs/MISSIONS.md)),
-`?radar=0` (hide the radar), `?tutorial=reset` (restart onboarding). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
+`?upgrades=reset` ([shops](docs/SHOPS.md)), `?radar=0` (hide the radar),
+`?tutorial=reset` (restart onboarding). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Tests
 

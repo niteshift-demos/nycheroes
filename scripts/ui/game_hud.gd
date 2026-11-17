@@ -40,6 +40,7 @@ var touch_controls: TouchControls:
 
 ## Set by Game; mission logic and text live in their own nodes.
 var missions: MissionDirector
+var shops: CityShops
 ## Navigation pin uses the same projection and edge treatment as combat markers.
 var radar: Radar
 
@@ -126,7 +127,7 @@ func _draw() -> void:
 		bar = Rect2(touch_controls.safe_insets.x + 16.0, touch_controls.safe_insets.y + 72.0, 136.0, 7.0)
 	_health_area = bar.grow(8.0)
 	draw_rect(bar.grow(3.0), Color(0.0, 0.0, 0.0, 0.7))
-	var health := clampf(hero.health / Hero.MAX_HEALTH, 0.0, 1.0)
+	var health := clampf(hero.health / hero.max_health, 0.0, 1.0)
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * health, bar.size.y)), HudStyle.GREEN if health > 0.25 else HudStyle.RED)
 	_text(bar.position + Vector2(0, -7 if touch_controls else 24), "HEALTH  %d" % ceili(health * 100.0), 11, HudStyle.MUTED)
 	if banner_remaining > 0.0:
@@ -142,6 +143,11 @@ func _draw() -> void:
 				_draw_marker(target, marker.label, marker.color, 0.0)
 			elif target.distance_to(hero.global_position) < 150.0:
 				_draw_marker(target, marker.label, marker.color, 0.0, false)
+	if shops:
+		for marker in shops.markers():
+			var target := WorldOrigin.to_local(marker.position) + Vector3.UP * 2.0
+			if target.distance_to(hero.global_position) <= 150.0:
+				_draw_marker(target, marker.label.to_upper(), marker.color, 0.0, false)
 	_draw_aerial_credit()
 	var mission_pin := missions != null and missions.active != null and radar != null \
 		and radar.waypoint_position.distance_squared_to(missions.current_target()) < 1.0

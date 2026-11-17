@@ -169,6 +169,9 @@ func show_page(page: String) -> void:
 				"Distance driven  %.2f km" % (float(stats.totals.get("driven_m", 0.0)) / 1000.0)]
 			for row in rows:
 				_content.add_child(HudStyle.label(row, 20))
+			_content.add_child(HudStyle.label("UPGRADES · OWNED TIERS", 14, HudStyle.GOLD))
+			for id: String in HeroUpgrades.NAMES:
+				_content.add_child(HudStyle.label("%s  ·  %d / 3" % [HeroUpgrades.NAMES[id], HeroUpgrades.tier(id)]))
 			_button("Back", func() -> void: show_page("home"))
 	var first := _content.find_children("*", "Button", false, false)
 	if not first.is_empty():
