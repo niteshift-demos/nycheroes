@@ -121,14 +121,14 @@ func _draw() -> void:
 		return
 	var bar := Rect2(24.0, size.y - 68.0, 204.0, 7.0)
 	if radar and radar.visible:
-		bar = Rect2(radar.position + Vector2(0.0, radar.size.y + 12.0), Vector2(radar.size.x, 7.0))
+		bar = Rect2(radar.position + Vector2(0.0, -14.0 if touch_controls else radar.size.y + 12.0), Vector2(radar.size.x, 7.0))
 	elif touch_controls:
 		bar = Rect2(touch_controls.safe_insets.x + 16.0, touch_controls.safe_insets.y + 72.0, 136.0, 7.0)
 	_health_area = bar.grow(8.0)
 	draw_rect(bar.grow(3.0), Color(0.0, 0.0, 0.0, 0.7))
 	var health := clampf(hero.health / Hero.MAX_HEALTH, 0.0, 1.0)
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * health, bar.size.y)), HudStyle.GREEN if health > 0.25 else HudStyle.RED)
-	_text(bar.position + Vector2(0, 24), "HEALTH  %d" % ceili(health * 100.0), 11, HudStyle.MUTED)
+	_text(bar.position + Vector2(0, -7 if touch_controls else 24), "HEALTH  %d" % ceili(health * 100.0), 11, HudStyle.MUTED)
 	if banner_remaining > 0.0:
 		_draw_banner()
 		_draw_aerial_credit()

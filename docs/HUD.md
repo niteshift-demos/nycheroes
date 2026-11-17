@@ -3,7 +3,8 @@
 The HUD uses Godot's built-in font, white text with a dark shadow, charcoal
 panels, warm gold objectives, green health/cash and red danger. No new font,
 image asset or shader is needed. Existing radar and touch-control placement
-is preserved; health sits immediately below the radar (top-left on touch).
+is preserved; health sits immediately below the desktop radar and above the
+touch radar, clear of the movement stick.
 There is no finite energy mechanic, so no decorative energy gauge is shown.
 
 Wanted stars and cash share a top-right anchor, clear of the touch toolbar.
@@ -72,8 +73,9 @@ Verify the exported web build at desktop and `844×390` with `?touch=1`, includi
 first visit, pause navigation, mission/wanted driving and result banners.
 
 `tests/hud_web_check.tscn` is a browser presentation fixture excluded from
-normal exports. A verification export that includes tests can launch this
-scene with `?hud_case=foot|car|passed|busted|knocked`. It instantiates the real
+normal exports. After the normal web build, run
+`python tools/web/build_hud_check.py` with other exporters idle, then open
+`/hud-check.html?car=1&quality=low&solo=1&name=Agent`. Select the initial case with `?hud_case=foot|car|passed|busted|knocked`. It instantiates the real
 world, drives the actual car/mission/arrest APIs and freezes transient result
 banners for capture. It does not replace the interactive pause/navigation check.
 

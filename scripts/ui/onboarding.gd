@@ -48,7 +48,7 @@ func _process(delta: float) -> void:
 	visible = title_pending and not is_instance_valid(game._loading)
 	if title_pending:
 		return
-	if game.hero.frozen or game._name_prompt.visible or game.pause_menu.visible or game._options.visible \
+	if game_hud.banner_remaining > 0.0 or game.hero.frozen or game._name_prompt.visible or game.pause_menu.visible or game._options.visible \
 			or game.coop_panel.visible or game.world_map.visible or is_instance_valid(game._loading):
 		return
 	_wait -= delta
