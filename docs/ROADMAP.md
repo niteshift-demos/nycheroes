@@ -2321,12 +2321,17 @@ deployed); in a computer's browser the co-op menu links to it.
 
 ## 10. Open-world (GTA-style) play
 
-- [Radar and waypoint map](RADAR.md): camera-relative loaded streets, speed
-  zoom, co-op/target blips and flashing wanted police, comma to open a pan/zoom
-  map, touch radar access,
+- [Radar and waypoint map](RADAR.md): a baked five-borough atlas with land,
+  water, parks, roads and amber highways/bridges beneath camera-relative live
+  streets; speed zoom, co-op/target blips and flashing wanted police, comma
+  to open the city map, borough/neighborhood/landmark labels, smooth wheel
+  zoom, touch pinch/pan and radar access,
   and world-space waypoints on the radar and HUD. Options → Show radar or
   `?radar=0` hides it. `tests/radar_test.tscn` checks blips, transforms, tile
-  unloads, waypoints and floating-origin shifts. No new tiles needed.
+  unloads, landmark-to-atlas pixels, pinch gestures, ground-height waypoints
+  and floating-origin shifts. `test_map_image.py` checks the offline bake
+  decoder and layers on synthetic data. Rebuild the committed atlas with
+  `tools/citygen/map_image.py`; no new gameplay tiles needed.
 - Driving and car hijacking: [DRIVING.md](DRIVING.md), including controls,
   physical cars, chase camera, co-op snapshots, crime hooks and current limits.
   Run `res://tests/drive_test.tscn`; `?car=1` places a starter sedan by the hero.

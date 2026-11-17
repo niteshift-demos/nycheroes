@@ -5,6 +5,15 @@ lines below wherever a license asks for one (the aerial photos do).
 
 ## City data
 
+- **Whole-city map:** `assets/map/` is a cartographic rendering of this
+  game's published NYCT ground, park, water and bridge meshes (NYC Open
+  Data sources credited below), plus highway centerlines from NYC's
+  Citywide Street Centerline (CSCL, inkn-q76z, `rw_type=2`). NYC Open Data
+  is provided under the NYC Open Data Terms of Use
+  (https://data.cityofnewyork.us/stories/s/Terms-of-Use/k9k7-3cje). No third-party
+  map tiles or aerial imagery are included. The meshes' hand-modeled
+  bridges also use the OpenStreetMap bridge placement data credited below.
+
 - **Aerial photos:** NYC 2024 orthoimagery (6-inch, flown March 2024), by
   the NYC Office of Technology and Innovation and the New York State
   Statewide Digital Orthoimagery Program. License: CC BY 4.0, per the
