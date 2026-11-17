@@ -62,6 +62,8 @@ func hand_position() -> Vector3:
 
 func _process(delta: float) -> void:
 	var driving := hero.mode.name == &"Drive"
+	# The opaque tinted cabin hides the driver; hats and capes must not pierce roofs.
+	visible = not driving
 	if driving != _driving:
 		_player.play(&"Driving" if driving else &"Idle", 0.0)
 		_player.advance(0.0)

@@ -52,7 +52,9 @@ contacts, on collision layer bit 64. It uses one instance of `PropMeshes.car()`
 and the traffic/city material, including shader-driven wheels and lights.
 `DriveMode` is created by Hero alongside the scene's movement modes, so the
 world scene and game controller need no driving setup. The mannequin
-uses its supplied Driving animation in the left driver seat, behind tinted glass.
+uses its supplied Driving animation in the left driver seat. The avatar is
+hidden behind the opaque tinted cabin while driving, so customizable hats
+and capes cannot clip through roofs.
 The take-car hint appears only within 3.5 m of an available car.
 
 The driver continues receiving plain `HeroInput`. `PlayerSync` adds Drive
