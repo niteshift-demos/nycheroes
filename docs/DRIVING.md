@@ -83,7 +83,8 @@ interact control as any parked car.
 
 For a repeatable web crash check, use `?car=1&car_crash=1&quality=low&solo=1&spawn=420,20,-220,-29&traffic=1&peds=0&gangs=0`.
 This opt-in fixture gives the starter 40 health and places one stopped traffic
-row 38 m ahead after it settles. Enter with G and hold W to hit it and see
+row 38 m ahead after it settles. It limits streaming to the surrounding
+street (100/200/700 m LOD ranges) so software-rendered checks load sooner. Enter with G and hold W to hit it and see
 the fire countdown. Normal `?car=1` gives a full-health car.
 
 `drive_test` also checks physical traffic impacts and speed loss, punch/slam

@@ -178,6 +178,9 @@ func _seed_crash(starter: DriveVehicle) -> void:
 	if not is_instance_valid(starter):
 		return
 	starter.health = 40.0
+	# The opt-in check needs one street, keeping software-rendered QA practical.
+	if starter.traffic and starter.traffic.city:
+		starter.traffic.city.load_distances.assign([100.0, 200.0, 700.0])
 	var flow := Traffic.new()
 	flow.max_cars = 1
 	flow.city = starter.traffic.city if starter.traffic else null
