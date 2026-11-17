@@ -2342,6 +2342,8 @@ All gameplay positions use the floating origin; no city tiles need rebuilding.
   Failure/Abandon restarts at the giver. BUSTED fails the active job, clears
   its actors/call/target and takes a capped 10% fine. Boss names, health and
   attack warnings render in the full-resolution HUD, including on Low.
+  The hero starts in a posed Idle before browser skin warm-up holds animation;
+  car exit, travel, recovery and pause/map transitions retain valid clips.
 - **Escape the law:** [WANTED.md](WANTED.md). Witnessed crimes raise 0–5 stars;
   gang fights stay legal. Assigned foot officers pursue, 2★+ brings up to
   four patrol cars and 4★+ adds two-car roadblocks. Break sight to shed heat;
@@ -2378,7 +2380,10 @@ and per drawn frame; `?police_profile=1` isolates 5 Hz patrol decisions.
 `gta_integration_test` cover the GTA layer. The integration scene checks
 recovery, disabled police sight, story arrest/fine/retry/cleanup, all snapshot
 generations, boss presentation and explosion placement/lifetime across origin
-shifts. Keep every existing `tests/*_test.tscn`, `flight_streaming_regression`,
+shifts, plus initial posed bones and animation after warm-up, car exit, travel,
+both safehouse recovery paths and pause → map → resume. Burnt bodies keep
+shaded charcoal/rust panels and blackened windows in the existing car shader.
+Keep every existing `tests/*_test.tscn`, `flight_streaming_regression`,
 Python citygen/audio suites, exported audio-loop checks and
 `tools/shader_compile_check.mjs` in the final integration pass.
 

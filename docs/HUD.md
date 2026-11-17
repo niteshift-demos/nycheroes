@@ -143,3 +143,8 @@ The fixture's `window.nycPolishAction="garage"` opens a seeded real garage
 with a stolen patrol, three stars and payment cash. Its actual Pay & respray
 button checks sight, charges the wallet, repairs, clears heat and removes
 markings; telemetry exposes the resulting paint, livery and service message.
+
+`hud_case=polish` shows the boss marker and a settled charred car beside the
+hero. It uses the game's ordinary animator and skin warm-up; it never poses
+or stops the hero's animation. Telemetry includes the assigned animation,
+playback flag and upper-arm bone pose to distinguish a held Idle from bind.

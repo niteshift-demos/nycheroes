@@ -420,6 +420,7 @@ void fragment() {
 	vec3 color = paint;
 	float occlusion = 1.0;
 	float glint = 0.35;
+	float glass_amount = 0.0;
 	vec3 glow = vec3(0.0);
 	// Day 0 .. night 1, for lights.
 	float dark = city_lights;
@@ -501,6 +502,7 @@ void fragment() {
 				color = mix(color, srgb(TRIM), fill(pillar));
 			}
 			color = mix(color, glass(p, world_normal, seed), window);
+			glass_amount = window;
 			glint = mix(0.35, 1.0, window);
 		} else if (part == WINDSHIELD || part == REAR_WINDOW) {
 			// Glass inside a frame; the cabin narrows toward the roof.
@@ -520,6 +522,7 @@ void fragment() {
 				window = fill(box_distance(p.xy, vec2(0.0, 2.45), vec2(1.05, 0.4)));
 			}
 			color = mix(color, glass(p, world_normal, seed), window);
+			glass_amount = window;
 			glint = mix(0.35, 1.0, window);
 			if (front && model == BUS) {
 				// The destination sign over the windshield, amber letters.
@@ -660,8 +663,16 @@ void fragment() {
 			color = mix(color, srgb(GLASS_SKY), 0.12 * smoothstep(0.6, 0.95, world_normal.y));
 		}
 
-		color *= 1.0 - damage_amount * 0.82;
-		color = mix(color, srgb(vec3(0.055, 0.047, 0.04)), burnt);
+		// Keep burnt metal above crushed black: broad rust/soot variation,
+		// the existing panel details and real normals still describe its shape.
+		float scorch = smoothstep(0.2, 0.8, fract(p.z * 0.37 + p.x * 0.61 + seed / 1024.0));
+		vec3 charred = srgb(mix(vec3(0.35, 0.34, 0.32), vec3(0.42, 0.33, 0.25), scorch));
+		charred *= clamp(dot(color, vec3(0.3333)) * 5.0, 0.65, 1.0);
+		charred = mix(charred, srgb(vec3(0.075, 0.08, 0.085)), glass_amount);
+		if (part == TIRE || part == WHEEL) {
+			charred = srgb(part == TIRE ? vec3(0.09, 0.085, 0.08) : vec3(0.19, 0.16, 0.13));
+		}
+		color = mix(color * (1.0 - damage_amount * 0.82), charred, burnt);
 		glint *= 1.0 - burnt;
 		glow *= 1.0 - damage_amount;
 		ALBEDO = toon_night_albedo(color);
