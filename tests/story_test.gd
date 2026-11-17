@@ -272,6 +272,17 @@ func _run() -> void:
 	check(disk.get_value("settings", StoryCampaign.KEY) == 12, "completed campaign persisted to disk")
 	director.story.reset()
 	check(StoryCampaign.new().completed == 0, "story reset persists")
+	director.story.completed = 1
+	director.banner_remaining = 0.0
+	director._inside_givers.clear()
+	var next_chapter: Mission
+	for definition in director.catalog:
+		if definition.chapter == 2:
+			next_chapter = definition
+	director.advance(0.1, next_chapter.giver)
+	check(director.active == next_chapter, "Empire State story giver wins over the replayable courier at the same location")
+	director.finish(false)
+	director.story.reset()
 	city.free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	print("Story: %d failure(s)" % _failures)

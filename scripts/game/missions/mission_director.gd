@@ -268,13 +268,13 @@ func markers() -> Array[Dictionary]:
 	else:
 		if banner_remaining > 0.0:
 			return result  # Distant giver labels must not cross the result banner.
-		for mission in available_missions():
+		for mission in _giver_candidates():
 			result.append({position = mission.giver, label = mission.title.to_upper(), color = Color.GOLD if mission.chapter > 0 else Color(0.75, 0.5, 1.0)})
 	return result
 
 
 func _update_givers(position: Vector3) -> void:
-	for mission in available_missions():
+	for mission in _giver_candidates():
 		var horizontal := Vector2(position.x - mission.giver.x, position.z - mission.giver.z)
 		var inside := horizontal.length() <= GIVER_RADIUS and absf(position.y - mission.giver.y) <= GIVER_HEIGHT_ALLOWANCE
 		if inside and not _inside_givers.has(mission.id):
@@ -372,3 +372,15 @@ func _clear_story_step() -> void:
 			story_objectives.car.reparent(get_parent(), true)
 		story_objectives.free()
 	story_objectives = null
+
+
+## A landmark can host a replayable contract and a chapter. The unlocked
+## chapter must win entry so a contract cannot block campaign progression.
+func _giver_candidates() -> Array[Mission]:
+	var result: Array[Mission] = []
+	for mission in available_missions():
+		if mission.chapter > 0:
+			result.push_front(mission)
+		else:
+			result.append(mission)
+	return result

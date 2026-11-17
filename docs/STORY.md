@@ -12,8 +12,9 @@ people who built it. All characters, organization names and dialogue were
 written for this game.
 
 Walk into the **gold S** to start the next chapter. Purple contracts remain
-available. One story giver is available at a time; completing it unlocks the
-next. Pause → Missions lists all twelve chapters with ACTIVE / PASSED / AVAILABLE /
+available. One story giver is available at a time. At a shared landmark it takes
+priority over replayable contracts, so a contract cannot block the chain.
+Completing a chapter unlocks the next. Pause → Missions lists all twelve chapters with ACTIVE / PASSED / AVAILABLE /
 LOCKED status, saved campaign progress, and waypoints only for the active or
 next available story chapter. Story objectives use the shared bottom-centre
 subtitle HUD and results use its MISSION PASSED / FAILED banners. Phone calls
