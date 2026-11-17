@@ -100,7 +100,9 @@ func _ready() -> void:
 	Net.state_changed.connect(_on_net_state_changed)
 	Net.left_room.connect(_on_left_room)
 	Net.readmitted.connect(_on_readmitted)
-	Net.player_left.connect(func(id: int) -> void: _shared.erase(id))
+	Net.player_left.connect(func(id: int) -> void:
+		_shared.erase(id)
+		receive_police_cars([], id))
 
 
 func _process(delta: float) -> void:
@@ -113,6 +115,7 @@ func _process(delta: float) -> void:
 		if _share_cooldown <= 0.0:
 			_share_cooldown = SHARE_INTERVAL
 			_share_thugs()
+			_share_police_cars()
 	_update_cooldown -= delta
 	if _update_cooldown > 0.0:
 		return
@@ -400,6 +403,9 @@ func _on_net_state_changed() -> void:
 			_settled_msec = mini(_settled_msec, Time.get_ticks_msec() + int(SETTLE_IN * 1000.0))
 	if Net.is_online():
 		return
+	for car: PoliceCar in get_tree().get_nodes_in_group("police_cars"):
+		if car.puppet:
+			car.queue_free()
 	_told.clear()
 	_left.clear()
 	_awaiting.clear()
@@ -525,3 +531,60 @@ func _on_thug_defeated(thug: Thug) -> void:
 		var oldest: Thug = _bodies.pop_front()
 		if is_instance_valid(oldest):
 			oldest.queue_free()
+
+
+## Cars retain suspect ownership; departing suspects end their response rather
+## than handing an active pursuit to an innocent peer. IDs share the NPC clock.
+func spawn_police_car(at: Vector3, yaw: float, target: Hero, block := false) -> PoliceCar:
+	var car := PoliceCar.new()
+	car.net_id = _next_id * ID_STRIDE + Net.local_id() % ID_STRIDE
+	_next_id += 1
+	car.suspect_id = target.remote_id if target.is_remote() else Net.local_id()
+	car.run_by = Net.local_id()
+	car.heading = yaw
+	car.roadblock = block
+	car.traffic = get_tree().get_first_node_in_group("traffic") as Traffic
+	add_child(car)
+	car.global_position = WorldOrigin.to_local(at)
+	return car
+
+
+func _share_police_cars() -> void:
+	for player in Combat.heroes:
+		if not player.is_remote() or not Net.peers().has(player.remote_id):
+			continue
+		var fleet: Array = []
+		for car: PoliceCar in get_tree().get_nodes_in_group("police_cars"):
+			if not car.puppet and car.global_position.distance_to(player.global_position) < SHARE_RANGE:
+				fleet.append(car.description())
+		_police_car_states.rpc_id(player.remote_id, fleet)
+
+
+## Full small fleets at 20 Hz make arrivals/removals loss tolerant without
+## growing per-peer bookkeeping. Car copies never collide or run decisions.
+@rpc("any_peer", "call_remote", "unreliable_ordered")
+func _police_car_states(fleet: Array) -> void:
+	receive_police_cars(fleet, multiplayer.get_remote_sender_id())
+
+
+func receive_police_cars(fleet: Array, sender: int) -> void:
+	var copies := {}
+	for car: PoliceCar in get_tree().get_nodes_in_group("police_cars"):
+		if car.puppet and car.run_by == sender:
+			copies[car.net_id] = car
+	for data: Array in fleet.slice(0, 6):
+		if data.size() != 9:
+			continue
+		var id := int(data[0])
+		var car: PoliceCar = copies.get(id)
+		if car == null:
+			car = PoliceCar.new()
+			car.net_id = id
+			car.run_by = sender
+			car.puppet = true
+			add_child(car)
+			car.global_position = WorldOrigin.to_local(data[1])
+		car.follow(data)
+		copies.erase(id)
+	for car: PoliceCar in copies.values():
+		car.queue_free()

@@ -12,6 +12,8 @@ var seed := 0.0
 var heading := 0.0
 var driver: Hero
 var puppet := false
+## AI supplies the same input as a driver, without blaming NPC impacts on the hero.
+var ai_controlled := false
 var traffic: Traffic
 var _mesh: MultiMesh
 var _roll := 0.0
@@ -46,11 +48,13 @@ func _ready() -> void:
 	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	visual.custom_aabb = AABB(Vector3(-15, -2, -15), Vector3(30, 12, 30))
 	add_child(visual)
+	if paint == PoliceLivery.PAINT:
+		add_child(PoliceLivery.new())
 	_draw()
 
 
 func _physics_process(delta: float) -> void:
-	if puppet or driver:
+	if puppet or driver or ai_controlled:
 		return
 	velocity.x = move_toward(velocity.x, 0.0, delta * 4.0)
 	velocity.z = move_toward(velocity.z, 0.0, delta * 4.0)
@@ -84,7 +88,8 @@ func drive(input: HeroInput, delta: float) -> void:
 	velocity.z = horizontal.z
 	var before := global_position
 	_step(delta)
-	_hit_people(before)
+	if driver:
+		_hit_people(before)
 
 
 func _step(delta: float) -> void:
@@ -94,13 +99,13 @@ func _step(delta: float) -> void:
 	move_and_slide()
 	for i in get_slide_collision_count():
 		var hit := get_slide_collision(i)
-		if driver and absf(hit.get_normal().y) < 0.3 and Vector2(velocity.x, velocity.z).length() > 0.5:
+		if (driver or ai_controlled) and absf(hit.get_normal().y) < 0.3 and Vector2(velocity.x, velocity.z).length() > 0.5:
 			# Let a glancing impact guide the nose along the wall instead of repeatedly
 			# losing forward speed to the same contact every tick.
 			var along := atan2(velocity.x, velocity.z)
 			heading = rotate_toward(heading, along, 2.5 * delta)
 		var other := hit.get_collider() as DriveVehicle
-		if other and other.driver == null:
+		if other and (other.driver == null or ai_controlled):
 			other.velocity += -hit.get_normal() * minf(impact_speed * 0.5, 10.0)
 	_roll = fposmod(_roll + velocity.length() * delta / PropMeshes.CAR_WHEEL_RADII[model], TAU)
 	_draw()
@@ -111,7 +116,7 @@ func _draw() -> void:
 	# The shader rotates vertices itself, so cancel the body's basis in the instance.
 	_mesh.set_instance_transform(0, Transform3D(Basis(Vector3.UP, -heading).scaled_local(Vector3(size.x, size.z, size.x)), Vector3.ZERO))
 	_mesh.set_instance_custom_data(0, Color(heading, model, seed, 16.0))
-	_mesh.set_instance_color(0, Color(paint, 3.0 if _braking else 1.0, _roll, 0.0))
+	_mesh.set_instance_color(0, Color(0.0 if paint == PoliceLivery.PAINT else paint, 3.0 if _braking else 1.0, _roll, 0.0))
 
 
 ## Swept footprint catches people between ticks even at the 30 m/s speed limit.

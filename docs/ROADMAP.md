@@ -2336,6 +2336,12 @@ deployed); in a computer's browser the co-op menu links to it.
   physical cars, chase camera, co-op snapshots, crime hooks and current limits.
   Run `res://tests/drive_test.tscn`; `?car=1` places a starter sedan by the hero.
 
+- [Police car pursuits](WANTED.md#patrol-cars-and-roadblocks): NYPD sedans at
+  2★+, lane steering and close pursuit through shared driving physics, sirens,
+  flashing roof bars/radar, foot deployment, 4★+ roadblocks and severity-two
+  police-car theft. Suspect-owned fleets share plain co-op state. Run
+  `res://tests/police_cars_test.tscn`; `?wanted=3&car=1` exercises a pursuit,
+  `?police_profile=1` logs decision cost. No new assets or tiles.
 - [Wanted levels and foot police](WANTED.md): witnessed civilian assaults and
   attacks on police raise 0–5 stars, officers pursue the suspect, and escaping
   their sight clears stars. Knockouts while wanted result in BUSTED and a
@@ -2525,6 +2531,8 @@ deployed); in a computer's browser the co-op menu links to it.
   tile unloads and floating origin),
   `res://tests/combat_test.tscn`, `res://tests/wanted_test.tscn` (witnessed
   crime, police pursuit, escape, replication and BUSTED on a synthetic street),
+  `res://tests/police_cars_test.tscn` (patrol caps, pursuit, roadblocks,
+  deployment, theft, search, despawn, origin shifts and ENet fleet sync),
   `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
@@ -2557,7 +2565,7 @@ deployed); in a computer's browser the co-op menu links to it.
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
   `?police=0` disables wanted levels and police, `?wanted=N` starts with
-  0–5 stars for testing, `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?car=1` (starter sedan), `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  0–5 stars for testing, `?police_profile=1` logs patrol decision cost, `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?car=1` (starter sedan), `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server
