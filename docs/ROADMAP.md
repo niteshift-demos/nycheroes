@@ -2321,6 +2321,12 @@ deployed); in a computer's browser the co-op menu links to it.
 
 ## 10. Open-world (GTA-style) play
 
+- [Radar and waypoint map](RADAR.md): camera-relative loaded streets, speed
+  zoom, co-op/target blips and flashing wanted police, comma to open a pan/zoom
+  map, touch radar access,
+  and world-space waypoints on the radar and HUD. Options → Show radar or
+  `?radar=0` hides it. `tests/radar_test.tscn` checks blips, transforms, tile
+  unloads, waypoints and floating-origin shifts. No new tiles needed.
 - Driving and car hijacking: [DRIVING.md](DRIVING.md), including controls,
   physical cars, chase camera, co-op snapshots, crime hooks and current limits.
   Run `res://tests/drive_test.tscn`; `?car=1` places a starter sedan by the hero.
@@ -2510,6 +2516,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
 - Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+  `res://tests/radar_test.tscn` (synthetic blips, map coordinates, waypoints,
+  tile unloads and floating origin),
   `res://tests/combat_test.tscn`, `res://tests/wanted_test.tscn` (witnessed
   crime, police pursuit, escape, replication and BUSTED on a synthetic street),
   `res://tests/streaming_test.tscn`,
@@ -2540,6 +2548,7 @@ deployed); in a computer's browser the co-op menu links to it.
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
+  `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
   `?police=0` disables wanted levels and police, `?wanted=N` starts with
   0–5 stars for testing, `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?car=1` (starter sedan), `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
