@@ -219,10 +219,24 @@ func take_hit(damage: float, push: Vector3, blame_hero := true) -> void:
 	velocity += push.limit_length(45.0)
 	if exploded:
 		return
+	if is_instance_valid(driver):
+		damage /= maxf(driver.car_armor_multiplier, 1.0)
 	_hero_damage = _hero_damage or (blame_hero and damage > 0.0)
 	health = maxf(0.0, health - damage)
 	if health <= 0.0 and burn_time <= 0.0:
 		burn_time = 3.0
+	_draw()
+
+
+## A paid respray stops an active fire; burned, unoccupied wrecks stay destroyed.
+func repair() -> void:
+	if exploded:
+		return
+	health = 100.0
+	burn_time = 0.0
+	_hero_damage = false
+	body_roll = 0.0
+	body_pitch = 0.0
 	_draw()
 
 

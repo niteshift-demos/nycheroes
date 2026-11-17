@@ -177,13 +177,15 @@ func can_take_car() -> bool:
 ## Opt-in reproducible street crash: a worn starter and one stopped traffic row.
 ## Uses the same promotion, collision and explosion paths as ordinary traffic.
 func _seed_crash(starter: DriveVehicle) -> void:
+	# Place the row only once street collision has loaded, at the street's elevation.
+	if starter.traffic and starter.traffic.city:
+		starter.traffic.city.load_distances.assign([100.0, 200.0, 700.0])
+		if not starter.traffic.city._initial_load_done:
+			await starter.traffic.city.initial_load_finished
 	await get_tree().create_timer(2.0).timeout
 	if not is_instance_valid(starter):
 		return
 	starter.health = 10.0
-	# The opt-in check needs one street, keeping software-rendered QA practical.
-	if starter.traffic and starter.traffic.city:
-		starter.traffic.city.load_distances.assign([100.0, 200.0, 700.0])
 	var flow := Traffic.new()
 	flow.max_cars = 1
 	flow.city = starter.traffic.city if starter.traffic else null
@@ -192,7 +194,12 @@ func _seed_crash(starter: DriveVehicle) -> void:
 	var at := WorldOrigin.to_world(starter.global_position)
 	var forward := Vector3(sin(starter.heading), 0, cos(starter.heading))
 	var target := at + forward * 38.0
-	var lines: Array[PackedVector3Array] = [PackedVector3Array([at, at + forward * 100.0])]
+	var local_target := WorldOrigin.to_local(target)
+	var ground := hero.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(local_target + Vector3.UP * 10.0, local_target + Vector3.DOWN * 30.0, Hero.WORLD_LAYER))
+	if not ground.is_empty():
+		target.y = (ground.position as Vector3).y + 0.05
+	var line_start := Vector3(at.x, target.y, at.z)
+	var lines: Array[PackedVector3Array] = [PackedVector3Array([line_start, line_start + forward * 100.0])]
 	flow.set_tile_lanes(Vector2i(99999, 99999), lines, PackedFloat32Array([1, 2, 12, 0, 1, -1, 0]))
 	var lane: TrafficLanes.Lane = flow.lanes.tiles[Vector2i(99999, 99999)][0]
 	flow._add_car(lane, 40.35, 0, target, 0, 100, false)

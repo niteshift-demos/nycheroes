@@ -2349,6 +2349,8 @@ deployed); in a computer's browser the co-op menu links to it.
   collision queries use a world-space grid and swept footprints; wrecks
   retain the existing traffic braking path. `?car=1&car_crash=1` adds the
   repeatable crash fixture described in DRIVING.md.
+  Garage armor reduces occupied-car damage; paid resprays repair damage and
+  cancel fires, covered alongside driver armor in `shops_test`.
 - Driving and car hijacking: [DRIVING.md](DRIVING.md), including controls,
   physical cars, chase camera, co-op snapshots, crime hooks and current limits.
   Run `res://tests/drive_test.tscn`; `?car=1` places a starter sedan by the hero.
