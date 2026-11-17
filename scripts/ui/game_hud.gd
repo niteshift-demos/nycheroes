@@ -44,6 +44,7 @@ var touch_controls: TouchControls:
 
 ## Set by Game; mission logic and text live in their own nodes.
 var missions: MissionDirector
+var shops: CityShops
 ## Navigation pin uses the same projection and edge treatment as combat markers.
 var radar: Radar
 
@@ -95,7 +96,7 @@ func _draw() -> void:
 		var insets := touch_controls.safe_insets
 		bar = Rect2(insets.x + 20.0, insets.y + 32.0, 180.0, 14.0)
 	draw_rect(bar.grow(3.0), Color(0.0, 0.0, 0.0, 0.55))
-	var health := hero.health / Hero.MAX_HEALTH
+	var health := hero.health / hero.max_health
 	var fill := Color(0.85, 0.15, 0.12).lerp(Color(0.2, 0.8, 0.3), health)
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * health, bar.size.y)), fill)
 	_text(bar.position + Vector2(0.0, -8.0), "HEALTH", 14)
@@ -106,6 +107,9 @@ func _draw() -> void:
 	_draw_coop_status()
 	if missions:
 		for marker in missions.markers():
+			_draw_marker(WorldOrigin.to_local(marker.position) + Vector3.UP * 2.0, marker.label, marker.color, 0.0)
+	if shops:
+		for marker in shops.markers():
 			_draw_marker(WorldOrigin.to_local(marker.position) + Vector3.UP * 2.0, marker.label, marker.color, 0.0)
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x

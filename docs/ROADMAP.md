@@ -2321,6 +2321,12 @@ deployed); in a computer's browser the co-op menu links to it.
 
 ## 10. Open-world (GTA-style) play
 
+- [Shops, upgrades and safehouses](SHOPS.md): three Hero Supply locations,
+  six saved three-tier upgrades, two Precinct Payoff garages and two apartment
+  recovery points with eight-hour sleep. Radar icons and entry panels support
+  mouse, gamepad and touch. `shops_test.tscn` covers purchases, persistence,
+  sight-gated resprays and both recovery paths; `?upgrades=reset` clears tiers.
+
 - Local cash and replayable city contracts: [Missions and cash](MISSIONS.md).
   Five starter routes, nearby street bounties, touch actions and gold target
   markers. `missions_test.tscn` covers wallet saves and mission progression.
@@ -2553,7 +2559,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `--net=webrtc`; none joins the public game unless it means to),
   `res://tests/coop_load_test.tscn` (not a pass/fail test: what 3 and 7
   players far off cost a host's frames, physics and memory),
-  `res://tests/missions_test.tscn` (wallet saves, mission steps, fail/retry,
+  `res://tests/shops_test.tscn` (purchases, upgrade effects, saves, resprays and
+  safehouse recovery), `res://tests/missions_test.tscn` (wallet saves, mission steps, fail/retry,
   timers, collectibles and tracked gangs), `res://tests/audio_test.tscn`, `res://tests/options_test.tscn` (the
   options menu and the settings, with a settings file of its own),
   `res://tests/address_test.tscn` (the Go to box: the projection against
@@ -2573,7 +2580,9 @@ deployed); in a computer's browser the co-op menu links to it.
   Woodlawn; `TRAINS_TERMINAL_ONLY=1` goes straight to Woodlawn).
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?mission=<id>` start a local
-  contract ([ids and routes](MISSIONS.md)), `?cash=N` set and save cash, `?stats` the stats text
+  contract ([ids and routes](MISSIONS.md)), `?cash=N` set and save cash,
+  `?upgrades=reset` clear saved shop upgrades ([shops](SHOPS.md)),
+  `?shop_check=garage` seed three stars on garage entry for web QA, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
   `?police=0` disables wanted levels and police, `?wanted=N` starts with

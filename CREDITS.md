@@ -215,3 +215,12 @@ Each file's Commons page is in `tools/reference/views.json` (`photo.page`).
   libsrtp (Cisco, BSD 3-clause), plog (MIT) and Mbed TLS 3.6.7 (Apache 2.0).
   The licenses are next to it (`LICENSE.*`) and in both downloads'
   `licenses` folder, with the engine's.
+
+## Shop location references
+
+The fictional shops use hand-authored offsets from the geographic coordinates
+of [Union Square](https://en.wikipedia.org/wiki/Union_Square,_Manhattan),
+[Brooklyn Borough Hall](https://en.wikipedia.org/wiki/Brooklyn_Borough_Hall)
+and [Yankee Stadium](https://en.wikipedia.org/wiki/Yankee_Stadium), checked
+November 17, 2026. Only coordinate facts are used; no article text, photos or
+map extracts are bundled. Wikipedia article text is CC BY-SA 4.0.
