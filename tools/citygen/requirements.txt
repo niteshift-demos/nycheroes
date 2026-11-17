@@ -4,3 +4,4 @@ shapely>=2.1
 rasterio>=1.4
 pillow>=11
 laspy[lazrs]>=2.5
+zstandard>=0.23; python_version < "3.14"

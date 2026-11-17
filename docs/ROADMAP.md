@@ -2334,16 +2334,27 @@ deployed); in a computer's browser the co-op menu links to it.
   markers. `missions_test.tscn` covers wallet saves and mission progression.
   Launch with `?mission=<id>` and `?cash=N` to exercise a route and balance.
   BUSTED fails the active contract and charges a capped 10% cash fine.
-- [Radar and waypoint map](RADAR.md): camera-relative loaded streets, speed
-  zoom, co-op/target blips and flashing wanted police, comma to open a pan/zoom
-  map, touch radar access,
+- [Radar and waypoint map](RADAR.md): a baked five-borough atlas with land,
+  water, parks, roads and amber highways/bridges beneath camera-relative live
+  streets; speed zoom, co-op/target blips and flashing wanted police, comma
+  to open the city map, borough/neighborhood/landmark labels, smooth wheel
+  zoom, touch pinch/pan and radar access,
   and world-space waypoints on the radar and HUD. Options → Show radar or
   `?radar=0` hides it. `tests/radar_test.tscn` checks blips, transforms, tile
-  unloads, waypoints and floating-origin shifts. No new tiles needed.
+  unloads, landmark-to-atlas pixels, pinch gestures, ground-height waypoints
+  and floating-origin shifts. `test_map_image.py` checks the offline bake
+  decoder and layers on synthetic data. Rebuild the committed atlas with
+  `tools/citygen/map_image.py`; no new gameplay tiles needed.
 - Driving and car hijacking: [DRIVING.md](DRIVING.md), including controls,
   physical cars, chase camera, co-op snapshots, crime hooks and current limits.
   Run `res://tests/drive_test.tscn`; `?car=1` places a starter sedan by the hero.
 
+- [Police car pursuits](WANTED.md#patrol-cars-and-roadblocks): NYPD sedans at
+  2★+, lane steering and close pursuit through shared driving physics, sirens,
+  flashing roof bars/radar, foot deployment, 4★+ roadblocks and severity-two
+  police-car theft. Suspect-owned fleets share plain co-op state. Run
+  `res://tests/police_cars_test.tscn`; `?wanted=3&car=1` exercises a pursuit,
+  `?police_profile=1` logs decision cost. No new assets or tiles.
 - [Wanted levels and foot police](WANTED.md): witnessed civilian assaults and
   attacks on police raise 0–5 stars, officers pursue the suspect, and escaping
   their sight clears stars. Knockouts while wanted result in BUSTED and a
@@ -2534,6 +2545,8 @@ deployed); in a computer's browser the co-op menu links to it.
   tile unloads and floating origin),
   `res://tests/combat_test.tscn`, `res://tests/wanted_test.tscn` (witnessed
   crime, police pursuit, escape, replication and BUSTED on a synthetic street),
+  `res://tests/police_cars_test.tscn` (patrol caps, pursuit, roadblocks,
+  deployment, theft, search, despawn, origin shifts and ENet fleet sync),
   `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
@@ -2566,7 +2579,7 @@ deployed); in a computer's browser the co-op menu links to it.
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?tutorial=reset` resets first-run title and lessons, `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
   `?police=0` disables wanted levels and police, `?wanted=N` starts with
-  0–5 stars for testing, `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?car=1` (starter sedan), `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  0–5 stars for testing, `?police_profile=1` logs patrol decision cost, `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?car=1` (starter sedan), `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server
