@@ -85,7 +85,7 @@ and hijacking. This option does not start driving: enter with the same
 interact control as any parked car.
 
 
-For a repeatable web crash check, use `?car=1&car_crash=1&quality=low&solo=1&spawn=420,20,-220,-29&traffic=1&peds=0&gangs=0`.
+For a repeatable web crash check, use `?car=1&car_crash=1&quality=low&solo=1&spawn=425,20,-217.5,-29&traffic=1&peds=0&gangs=0`.
 This opt-in fixture gives the starter 10 health and places one stopped traffic
 row 38 m ahead on the loaded street surface after it settles. It limits streaming to the surrounding
 street (100/200/700 m LOD ranges) so software-rendered checks load sooner. Enter with G and hold W to hit it and see
