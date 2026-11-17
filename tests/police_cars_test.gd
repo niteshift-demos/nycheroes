@@ -134,6 +134,7 @@ func _run() -> void:
 		pursuit.think(rammer, 1.0 / 60.0)
 		await get_tree().physics_frame
 	_check(player_car.global_position.distance_to(before_ram) > 1.0, "patrol physically rams occupied suspect car")
+	_check(not rammer._hero_damage, "AI ramming a passive driver does not blame the hero")
 	rammer.queue_free()
 	pursuit.cars.clear()
 	player_car.global_position = Vector3.ZERO

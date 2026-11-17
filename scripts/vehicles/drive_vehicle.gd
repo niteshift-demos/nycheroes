@@ -157,13 +157,15 @@ func _step(delta: float) -> void:
 			heading = rotate_toward(heading, atan2(velocity.x, velocity.z), 2.5 * delta)
 		if closing > 3.0 and _impact_cooldown <= 0.0 and (normal.y < 0.7 or incoming.y < -5.0):
 			_impact_cooldown = 0.35
-			take_hit((closing - 3.0) * 2.6, Vector3.ZERO, driver != null or (other != null and other.driver != null))
+			var hero_impact := driver != null and incoming.dot(normal) < -3.0
+			var other_hero_impact := other != null and other.driver != null and other.velocity.dot(normal) > 3.0
+			take_hit((closing - 3.0) * 2.6, Vector3.ZERO, hero_impact or other_hero_impact or _hero_damage)
 			Combat.impact.emit(hit.get_position(), minf(closing / 25.0, 1.0))
 			GameAudio.play(&"car_crash", hit.get_position())
 			if Combat.effects:
 				Combat.effects.car_sparks(hit.get_position(), normal, closing)
 			if other:
-				other.take_hit((closing - 3.0) * 2.0, -normal * minf(closing * 0.65, 20.0) + Vector3.UP, driver != null or _hero_damage)
+				other.take_hit((closing - 3.0) * 2.0, -normal * minf(closing * 0.65, 20.0) + Vector3.UP, hero_impact or _hero_damage)
 			velocity *= 0.72
 	_roll = fposmod(_roll + velocity.length() * delta / PropMeshes.CAR_WHEEL_RADII[model], TAU)
 	_draw()
