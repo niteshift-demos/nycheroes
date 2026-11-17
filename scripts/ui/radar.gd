@@ -281,6 +281,8 @@ func draw_overlay(canvas: Control) -> void:
 static func draw_blip(canvas: CanvasItem, at: Vector2, kind: StringName, color: Color) -> void:
 	canvas.draw_circle(at, 6.5, Color("101820"))
 	match kind:
+		&"story":
+			canvas.draw_string(ThemeDB.fallback_font, at + Vector2(-5, 6), "S", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, color)
 		&"mission", &"waypoint":
 			canvas.draw_colored_polygon(PackedVector2Array([at + Vector2(0, -6), at + Vector2(5, 0), at + Vector2(0, 6), at + Vector2(-5, 0)]), color)
 		&"police":

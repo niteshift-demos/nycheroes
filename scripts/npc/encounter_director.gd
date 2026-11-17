@@ -252,6 +252,13 @@ func _ahead_of(target: Hero) -> Vector3:
 ## that we took over): the ground around them stays loaded for those thugs.
 func _foci() -> Array[Vector3]:
 	var foci: Array[Vector3] = []
+	# Rooftop story fights need collision even on phones whose normal near
+	# radius is lower than the roof. Keep only the nearby objective loaded.
+	var mission := get_tree().get_first_node_in_group("mission_director") as MissionDirector
+	if mission and mission.active and mission.active.chapter > 0:
+		var target := mission.current_target()
+		if target.y > 200.0 and target.distance_to(hero.world_position()) < 700.0:
+			foci.append(target)
 	for other in Combat.heroes:
 		if not other.is_remote():
 			continue
@@ -316,7 +323,7 @@ func _share_thugs() -> void:
 ## facing, gang, health, down].
 func _describe(thug: Thug) -> Array:
 	return [thug.net_id, WorldOrigin.to_world(thug.global_position), thug.facing(), thug.gang, thug.health, thug.is_down(),
-		thug.suspect_id if thug is PoliceOfficer else 0, thug.response_stars if thug is PoliceOfficer else 0]
+		thug.suspect_id if thug is PoliceOfficer else 0, thug.response_stars if thug is PoliceOfficer else 0, thug.story_variant]
 
 
 ## A thug as another game described it: a copy of one player `runner`'s game
@@ -333,6 +340,8 @@ func _spawn_thug(description: Array, runner: int) -> Thug:
 	add_child(thug)
 	thug.global_position = WorldOrigin.to_local(description[1])
 	thug.setup_described(int(description[3]), float(description[2]), float(description[4]), bool(description[5]))
+	if description.size() > 8 and int(description[8]) > 0:
+		thug.set_story_variant(int(description[8]), false)
 	return thug
 
 

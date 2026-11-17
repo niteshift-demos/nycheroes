@@ -138,16 +138,24 @@ func show_page(page: String) -> void:
 				skip_tutorial_requested.emit()
 				close())
 		"missions":
+			var entries: Array[Mission] = []
 			for mission in missions.catalog:
+				if mission.chapter > 0:
+					entries.append(mission)
+			for mission in missions.catalog:
+				if mission.chapter == 0:
+					entries.append(mission)
+			_content.add_child(HudStyle.label("THE BORROWED SKYLINE  ·  %d / 12 COMPLETE" % missions.story.completed, 14, HudStyle.GOLD))
+			for mission in entries:
 				var running := missions.active == mission
-				var completed: Dictionary = stats.totals.get("completed", {})
-				var status := "ACTIVE" if running else ("PASSED" if completed.has(mission.id) else "AVAILABLE")
-				var label := HudStyle.label("%s  ·  %s  ·  %s" % [mission.title, Wallet.format_cash(mission.reward), status])
+				var status := mission_status(mission)
+				var prefix := "S %02d  ·  " % mission.chapter if mission.chapter > 0 else ""
+				var label := HudStyle.label("%s%s  ·  %s  ·  %s" % [prefix, mission.title, Wallet.format_cash(mission.reward), status], 17, HudStyle.MUTED if status == "LOCKED" else (HudStyle.GOLD if mission.chapter > 0 else Color.WHITE))
 				label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				_content.add_child(label)
 				_button("Set waypoint", func() -> void:
 					radar.set_waypoint(missions.current_target() if running else mission.giver)
-					_leave(map_requested))
+					_leave(map_requested), status != "LOCKED" and not (mission.chapter > 0 and status == "PASSED"))
 			if missions.active:
 				_button("Abandon current mission", func() -> void:
 					missions.finish(false)
@@ -159,7 +167,7 @@ func show_page(page: String) -> void:
 				if missions.last_mission:
 					_button("Retry last mission", func() -> void:
 						missions.retry()
-						close())
+						close(), missions.last_mission.chapter == 0 or missions.story.available(missions.last_mission) or LaunchOptions.has("story"))
 			_button("Back", func() -> void: show_page("home"))
 		"stats":
 			var rows: Array[String] = ["Cash  " + Wallet.format_cash(wallet.balance),
@@ -182,9 +190,22 @@ func show_page(page: String) -> void:
 		(first[0] as Button).grab_focus()
 
 
-func _button(text: String, action: Callable) -> void:
+## Saved story progression, rather than lifetime stats, controls chapter locks.
+func mission_status(mission: Mission) -> String:
+	if missions.active == mission:
+		return "ACTIVE"
+	if mission.chapter > 0:
+		if mission.chapter <= missions.story.completed:
+			return "PASSED"
+		return "AVAILABLE" if missions.story.available(mission) else "LOCKED"
+	var completed: Dictionary = stats.totals.get("completed", {})
+	return "PASSED" if completed.has(mission.id) else "AVAILABLE"
+
+
+func _button(text: String, action: Callable, enabled := true) -> void:
 	var button := Button.new()
 	button.text = text
+	button.disabled = not enabled
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.custom_minimum_size.y = 46.0
 	button.pressed.connect(action)

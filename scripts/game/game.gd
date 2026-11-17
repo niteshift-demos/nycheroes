@@ -96,6 +96,10 @@ func _ready() -> void:
 		place_hero(Vector3(spawn[0], spawn[1], spawn[2]), facing)
 	else:
 		place_hero(DEFAULT_SPAWN, facing, true)
+	if LaunchOptions.has("story") and not LaunchOptions.has("spawn"):
+		var chapter := LaunchOptions.get_string("story").to_int()
+		if chapter >= 1 and chapter <= 12:
+			travel_to(StoryCatalog.all()[chapter - 1].giver)
 	_set_free_camera(LaunchOptions.has("cam"))
 	players.placed_by_host.connect(place_hero)
 	coop_panel.toggled.connect(func(_open: bool) -> void: _update_controls())
@@ -461,6 +465,10 @@ func _add_missions() -> void:
 	overlay.director = missions
 	overlay.wallet = wallet
 	hud.add_child(overlay)
+	var phone := StoryPhone.new()
+	phone.director = missions
+	hud.add_child(phone)
+	hud.move_child(phone, 1)
 	hud.move_child(overlay, 0)  # Menus and the loading screen stay above it.
 	var game_hud := hud.get_node_or_null("GameHud") as GameHud
 	if game_hud:

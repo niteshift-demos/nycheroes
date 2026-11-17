@@ -76,9 +76,9 @@ func _step_changed(_id: String, position: Vector3) -> void:
 
 
 func _show_givers() -> void:
-	for mission in director.catalog:
+	for mission in director.available_missions():
 		var id := StringName("mission/giver/" + mission.id)
-		radar.add_blip(id, mission.giver, &"mission", Color.YELLOW)
+		radar.add_blip(id, mission.giver, &"story" if mission.chapter > 0 else &"mission", Color.GOLD if mission.chapter > 0 else Color.YELLOW)
 		if not _owned.has(id):
 			_owned.append(id)
 

@@ -2321,6 +2321,15 @@ deployed); in a computer's browser the co-op menu links to it.
 
 ## 10. Open-world (GTA-style) play
 
+- [The Borrowed Skyline story campaign](STORY.md): twelve original chained
+  chapters across all five boroughs, saved per-player unlocks, gold S givers,
+  skippable phone calls, driving/chase/escape/protect/destroy/sky-ring steps
+  and three powered lieutenants plus a rooftop boss. `?story=1`–`12` jumps
+  to a chapter; `?story=reset` clears chapter progress.
+  `tests/story_test.tscn` checks all new objectives, failure/retry boundaries,
+  boss descriptions, floating origin, chapter unlocks and persisted completion.
+  Rewards run from $10,000 to $50,000. No tile rebuild is needed.
+
 - [Cohesive HUD, pause and onboarding](HUD.md): radar health, wanted/cash,
   bottom-centre objectives, top-left toasts and shared result banners with a
   cheap neutral overlay and generated stinger. Esc/P/Start and the touch gear
@@ -2570,6 +2579,7 @@ deployed); in a computer's browser the co-op menu links to it.
   `--net=webrtc`; none joins the public game unless it means to),
   `res://tests/coop_load_test.tscn` (not a pass/fail test: what 3 and 7
   players far off cost a host's frames, physics and memory),
+  `res://tests/story_test.tscn` (story objectives, bosses and saved chapter chain),
   `res://tests/shops_test.tscn` (purchases, upgrade effects, saves, resprays and
   safehouse recovery), `res://tests/missions_test.tscn` (wallet saves, mission steps, fail/retry,
   timers, collectibles and tracked gangs), `res://tests/audio_test.tscn`, `res://tests/options_test.tscn` (the
@@ -2591,9 +2601,12 @@ deployed); in a computer's browser the co-op menu links to it.
   Woodlawn; `TRAINS_TERMINAL_ONLY=1` goes straight to Woodlawn).
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
   free camera, `?spawn=x,y,z,yaw` hero start, `?mission=<id>` start a local
-  contract ([ids and routes](MISSIONS.md)), `?cash=N` set and save cash,
-  `?upgrades=reset` clear saved shop upgrades ([shops](SHOPS.md)),
-  `?shop_check=garage` seed three stars on garage entry for web QA, `?stats` the stats text
+  contract ([ids and routes](MISSIONS.md)), `?story=1`–`12` starts a story chapter,
+  `?story=reset` resets chapter progress ([campaign](STORY.md));
+  `?story_playtest=1` exposes the optional input-only QA pilot,
+  `?cash=N` sets and saves cash, `?upgrades=reset` clears saved shop upgrades
+  ([shops](SHOPS.md)), `?shop_check=garage` seeds three stars on garage entry
+  for web QA, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
   `?tutorial=reset` resets first-run title and lessons, `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
   `?police=0` disables wanted levels and police, `?wanted=N` starts with
