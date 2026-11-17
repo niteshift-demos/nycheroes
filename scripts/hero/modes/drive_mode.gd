@@ -180,7 +180,7 @@ func _seed_crash(starter: DriveVehicle) -> void:
 	await get_tree().create_timer(2.0).timeout
 	if not is_instance_valid(starter):
 		return
-	starter.health = 40.0
+	starter.health = 10.0
 	# The opt-in check needs one street, keeping software-rendered QA practical.
 	if starter.traffic and starter.traffic.city:
 		starter.traffic.city.load_distances.assign([100.0, 200.0, 700.0])

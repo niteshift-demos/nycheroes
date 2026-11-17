@@ -160,6 +160,8 @@ func _step(delta: float) -> void:
 			var hero_impact := driver != null and incoming.dot(normal) < -3.0
 			var other_hero_impact := other != null and other.driver != null and other.velocity.dot(normal) > 3.0
 			take_hit((closing - 3.0) * 2.6, Vector3.ZERO, hero_impact or other_hero_impact or _hero_damage)
+			if LaunchOptions.has("car_crash"):
+				print("[car-check] impact with %s at %.1f m/s; health %.1f" % ["car" if other else "street geometry", closing, health])
 			Combat.impact.emit(hit.get_position(), minf(closing / 25.0, 1.0))
 			GameAudio.play(&"car_crash", hit.get_position())
 			if Combat.effects:
@@ -258,6 +260,8 @@ func explode() -> void:
 	burn_time = 0.0
 	body_pitch = -0.1
 	var occupant := driver
+	if LaunchOptions.has("car_crash"):
+		print("[car-check] explosion; driver inside: %s" % is_instance_valid(occupant))
 	if is_instance_valid(occupant):
 		occupant.set_mode(&"OnFoot")
 		Combat.hurt_hero(occupant, 65.0, Vector3.UP * 12.0)
