@@ -112,8 +112,10 @@ bystander injury without false crimes, and damage over real ENet snapshots.
 
 ## Integration polish
 
-Explosions combine CPU fire lobes, rising soot and tumbling metal, a brief
-unshadowed light and the shared camera impact. Up to three blasts overlap;
+Explosions combine CPU fire, three low-poly hot cores, rising soot and tumbling
+metal, a brief unshadowed light and the shared camera impact. Flash animations
+follow the physics clock so browser frame catch-up cannot skip them.
+Up to three blasts overlap;
 all particles and their roots expire. Charred wrecks lose their paint and
 glass glints. Both existing and newly spawned effects survive origin shifts.
 

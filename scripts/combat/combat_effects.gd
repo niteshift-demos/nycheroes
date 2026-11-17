@@ -270,11 +270,31 @@ func car_explosion(at: Vector3) -> void:
 		root.add_child(lobe)
 		lobe.position = offset
 		lobe.scale = Vector3.ONE * 5.0
-		var flare := root.create_tween().set_parallel()
+		# Match the detonation's clock even when a browser catches up physics
+		# across a long render frame; idle delta can otherwise skip the flash.
+		var flare := root.create_tween().set_process_mode(Tween.TWEEN_PROCESS_PHYSICS).set_parallel()
 		flare.tween_property(lobe, "scale", Vector3.ONE * 7.5, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		flare.tween_property(glow, "albedo_color:a", 0.0, 1.0).set_delay(0.15)
 		flare.chain().tween_callback(lobe.queue_free)
-	var tween := create_tween()
+		# A low-poly hot core gives the fireball a readable silhouette even
+		# before a browser has uploaded its first CPU particle buffer.
+		var core := MeshInstance3D.new()
+		var hot := _material(Color(1.0, 0.32, 0.015, 1.0), 1.0)
+		hot.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		hot.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		hot.emission_enabled = true
+		hot.emission = Color(1.0, 0.4, 0.02)
+		hot.emission_energy_multiplier = 1.5
+		core.mesh = _sphere(1.0, hot)
+		core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(core)
+		core.position = offset
+		core.scale = Vector3.ONE * 0.8
+		var heat_up := root.create_tween().set_process_mode(Tween.TWEEN_PROCESS_PHYSICS).set_parallel()
+		heat_up.tween_property(core, "scale", Vector3.ONE * 2.6, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		heat_up.tween_property(hot, "albedo_color:a", 0.0, 0.45).set_delay(0.2)
+		heat_up.chain().tween_callback(core.queue_free)
+	var tween := create_tween().set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
 	tween.tween_property(light, "light_energy", 0.0, 0.24)
 	tween.tween_callback(light.queue_free)
 	tween.tween_interval(3.4)
