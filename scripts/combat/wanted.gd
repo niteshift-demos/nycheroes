@@ -26,10 +26,15 @@ var _tick := 0.0
 var _spawn_wait := 0.0
 var _bust_wait := 0.0
 var _respawn := Vector3.ZERO
+## Cars share the local wanted clock and suspect ownership.
+var pursuit: PolicePursuit
 
 
 func _ready() -> void:
 	enabled = LaunchOptions.get_string("police", "1") != "0"
+	pursuit = PolicePursuit.new()
+	pursuit.wanted = self
+	add_child(pursuit)
 	Combat.crime.connect(_on_crime)
 	hero.mode_changed.connect(_on_mode_changed)
 	if enabled and LaunchOptions.has("wanted"):
@@ -71,6 +76,10 @@ func _on_crime(_kind: StringName, world_position: Vector3, severity: float) -> v
 
 ## The victim can report their own assault. Walls block all witnesses.
 func witnessed(at: Vector3) -> bool:
+	for car: PoliceCar in get_tree().get_nodes_in_group("police_cars"):
+		if car.driver == null and not car.deployed and car.global_position.distance_to(WorldOrigin.to_local(at)) < WITNESS_RANGE \
+				and _clear_sight(WorldOrigin.to_world(car.global_position), at):
+			return true
 	for ped: Pedestrian in get_tree().get_nodes_in_group("pedestrians"):
 		if ped.world_position.distance_to(at) < WITNESS_RANGE and _clear_sight(ped.world_position, at):
 			return true
@@ -90,6 +99,11 @@ func _clear_sight(from_world: Vector3, to_world: Vector3) -> bool:
 
 
 func police_see_hero() -> bool:
+	for car: PoliceCar in get_tree().get_nodes_in_group("police_cars"):
+		if car.suspect_id == Net.local_id() and car.driver == null and not car.deployed \
+				and car.global_position.distance_to(hero.global_position) < SIGHT_RANGE \
+				and _clear_sight(WorldOrigin.to_world(car.global_position), hero.world_position()):
+			return true
 	for thug in Combat.thugs:
 		if thug is PoliceOfficer and not thug.is_down() \
 				and thug.global_position.distance_to(hero.global_position) < SIGHT_RANGE \

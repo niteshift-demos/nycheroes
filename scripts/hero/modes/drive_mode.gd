@@ -21,11 +21,14 @@ func interact() -> void:
 	var distance := 3.5
 	for parked: DriveVehicle in hero.get_tree().get_nodes_in_group("drive_cars"):
 		var reach := parked.global_position.distance_to(hero.global_position)
-		if parked.driver == null and reach < distance:
+		if parked.driver == null and not parked.ai_controlled and reach < distance:
 			nearest = parked
 			distance = reach
 	if nearest:
 		car = nearest
+		if car is PoliceCar and car.is_in_group("police_cars"):
+			Combat.report_crime(&"steal_police_car", hero.world_position(), 2.0)
+			car.abandon_pursuit()
 	else:
 		for traffic: Traffic in hero.get_tree().get_nodes_in_group("traffic"):
 			car = traffic.take_car(hero.world_position(), 3.5)
