@@ -32,6 +32,8 @@
 [ext_resource type="Script" path="res://scripts/world/trains.gd" id="41_trains"]
 [ext_resource type="Script" path="res://scripts/audio/game_audio.gd" id="50_audio"]
 
+[ext_resource type="Script" path="res://scripts/combat/wanted.gd" id="60_wanted"]
+
 [sub_resource type="ShaderMaterial" id="SkyMaterial_sky"]
 shader = ExtResource("19_sky")
 
@@ -246,3 +248,11 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("18_coop_panel")
+
+
+[node name="Wanted" type="Node" parent="." node_paths=PackedStringArray("hero", "city", "encounters", "hud")]
+script = ExtResource("60_wanted")
+hero = NodePath("../Hero")
+city = NodePath("../City")
+encounters = NodePath("../Encounters")
+hud = NodePath("../HUD/GameHud")

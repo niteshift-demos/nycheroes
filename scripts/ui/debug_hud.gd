@@ -1,8 +1,8 @@
 class_name DebugHud
 extends Label
 ## Debug overlay: frame rate, hero (or free camera) status and position, the
-## time of day, tile streaming, and controls. Shown on computers and hidden
-## on phones and tablets unless the options menu's "Show FPS and stats" says
+## time of day, tile streaming, and controls. Hidden unless
+## the options menu's "Show FPS and stats" says
 ## otherwise (Settings "show_stats"); ?stats (--stats on desktop) shows it
 ## for the session and also logs it to the console. It keeps counting while
 ## the options menu pauses the game (to see what a preset does).
@@ -12,7 +12,7 @@ const ORIGIN_LON := -73.9855
 const METERS_PER_DEGREE := 111320.0
 const REFRESH_INTERVAL := 0.25
 const LOG_INTERVAL := 2.0
-const HERO_HELP := "WASD move  ·  Left mouse punch (in the air: dive)  ·  Space jump (hold: super jump)  ·  Shift super speed  ·  F fly (Space/C up/down)  ·  E / right mouse web  ·  M co-op  ·  O options  ·  T time of day  ·  N mute  ·  F1 free camera"
+const HERO_HELP := "WASD move  ·  Left mouse punch (in the air: dive)  ·  Space jump (hold: super jump)  ·  Shift super speed  ·  F fly (Space/C up/down)  ·  E / right mouse web  ·  G car  ·  Comma map  ·  P pause  ·  M co-op  ·  O options  ·  T time of day  ·  N mute  ·  F1 free camera"
 const FREE_CAMERA_HELP := "Free camera: WASD move  ·  Space/C up/down  ·  Shift boost  ·  Wheel speed  ·  O options  ·  T time of day  ·  N mute  ·  F1 back to hero"
 
 @export var city: CityStreamer
@@ -27,14 +27,15 @@ var _log_stats := false
 
 func _ready() -> void:
 	_log_stats = LaunchOptions.has("stats")
+	GtaTiming.enabled = _log_stats
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = wanted()
 
 
 ## Whether it's shown at the start: ?stats, else the options menu's choice
-## (computers yes, phones and tablets no).
+## (off by default on every device).
 static func wanted() -> bool:
-	return LaunchOptions.has("stats") or bool(Settings.get_value("show_stats", not Device.is_mobile()))
+	return LaunchOptions.has("stats") or bool(Settings.get_value("show_stats", false))
 
 
 func _process(delta: float) -> void:
@@ -80,10 +81,21 @@ func _process(delta: float) -> void:
 		people += "  ·  co-op: %sroom %s, player %d of %d" % ["public " if Net.is_public else "", Net.room_code,
 			Net.local_id(), Net.peers().size() + 1]
 	tiles += "  ·  " + people
-	text = "\n".join([render, status, tiles, FREE_CAMERA_HELP if free else HERO_HELP])
+	if Device.wants_touch_controls():
+		# Two short lines in the centre gap leave radar, health, toasts and cash clear.
+		var viewport := get_viewport_rect().size
+		var insets := Device.safe_area_css()
+		var portrait := viewport.y > viewport.x
+		position = Vector2(insets.x + (16.0 if portrait else 168.0), insets.y + (414.0 if portrait else 86.0))
+		size = Vector2(viewport.x - insets.x - insets.z - (32.0 if portrait else 506.0), 34.0)
+		clip_text = true
+		text = "FPS %d · %s · %.0f m/s (%.0f km/h)\n%.5f, %.5f · %s" % [Engine.get_frames_per_second(), who, speed, speed * 3.6, lat, lon, time_of_day.clock_text()]
+	else:
+		text = "\n".join([render, status, tiles, FREE_CAMERA_HELP if free else HERO_HELP])
 
 	if _log_stats:
 		_log_cooldown -= REFRESH_INTERVAL
 		if _log_cooldown <= 0.0:
 			_log_cooldown = LOG_INTERVAL
 			print("[stats] %s | %s | %s | world %s" % [render, status, tiles, world.round()])
+			print("[frame parts] " + GtaTiming.read())

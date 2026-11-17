@@ -39,6 +39,16 @@ var mode: HeroMode
 ## Physics waits until the ground under the spawn point has loaded.
 var frozen := true
 var health := MAX_HEALTH
+## Local upgrade tunables; resulting hits, health and movement already replicate.
+var max_health := MAX_HEALTH
+var punch_multiplier := 1.0
+var slam_multiplier := 1.0
+var car_armor_multiplier := 1.0
+## Game supplies a streaming-aware return to the saved safehouse.
+var safehouse_respawn: Callable
+## Per-player pursuit state, carried to copies by PlayerSync.
+var wanted_stars := 0
+var wanted_searching := false
 ## Seconds left of being staggered by a hit.
 var hurt_time := 0.0
 ## Set by a dive attack: the next landing slams, however slow it is.
@@ -75,6 +85,11 @@ func _ready() -> void:
 		if child is HeroMode:
 			child.hero = self
 			_modes[child.name] = child
+	var drive := DriveMode.new()
+	drive.name = "Drive"
+	drive.hero = self
+	add_child(drive)
+	_modes[&"Drive"] = drive
 	set_mode(&"OnFoot")
 	_prev_position = global_position
 
@@ -98,10 +113,26 @@ func _physics_process(delta: float) -> void:
 	hurt_time = maxf(hurt_time - delta, 0.0)
 	_regen_delay -= delta
 	if _regen_delay <= 0.0:
-		health = minf(health + REGEN_RATE * delta, MAX_HEALTH)
+		health = minf(health + REGEN_RATE * delta, max_health)
 
+	if input.interact_pressed:
+		(get_mode(&"Drive") as DriveMode).interact()
+	input.interact_pressed = false
+
+	if mode.name != &"Drive":
+		for flow: Traffic in get_tree().get_nodes_in_group("traffic"):
+			flow.solidify_sweep(global_position, velocity * delta, Vector3(0.7, 0.7, 1.8), facing)
+	var incoming := velocity
 	var fall_speed := -velocity.y
 	var next := mode.physics_update(delta)
+	if mode.name != &"Drive" and incoming.length() > 8.0:
+		for i in get_slide_collision_count():
+			var hit := get_slide_collision(i)
+			var car := hit.get_collider() as DriveVehicle
+			if car:
+				var closing := maxf(0.0, -incoming.dot(hit.get_normal()))
+				if closing > 8.0:
+					car.take_hit(closing, incoming * 0.6 + Vector3.UP * 3.0)
 	input.fly_toggle_pressed = false
 	if next != &"" and next != mode.name:
 		set_mode(next)
@@ -190,6 +221,8 @@ func face_toward(direction: Vector3, max_step := INF) -> void:
 func take_hit(damage: float, push: Vector3) -> void:
 	if not can_be_attacked() or mode.name == &"Dive":
 		return
+	if mode.name == &"Drive":
+		damage /= car_armor_multiplier
 	health = maxf(health - damage, 0.0)
 	hurt_time = HURT_TIME
 	_regen_delay = REGEN_DELAY
@@ -210,7 +243,7 @@ func _find_water_level() -> float:
 ## A hard landing: the faster the fall, the wider the blast.
 func _slam(impact_speed: float) -> void:
 	var power := clampf(inverse_lerp(SLAM_SPEED, MAX_FALL_SPEED, impact_speed), 0.0, 1.0)
-	Combat.shockwave(global_position, lerpf(5.0, 11.0, power), 100.0, lerpf(14.0, 26.0, power))
+	Combat.shockwave(global_position, lerpf(5.0, 11.0, power) * slam_multiplier, 100.0, lerpf(14.0, 26.0, power))
 
 
 func _on_origin_shifted(delta: Vector3) -> void:

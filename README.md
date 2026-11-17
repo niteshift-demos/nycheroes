@@ -2,8 +2,9 @@
 
 A superhero game that runs in a web browser: all five boroughs of New York
 City at 1:1 scale, built from open data and surrounded by ocean. Players
-fly, web-swing, super-speed and super-jump around the city, fight gangs of
-thugs on the street, and play co-op with each other.
+fly, web-swing, super-speed and super-jump around the city, take and drive
+cars, escape police, earn cash through contracts and a twelve-chapter story,
+and play co-op with each other.
 
 Play it at **https://nycheroes.party** (computers, phones and tablets).
 Windows and Mac versions are on the site's download page.
@@ -21,6 +22,22 @@ Windows and Mac versions are on the site's download page.
 - **The hero:** running, super speed, charged super jumps, flight, web
   swinging, swimming, punch combos, dive attacks and landing slams; a
   customizable look and outfit.
+- **Driving and police:** take street cars, brake, reverse and drift through
+  traffic, with solid crashes, damage, fire and explosions. Witnessed crimes
+  raise up to five wanted stars: foot officers, pursuing patrol cars and
+  roadblocks. Break their line of sight to escape; a wanted knockout means
+  BUSTED and a cash fine. See [driving](docs/DRIVING.md) and [wanted](docs/WANTED.md).
+- **City jobs and navigation:** replayable contracts and nearby street bounties
+  earn cash. A street radar and the whole-city map show gold S story chapters,
+  purple contracts and red hostiles; pin a waypoint to explore anywhere.
+  See [missions](docs/MISSIONS.md) and [radar and map](docs/RADAR.md).
+- **The Borrowed Skyline:** an original [twelve-chapter story](docs/STORY.md)
+  across all five boroughs: phone calls, car chases, witness protection,
+  flight routes and powered lieutenants. Follow the gold S; progress saves
+  between visits.
+- **Shops and safehouses:** spend contract cash on six permanent hero upgrades,
+  pay for a garage respray to clear an unseen pursuit, and save an apartment
+  for healing, sleep and recovery. See [shops](docs/SHOPS.md).
 - **Co-op:** one big public game by default, or a private game with a code.
   Peers connect over WebRTC (relayed through TURN when they must).
 
@@ -36,11 +53,23 @@ Windows and Mac versions are on the site's download page.
 | Toggle flight | F | Y |
 | Web | E or right mouse | Right trigger |
 | Attack | Left mouse | X |
+| Enter available car within 3.5 m / exit (G hint appears in reach) | G | R3 (right stick click) |
+| Drive / steer; brake then reverse | WASD | Left stick |
+| Handbrake / drift while driving | Space | A |
 | Co-op menu | M | |
-| Hero and options | O or Esc | |
+| Map / waypoint | Comma (`,`); drag to pan, wheel or +/− to zoom, click to pin | |
+| Pause / missions / stats | Esc or P | Start |
+| Advance story phone call (or use Next / Skip call) | Enter | A |
+| Shop / garage / safehouse | Enter its street marker; choose a service | Same, then D-pad / A |
+| Hero and options | O (also in pause) | Via pause |
 | Time of day | T | |
+| Toggle sound | N | |
 
-Phones and tablets get touch controls.
+New players get a title card and contextual tips. Pause → Skip tutorial skips
+the tips; `?tutorial=reset` shows them again. See [HUD and pause](docs/HUD.md).
+
+Phones and tablets get touch controls. The gear opens pause. Tap the radar to open the map; drag
+to pan, use +/− to zoom, and tap a street to set a waypoint.
 
 ## Running it locally
 
@@ -80,7 +109,11 @@ Add them to the URL (`?quality=low&time=21:00`) or, on desktop, after
 `--` on the command line (`-- --quality=low`). A few useful ones:
 `?quality=low|medium|high`, `?time=HH:MM`, `?spawn=x,y,z,yaw`,
 `?peds=N`, `?traffic=N`, `?gangs=N`, `?solo=1`, `?host`, `?join=CODE`,
-`?stats`. The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
+`?stats`, `?mission=<id>`, `?cash=N` ([missions](docs/MISSIONS.md)),
+`?car=1` (starter car), `?wanted=1`–`5`, `?police=0` ([pursuits](docs/WANTED.md)),
+`?story=1`–`12` or `?story=reset` ([campaign](docs/STORY.md)),
+`?upgrades=reset` ([shops](docs/SHOPS.md)), `?radar=0` (hide the radar),
+`?tutorial=reset` (restart onboarding). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Tests
 

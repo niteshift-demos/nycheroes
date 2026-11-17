@@ -28,6 +28,7 @@ extends Node3D
 ## above every number it has seen.
 
 const THUG_SCENE := preload("res://scenes/npc/thug.tscn")
+const POLICE_SCENE := preload("res://scenes/npc/police_officer.tscn")
 const UPDATE_INTERVAL := 0.5
 const MAX_SPAWN_ALTITUDE := 150.0
 ## Spacing between gang members along the sidewalk.
@@ -99,7 +100,9 @@ func _ready() -> void:
 	Net.state_changed.connect(_on_net_state_changed)
 	Net.left_room.connect(_on_left_room)
 	Net.readmitted.connect(_on_readmitted)
-	Net.player_left.connect(func(id: int) -> void: _shared.erase(id))
+	Net.player_left.connect(func(id: int) -> void:
+		_shared.erase(id)
+		receive_police_cars([], id))
 
 
 func _process(delta: float) -> void:
@@ -112,6 +115,7 @@ func _process(delta: float) -> void:
 		if _share_cooldown <= 0.0:
 			_share_cooldown = SHARE_INTERVAL
 			_share_thugs()
+			_share_police_cars()
 	_update_cooldown -= delta
 	if _update_cooldown > 0.0:
 		return
@@ -129,7 +133,7 @@ func nearest_thug(world_position: Vector3) -> Thug:
 	var best: Thug = null
 	var best_distance := INF
 	for thug in Combat.thugs:
-		if thug.is_down():
+		if thug.is_down() or thug is PoliceOfficer:
 			continue
 		var distance := WorldOrigin.to_world(thug.global_position).distance_to(world_position)
 		if distance < best_distance:
@@ -140,14 +144,16 @@ func nearest_thug(world_position: Vector3) -> Thug:
 
 ## Places a gang of `count` thugs in a line along `direction`, centered on a
 ## world position, after `target` (our hero if null). Used by the spawner,
-## and by demos and tests.
-func spawn_gang(world_center: Vector3, count: int, direction: Vector3, target: Hero = null) -> Array[Thug]:
+## and by demos and tests. Story jobs pass their short ground search so an
+## overhead structure cannot replace the street already chosen by the job.
+func spawn_gang(world_center: Vector3, count: int, direction: Vector3,
+		target: Hero = null, ground_search := GROUND_SEARCH) -> Array[Thug]:
 	var gang: Array[Thug] = []
 	for k in count:
 		var spot := world_center + direction * (k - (count - 1) * 0.5) * SPACING
-		var ground := city.ground_height_at(spot, GROUND_SEARCH)
-		if ground > spot.y - GROUND_SEARCH:
-			spot.y = ground
+		var ground := city.ground_height_at(spot, ground_search)
+		if is_finite(ground) and ground + WorldOrigin.offset.y > spot.y - ground_search:
+			spot.y = ground + WorldOrigin.offset.y
 		var thug: Thug = THUG_SCENE.instantiate()
 		thug.net_id = _next_id * ID_STRIDE + Net.local_id() % ID_STRIDE
 		_next_id += 1
@@ -160,6 +166,20 @@ func spawn_gang(world_center: Vector3, count: int, direction: Vector3, target: H
 	return gang
 
 
+## Police use the same ids, authoritative hits and nearby snapshots as gangs.
+func spawn_police(world_position: Vector3, target: Hero, stars: int) -> PoliceOfficer:
+	var officer: PoliceOfficer = POLICE_SCENE.instantiate()
+	officer.net_id = _next_id * ID_STRIDE + Net.local_id() % ID_STRIDE
+	_next_id += 1
+	officer.suspect_id = target.remote_id if target.is_remote() else Net.local_id()
+	officer.response_stars = stars
+	officer.health = 180.0 if stars >= 5 else 100.0
+	add_child(officer)
+	officer.global_position = WorldOrigin.to_local(world_position) + Vector3.UP * 0.2
+	officer.setup(target, 0, randf() * TAU)
+	return officer
+
+
 ## Our gangs go once every hero is far off (other players' too: one may still
 ## be fighting a gang we left behind).
 func _clear_far_gangs() -> void:
@@ -167,7 +187,7 @@ func _clear_far_gangs() -> void:
 	for target in Combat.heroes:
 		centers.append(target.world_position())
 	for gang: Array in _gangs.duplicate():
-		var members: Array = gang.filter(func(thug: Thug) -> bool: return is_instance_valid(thug))
+		var members: Array = gang.filter(func(thug) -> bool: return is_instance_valid(thug))
 		var far: bool = members.all(func(thug: Thug) -> bool:
 			var at := WorldOrigin.to_world(thug.global_position)
 			return centers.all(func(center: Vector3) -> bool: return at.distance_to(center) > despawn_distance))
@@ -193,7 +213,7 @@ func _spawn_near_hero() -> void:
 func _gangs_near(center: Vector3) -> int:
 	var gangs := {}
 	for thug in Combat.thugs:
-		if not thug.is_down() and WorldOrigin.to_world(thug.global_position).distance_to(center) < despawn_distance:
+		if not thug is PoliceOfficer and not thug.is_down() and WorldOrigin.to_world(thug.global_position).distance_to(center) < despawn_distance:
 			gangs[Vector2i(thug.run_by if thug.puppet else 0, thug.gang)] = true
 	return gangs.size()
 
@@ -234,6 +254,13 @@ func _ahead_of(target: Hero) -> Vector3:
 ## that we took over): the ground around them stays loaded for those thugs.
 func _foci() -> Array[Vector3]:
 	var foci: Array[Vector3] = []
+	# Rooftop story fights need collision even on phones whose normal near
+	# radius is lower than the roof. Keep only the nearby objective loaded.
+	var mission := get_tree().get_first_node_in_group("mission_director") as MissionDirector
+	if mission and mission.active and mission.active.chapter > 0:
+		var target := mission.current_target()
+		if target.y > 200.0 and target.distance_to(hero.world_position()) < 700.0:
+			foci.append(target)
 	for other in Combat.heroes:
 		if not other.is_remote():
 			continue
@@ -297,19 +324,26 @@ func _share_thugs() -> void:
 ## What another game needs to set a thug up: [net id, world position,
 ## facing, gang, health, down].
 func _describe(thug: Thug) -> Array:
-	return [thug.net_id, WorldOrigin.to_world(thug.global_position), thug.facing(), thug.gang, thug.health, thug.is_down()]
+	return [thug.net_id, WorldOrigin.to_world(thug.global_position), thug.facing(), thug.gang, thug.health, thug.is_down(),
+		thug.suspect_id if thug is PoliceOfficer else 0, thug.response_stars if thug is PoliceOfficer else 0, thug.story_variant]
 
 
 ## A thug as another game described it: a copy of one player `runner`'s game
 ## runs, or (runner 0) one we run from now on.
 func _spawn_thug(description: Array, runner: int) -> Thug:
-	var thug: Thug = THUG_SCENE.instantiate()
+	var police := description.size() > 7 and int(description[7]) > 0
+	var thug: Thug = POLICE_SCENE.instantiate() if police else THUG_SCENE.instantiate()
+	if police:
+		thug.suspect_id = int(description[6])
+		thug.response_stars = int(description[7])
 	thug.net_id = int(description[0])
 	thug.puppet = runner != 0
 	thug.run_by = runner
 	add_child(thug)
 	thug.global_position = WorldOrigin.to_local(description[1])
 	thug.setup_described(int(description[3]), float(description[2]), float(description[4]), bool(description[5]))
+	if description.size() > 8 and int(description[8]) > 0:
+		thug.set_story_variant(int(description[8]), false)
 	return thug
 
 
@@ -380,6 +414,9 @@ func _on_net_state_changed() -> void:
 			_settled_msec = mini(_settled_msec, Time.get_ticks_msec() + int(SETTLE_IN * 1000.0))
 	if Net.is_online():
 		return
+	for car: PoliceCar in get_tree().get_nodes_in_group("police_cars"):
+		if car.puppet:
+			car.queue_free()
 	_told.clear()
 	_left.clear()
 	_awaiting.clear()
@@ -473,7 +510,7 @@ func _adopt(thugs: Array) -> void:
 func _regroup() -> void:
 	var gangs := {}
 	for thug in Combat.thugs:
-		if thug.puppet:
+		if thug.puppet or thug is PoliceOfficer:
 			continue
 		gangs.get_or_add(thug.gang, []).append(thug)
 		if thug.is_down() and not _bodies.has(thug):
@@ -505,3 +542,60 @@ func _on_thug_defeated(thug: Thug) -> void:
 		var oldest: Thug = _bodies.pop_front()
 		if is_instance_valid(oldest):
 			oldest.queue_free()
+
+
+## Cars retain suspect ownership; departing suspects end their response rather
+## than handing an active pursuit to an innocent peer. IDs share the NPC clock.
+func spawn_police_car(at: Vector3, yaw: float, target: Hero, block := false) -> PoliceCar:
+	var car := PoliceCar.new()
+	car.net_id = _next_id * ID_STRIDE + Net.local_id() % ID_STRIDE
+	_next_id += 1
+	car.suspect_id = target.remote_id if target.is_remote() else Net.local_id()
+	car.run_by = Net.local_id()
+	car.heading = yaw
+	car.roadblock = block
+	car.traffic = get_tree().get_first_node_in_group("traffic") as Traffic
+	add_child(car)
+	car.global_position = WorldOrigin.to_local(at)
+	return car
+
+
+func _share_police_cars() -> void:
+	for player in Combat.heroes:
+		if not player.is_remote() or not Net.peers().has(player.remote_id):
+			continue
+		var fleet: Array = []
+		for car: PoliceCar in get_tree().get_nodes_in_group("police_cars"):
+			if not car.puppet and car.global_position.distance_to(player.global_position) < SHARE_RANGE:
+				fleet.append(car.description())
+		_police_car_states.rpc_id(player.remote_id, fleet)
+
+
+## Full small fleets at 20 Hz make arrivals/removals loss tolerant without
+## growing per-peer bookkeeping. Car copies never collide or run decisions.
+@rpc("any_peer", "call_remote", "unreliable_ordered")
+func _police_car_states(fleet: Array) -> void:
+	receive_police_cars(fleet, multiplayer.get_remote_sender_id())
+
+
+func receive_police_cars(fleet: Array, sender: int) -> void:
+	var copies := {}
+	for car: PoliceCar in get_tree().get_nodes_in_group("police_cars"):
+		if car.puppet and car.run_by == sender:
+			copies[car.net_id] = car
+	for data: Array in fleet.slice(0, 6):
+		if data.size() not in [9, 13]:
+			continue
+		var id := int(data[0])
+		var car: PoliceCar = copies.get(id)
+		if car == null:
+			car = PoliceCar.new()
+			car.net_id = id
+			car.run_by = sender
+			car.puppet = true
+			add_child(car)
+			car.global_position = WorldOrigin.to_local(data[1])
+		car.follow(data)
+		copies.erase(id)
+	for car: PoliceCar in copies.values():
+		car.queue_free()

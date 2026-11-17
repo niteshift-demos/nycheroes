@@ -66,8 +66,6 @@ func _ready() -> void:
 	for node_name in ["PlayerInput", "Crowd", "Encounters", "Hero"]:
 		world.get_node(node_name).process_mode = Node.PROCESS_MODE_DISABLED
 	_city = world.get_node("City")
-	var manifest = JSON.parse_string(FileAccess.get_file_as_string(_city._local_dir() + "manifest.json"))
-	_expects_canopy = manifest is Dictionary and manifest.has("canopy")
 	_camera = world.get_node("FreeCamera")
 	_camera.current = true
 	_camera.set_process(false)
@@ -204,7 +202,14 @@ func _check_furniture(tile) -> int:
 	var key := Vector2i(tile.i, tile.j)
 	if not _furniture_in_file.has(key):
 		var counts := {}
-		var path: String = _city._local_dir() + "%s/%d_%d.nyct" % [_city._levels[tile.level]["name"], tile.i, tile.j]
+		# A streamed tile has no data/ source file. Compare against the same
+		# active-build bytes the loader cached, rather than an empty decode.
+		var directory := _city._cache_dir if _city._caches() else _city._local_dir()
+		var manifest_path := directory + "manifest.json"
+		if FileAccess.file_exists(manifest_path):
+			var manifest: Variant = JSON.parse_string(FileAccess.get_file_as_string(manifest_path))
+			_expects_canopy = manifest is Dictionary and manifest.has("canopy")
+		var path: String = directory + "%s/%d_%d.nyct" % [_city._levels[tile.level]["name"], tile.i, tile.j]
 		for surface in CityTileDecoder.decode(FileAccess.get_file_as_bytes(path), int(tile.info.raw_bytes)):
 			if surface.kind == CityTileDecoder.SURFACE_PROPS:
 				for uv2: Vector2 in surface.uv2:

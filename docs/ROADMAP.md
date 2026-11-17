@@ -1865,8 +1865,8 @@ phone, in the phone's browser, at https://nycheroes.party.
   press the same input actions as the keyboard, so the hero is unchanged.
   The UI is measured in CSS pixels, so it's the same physical size on
   every phone.
-- **Detection** (`scripts/util/device.gd`): on when the browser's main
-  pointer is a finger, or at the first real touch; `?touch=1` / `?touch=0`
+- **Detection** (`scripts/util/device.gd`): on for a mobile browser, a coarse
+  primary pointer, or at the first real touch; `?touch=1` / `?touch=0`
   force it. Off on desktop and in headless tests.
 - **Co-op on a phone:** a Close button, 44 px controls, and a real HTML
   text box over the room-code field so the phone's keyboard comes up
@@ -1906,6 +1906,23 @@ phone, in the phone's browser, at https://nycheroes.party.
   (moving while looking, super speed, jumps, swinging, flying, punching and
   diving, typing a room code) on 844x390 and 667x375 screens, with notch
   insets; desktop unchanged.
+- **Android touch follow-up:** mobile Chrome can report a fine primary
+  pointer. Detection and later prompts now share the activated touch state.
+  Tutorial, driving, call, mission and map copy name the on-screen controls;
+  toasts sit beside the radar, with portrait stacking and compact touch stats.
+  `hud_test` covers stick drag/hold/multi-touch/release and four HUD sizes
+  (844×390, 915×412, 1616×720 and 390×844). Android 15 Chrome accepts the
+  ordinary ADB swipe and held JavaScript TouchEvents through the real canvas.
+- **Safari layout follow-up:** short landscape viewports use a compact radar,
+  cash and action arc based on visible height and safe insets; `visualViewport`
+  accounts for Safari chrome while the canvas resizes. Geometry checks include
+  844×320/340 and 874×344/292 with the island on either side and a home indicator.
+  Standalone mode suppresses the Add to Home Screen suggestion. iOS 26 Safari
+  on a rented iPhone simulator verifies stick movement, charged JUMP, CAR/EXIT,
+  driving, native name entry and portrait/landscape transitions. Installing
+  through Share and launching the Home Screen icon verifies the standalone
+  prompt and play without browser bars. Safari shows its playback indicator
+  after input; audible output quality remains a physical-device check.
 - **Still to check on real phones:** frame rate and heat on low (and
   whether tablets should get medium), whether iOS Safari keeps the tab
   alive, fullscreen and landscape lock on Android, Add to Home Screen on
@@ -2319,6 +2336,88 @@ deployed); in a computer's browser the co-op menu links to it.
   a code-signing certificate, so SmartScreen stops warning ("More info, Run
   anyway" until then); an icon.
 
+## 10. Open-world (GTA-style) play
+
+The superhero powers, city simulation and co-op now share an open-world
+layer: take a car, earn contract cash, buy permanent upgrades, evade the
+police, or follow the gold S through an original twelve-chapter campaign.
+All gameplay positions use the floating origin; no city tiles need rebuilding.
+
+- **Drive and crash:** [DRIVING.md](DRIVING.md). G / R3 takes a nearby car;
+  WASD / left stick accelerates, steers, brakes and reverses, Space / A
+  handbrakes. Solid traffic, weight transfer, seated animation, chase/reverse
+  cameras, engine/tyre audio and swept collision queries support powered
+  shoves, crashes, fire and explosions. Blasts use bounded CPU fire/soot/debris
+  bursts, a brief unshadowed light and camera impact; wrecks lose paint and
+  glass glints. Garage armor and resprays use the same damage path.
+- **Earn and progress:** [MISSIONS.md](MISSIONS.md), [STORY.md](STORY.md).
+  Five replayable contracts and local street bounties feed a saved wallet.
+  The Borrowed Skyline's twelve chapters span all five boroughs, with
+  skippable phone calls, car thefts/chases, wanted escapes, witness protection,
+  relay destruction, flight rings, three lieutenants and Voss's rooftop fight.
+  Gold S givers unlock in order; completed chapters save immediately.
+  Failure/Abandon restarts at the giver. BUSTED fails the active job, clears
+  its actors/call/target and takes a capped 10% fine. Boss names, health and
+  attack warnings render in the full-resolution HUD, including on Low.
+  The hero starts in a posed Idle before browser skin warm-up holds animation;
+  car exit, travel, recovery and pause/map transitions retain valid clips.
+- **Escape the law:** [WANTED.md](WANTED.md). Witnessed crimes raise 0–5 stars;
+  gang fights stay legal. Assigned foot officers pursue, 2★+ brings up to
+  four patrol cars and 4★+ adds two-car roadblocks. Break sight to shed heat;
+  wanted knockouts mean BUSTED. Stalled officers detour around walls. Patrols
+  and chase vans finish a reverse manoeuvre, try another lane and alternate
+  steering on repeated failures; irrecoverable hidden patrols get replaced.
+  Disabled/burned patrols cannot spot or report the player, and wrecks release
+  their response slot. Suspect-owned fleets and hero wanted/driving/damage
+  snapshots replicate plain state; legacy 13/15/18-field hero packets and
+  21-field packets remain accepted. New 22-field packets append at most three
+  recent occupied-car/patrol wrecks for 30 seconds. Nearby peers see one blast
+  and a charred visual body after the driver exits or patrol leaves its fleet;
+  remote effects do no damage. Older abandoned cars remain local.
+- **Navigate and recover:** [RADAR.md](RADAR.md), [SHOPS.md](SHOPS.md).
+  The camera-relative street radar, whole-city atlas, drag/pinch/wheel zoom
+  and waypoints share gold S stories, purple contracts and red hostiles with
+  HUD labels and a wrapping map legend. Three supply shops sell six saved
+  three-tier upgrades. Two garages clear unseen pursuit and repair the car;
+  two safehouses heal, save recovery and advance sleep by eight hours.
+- **One presentation:** [HUD.md](HUD.md). Health/radar, wanted/cash,
+  bottom-centre objectives, short toasts, phone calls and shared result banners
+  use one palette. Esc/P/Start or the touch gear opens pause with Map,
+  Missions, saved Stats, upgrades, Hero/Options and Co-op. Locked chapters are
+  compact grey rows without unusable waypoint buttons. First-visit title and
+  contextual lessons persist; solo menus and the whole-city map pause simulation, co-op menus release
+  local controls while the shared world runs.
+
+**Launch checks:** `?car=1`, `?car_crash=1`, `?wanted=1`–`5`, `?police=0`,
+`?mission=<id>`, `?cash=N`, `?story=1`–`12` / `?story=reset`,
+`?upgrades=reset`, `?radar=0`, `?tutorial=reset`, `?touch=1`.
+`?stats` logs GTA CPU parts (exclusive nested timings), both per physics tick
+and per drawn frame; `?police_profile=1` isolates 5 Hz patrol decisions.
+`?story_playtest=1` enables the opt-in input pilot/telemetry in STORY.md.
+Browser QA preserves the short street raycast when spawning story bosses and
+witness attackers, so River Avenue's overhead structures cannot move them
+above the street. Encounter cleanup accepts mission actors that have already
+been freed. Story regressions cover both cases and the pilot's roof/street routes.
+
+**Regression:** `drive_test` (including real ENet wreck replication), `coop_test`, `wanted_test`, `police_cars_test`,
+`missions_test`, `story_test`, `shops_test`, `radar_test`, `hud_test`, and
+`gta_integration_test` cover the GTA layer. `hud_test` includes touch detection
+and stick multi-touch regressions plus radar/toast/cash/toolbar geometry; see
+HUD.md for Android gesture reproduction and the Android/Safari viewport sizes. The integration scene checks
+recovery, disabled police sight, story arrest/fine/retry/cleanup, all snapshot
+generations, boss presentation and explosion placement/lifetime across origin
+shifts, plus initial posed bones and animation after warm-up, car exit, travel,
+both safehouse recovery paths and pause → map → resume. Burnt bodies keep
+shaded charcoal/rust panels and blackened windows in the existing car shader.
+Keep every existing `tests/*_test.tscn`, `flight_streaming_regression`,
+Python citygen/audio suites, exported audio-loop checks and
+`tools/shader_compile_check.mjs` in the final integration pass.
+
+The real-world browser fixture in HUD.md adds F2 / `hud_case=boss` and
+F3 / `hud_case=explosion` for reproducible captures; F6 / `hud_case=car`
+starts five-star driving. These seed QA state and do not prove a complete
+campaign playthrough. All fixture scenes remain excluded from ordinary exports.
+
 ## Options menu (done; added 2026-10-16 at the user's request)
 
 - **Opening it:** O in every build (Esc too in the desktop builds: browsers
@@ -2498,8 +2597,15 @@ deployed); in a computer's browser the co-op menu links to it.
   3 s. Co-op relay: TURN key "nycheroes-coop" in the Worker secrets
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
-- Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
-  `res://tests/combat_test.tscn`, `res://tests/streaming_test.tscn`,
+- Tests (headless): `godot --headless --path . res://tests/hud_test.tscn`
+  (pause navigation, stats/tutorial persistence and menu bindings), `godot --headless --path . res://tests/hero_moves_test.tscn`,
+  `res://tests/radar_test.tscn` (synthetic blips, map coordinates, waypoints,
+  tile unloads and floating origin),
+  `res://tests/combat_test.tscn`, `res://tests/wanted_test.tscn` (witnessed
+  crime, police pursuit, escape, replication and BUSTED on a synthetic street),
+  `res://tests/police_cars_test.tscn` (patrol caps, pursuit, roadblocks,
+  deployment, theft, search, despawn, origin shifts and ENet fleet sync),
+  `res://tests/streaming_test.tscn`,
   `res://tests/coop_test.tscn`, `res://tests/coop_migration_test.tscn`,
   `res://tests/coop_reconnect_test.tscn` and
   `res://tests/coop_public_test.tscn` (they run the signaling server, so
@@ -2508,12 +2614,17 @@ deployed); in a computer's browser the co-op menu links to it.
   `--net=webrtc`; none joins the public game unless it means to),
   `res://tests/coop_load_test.tscn` (not a pass/fail test: what 3 and 7
   players far off cost a host's frames, physics and memory),
-  `res://tests/audio_test.tscn`, `res://tests/options_test.tscn` (the
+  `res://tests/story_test.tscn` (story objectives, bosses and saved chapter chain),
+  `res://tests/shops_test.tscn` (purchases, upgrade effects, saves, resprays and
+  safehouse recovery), `res://tests/missions_test.tscn` (wallet saves, mission steps, fail/retry,
+  timers, collectibles and tracked gangs), `res://tests/audio_test.tscn`, `res://tests/options_test.tscn` (the
   options menu and the settings, with a settings file of its own),
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and
-  `res://tests/traffic_test.tscn` (75 s of
+  `res://tests/drive_test.tscn` (synthetic car hijack, driving, exit, traffic crashes,
+  damage/explosion/driver injury, contextual hints, query cost,
+  co-op appearance and origin shift) and `res://tests/traffic_test.tscn` (75 s of
   midtown traffic: no red light run, no overlaps, cars stop for the hero,
   and leave with their tiles) and `res://tests/trains_test.tscn` (the 7 at
   74th Street for 2 minutes with an express train on its middle track: no
@@ -2524,9 +2635,17 @@ deployed); in a computer's browser the co-op menu links to it.
   with the trains surface around the 7, the 4 on Jerome Avenue and
   Woodlawn; `TRAINS_TERMINAL_ONLY=1` goes straight to Woodlawn).
 - Launch options (URL or `-- --name=value` on desktop): `?cam=x,y,z,yaw,pitch`
-  free camera, `?spawn=x,y,z,yaw` hero start, `?stats` the stats text
+  free camera, `?spawn=x,y,z,yaw` hero start, `?mission=<id>` start a local
+  contract ([ids and routes](MISSIONS.md)), `?story=1`–`12` starts a story chapter,
+  `?story=reset` resets chapter progress ([campaign](STORY.md));
+  `?story_playtest=1` exposes the optional input-only QA pilot,
+  `?cash=N` sets and saves cash, `?upgrades=reset` clears saved shop upgrades
+  ([shops](SHOPS.md)), `?shop_check=garage` seeds three stars on garage entry
+  for web QA, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
+  `?tutorial=reset` resets first-run title and lessons, `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
+  `?police=0` disables wanted levels and police, `?wanted=N` starts with
+  0–5 stars for testing, `?police_profile=1` logs patrol decision cost, `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?car=1` (starter sedan), `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no
   public game), `?public=1` join the public game even headless or from a
   script (headless Chrome), `?signal=wss://...` signaling server

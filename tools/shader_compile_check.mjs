@@ -119,8 +119,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 try {
   let targets;
   for (let i = 0; i < 100 && !targets; i++) {
-    try { targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); } catch { await sleep(200); }
+    try {
+      const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+      if (list.some((target) => target.type === 'page')) targets = list;
+    } catch {}
+    if (!targets) await sleep(200);
   }
+  if (!targets) throw new Error('Chrome did not expose a page target within 20 seconds');
   const ws = new WebSocket(targets.find((t) => t.type === 'page').webSocketDebuggerUrl);
   await new Promise((r) => ws.addEventListener('open', r, { once: true }));
   let nextId = 0;

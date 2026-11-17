@@ -32,13 +32,17 @@ const THUG_NEAR := 150.0
 const SHOW_DISTANCE := 800.0
 const ANIMATE_DISTANCE := 150.0
 ## Modes, in the order they're numbered when sent.
-const MODES: Array[StringName] = [&"OnFoot", &"Flight", &"Swing", &"Melee", &"Dive", &"KnockedOut"]
+const MODES: Array[StringName] = [&"OnFoot", &"Flight", &"Swing", &"Melee", &"Dive", &"KnockedOut", &"Drive"]
 const GROUNDED := 1
 const FROZEN := 2
 const CHARGING := 4
 const IN_WATER := 8
 ## Joining players appear this far to the side of the host's hero (meters).
 const JOIN_SPACING := 3.0
+## Keep recent blasts loss tolerant without networking the abandoned-car population.
+const WRECK_LIMIT := 3
+const WRECK_SECONDS := 30.0
+const WRECK_RANGE := 400.0
 
 ## Our hero.
 @export var hero: Hero
@@ -51,6 +55,8 @@ var _send_cooldown := 0.0
 var _sends := 0
 var _detail_cooldown := 0.0
 var _appearance_cooldown := 0.0
+var _wreck_copies := {}  # peer -> event ID -> visual-only DriveVehicle
+var _last_wreck := {}  # peer -> newest observed event, suppresses repeated blasts
 
 
 func _ready() -> void:
@@ -112,9 +118,16 @@ func _encode(source: Hero) -> Array:
 	var swing := source.get_mode(&"Swing") as SwingMode
 	var flags := (GROUNDED if source.is_on_floor() else 0) | (FROZEN if source.frozen else 0) \
 		| (CHARGING if on_foot.charging else 0) | (IN_WATER if source.is_in_water() else 0)
+	var drive := source.get_mode(&"Drive") as DriveMode
+	var car := drive.car
 	return [Time.get_ticks_msec(), source.world_position(), source.velocity, source.facing,
 		MODES.find(source.mode.name), flags, on_foot.charge, source.health, source.hurt_time,
-		melee.step, melee.punch_id, WorldOrigin.to_world(swing.anchor), WorldOrigin.to_world(swing.web_point)]
+		melee.step, melee.punch_id, WorldOrigin.to_world(swing.anchor), WorldOrigin.to_world(swing.web_point),
+		source.wanted_stars, source.wanted_searching,
+		car.model if is_instance_valid(car) else 0, car.paint if is_instance_valid(car) else 0.0,
+		car.seed if is_instance_valid(car) else 0.0,
+		car.health if is_instance_valid(car) else 100.0, car.body_roll if is_instance_valid(car) else 0.0,
+		car.body_pitch if is_instance_valid(car) else 0.0, _encode_wrecks(source)]
 
 
 ## Moves a copy to where its player's hero was a moment ago.
@@ -140,6 +153,11 @@ func _follow(copy: Hero, snapshots: SnapshotBuffer) -> void:
 	on_foot.charging = flags & CHARGING != 0
 	on_foot.charge = latest[6]
 	copy.health = latest[7]
+	copy.wanted_stars = clampi(int(latest[13]), 0, 5) if latest.size() > 13 else 0
+	copy.wanted_searching = bool(latest[14]) if latest.size() > 14 else false
+	var tag := copy.get_node_or_null("NameTag") as Label3D
+	if tag:
+		tag.text = Net.player_name(copy.remote_id) + ("  •  WANTED %d" % copy.wanted_stars if copy.wanted_stars > 0 else "")
 	copy.hurt_time = latest[8]
 	var melee := copy.get_mode(&"Melee") as MeleeMode
 	melee.step = clampi(latest[9], 0, MeleeMode.COMBO.size() - 1)
@@ -147,14 +165,76 @@ func _follow(copy: Hero, snapshots: SnapshotBuffer) -> void:
 	var swing := copy.get_mode(&"Swing") as SwingMode
 	swing.anchor = WorldOrigin.to_local((older[11] as Vector3).lerp(newer[11], weight))
 	swing.web_point = WorldOrigin.to_local((older[12] as Vector3).lerp(newer[12], weight))
+	(copy.get_mode(&"Drive") as DriveMode).show_remote(int(latest[15]) if latest.size() >= 18 else 0,
+		float(latest[16]) if latest.size() >= 18 else 0.0, float(latest[17]) if latest.size() >= 18 else 0.0,
+		float(latest[18]) if latest.size() >= 21 else 100.0, float(latest[19]) if latest.size() >= 21 else 0.0,
+		float(latest[20]) if latest.size() >= 21 else 0.0)
+	_follow_wrecks(copy, latest[21] if latest.size() >= 22 else [])
 	if copy.remote_grounded and not was_grounded:
 		copy.landed.emit(fall_speed)
+
+
+## Both occupied-car and owned patrol blasts outlive their driving/fleet state.
+## World positions follow the actual settled body; no remote physics or crimes run.
+func _encode_wrecks(source: Hero) -> Array:
+	var bodies: Array[Node] = source.get_tree().get_nodes_in_group("shared_wrecks")
+	var rows: Array = []
+	for body: DriveVehicle in bodies:
+		if body.wreck_age < WRECK_SECONDS and not body.is_queued_for_deletion():
+			rows.append([body.wreck_id, WorldOrigin.to_world(body.global_position), body.heading,
+				body.model, body.paint, body.seed, body.wreck_age])
+	rows.sort_custom(func(a: Array, b: Array) -> bool: return int(a[0]) < int(b[0]))
+	return rows.slice(maxi(0, rows.size() - WRECK_LIMIT))
+
+
+func _follow_wrecks(copy: Hero, rows: Array) -> void:
+	var copies: Dictionary = _wreck_copies.get(copy.remote_id, {})
+	var retained := {}
+	var newest: int = _last_wreck.get(copy.remote_id, 0)
+	for row: Array in rows.slice(0, WRECK_LIMIT):
+		if row.size() != 7 or not row[1] is Vector3:
+			continue
+		var id := int(row[0])
+		var fresh := id > int(_last_wreck.get(copy.remote_id, 0))
+		newest = maxi(newest, id)
+		var at: Vector3 = row[1]
+		if hero and hero.world_position().distance_to(at) > WRECK_RANGE:
+			continue
+		var wreck: DriveVehicle = copies.get(id)
+		if not is_instance_valid(wreck):
+			wreck = DriveVehicle.new()
+			wreck.model = clampi(int(row[3]), 0, PropMeshes.CAR_SIZES.size() - 1)
+			wreck.paint = float(row[4])
+			wreck.seed = float(row[5])
+			wreck.puppet = true
+			wreck.exploded = true
+			wreck.health = 0.0
+			wreck.body_pitch = -0.1
+			# Sibling of the moving hero: the wreck must stay at the blast site.
+			copy.get_parent().add_child(wreck)
+			wreck.add_to_group("floating")
+			wreck.add_to_group("remote_wrecks")
+		wreck.global_position = WorldOrigin.to_local(at)
+		wreck.heading = float(row[2])
+		wreck.rotation.y = wreck.heading
+		wreck._draw()
+		retained[id] = wreck
+		if fresh and float(row[6]) < 2.0:
+			GameAudio.play(&"slam", wreck.global_position)
+			Combat.impact.emit(wreck.global_position, 1.0)
+			if Combat.effects:
+				Combat.effects.car_explosion(wreck.global_position)
+	for id: int in copies:
+		if not retained.has(id):
+			(copies[id] as DriveVehicle).queue_free()
+	_wreck_copies[copy.remote_id] = retained
+	_last_wreck[copy.remote_id] = newest
 
 
 @rpc("any_peer", "call_remote", "unreliable_ordered")
 func _hero_state(state: Array) -> void:
 	var snapshots: SnapshotBuffer = _snapshots.get(multiplayer.get_remote_sender_id())
-	if snapshots and state.size() == 13:
+	if snapshots and state.size() in [13, 15, 18, 21, 22]:
 		snapshots.push(float(state[0]), state)
 
 
@@ -184,6 +264,10 @@ func _add_player(id: int) -> void:
 
 
 func _remove_player(id: int) -> void:
+	for wreck: DriveVehicle in _wreck_copies.get(id, {}).values():
+		wreck.queue_free()
+	_wreck_copies.erase(id)
+	_last_wreck.erase(id)
 	var copy: Hero = remote_heroes.get(id)
 	if copy:
 		Combat.unregister_hero(copy)  # right away: nothing more is sent to this player

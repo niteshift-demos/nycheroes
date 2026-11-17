@@ -5,6 +5,20 @@ lines below wherever a license asks for one (the aerial photos do).
 
 ## City data
 
+- **Whole-city map:** `assets/map/` is a cartographic rendering of this
+  game's published NYCT ground, park, water and bridge meshes (NYC Open
+  Data sources credited below), plus highway centerlines from NYC's
+  Citywide Street Centerline (CSCL, inkn-q76z, `rw_type=2`). NYC Open Data
+  is provided under the NYC Open Data Terms of Use
+  (https://data.cityofnewyork.us/stories/s/Terms-of-Use/k9k7-3cje). No third-party
+  map tiles or aerial imagery are included. The meshes' hand-modeled
+  bridges also use the OpenStreetMap bridge placement data credited below.
+- **Mission landmark coordinate checks:** Wikipedia contributors, the
+  Times Square, Empire State Building, One World Trade Center, Brooklyn
+  Bridge and Bethesda Terrace place records linked in
+  [docs/MISSIONS.md](docs/MISSIONS.md) (CC BY-SA 4.0 for article text;
+  only factual coordinate checks were used, no text or artwork copied).
+
 - **Aerial photos:** NYC 2024 orthoimagery (6-inch, flown March 2024), by
   the NYC Office of Technology and Innovation and the New York State
   Statewide Digital Orthoimagery Program. License: CC BY 4.0, per the
@@ -92,6 +106,10 @@ what is downloaded from where.
   Quaternius, CC0 1.0 (see `assets/characters/mannequin/CREDITS.txt`).
 
 ## Sounds
+
+The tyre screech loop and car crash sound are original procedural synthesis
+by NYC Heroes in `tools/audio/build_sounds.py` (CC0 1.0, public domain); the driven
+car engine reuses the credited AndrewAlexander recording below.
 
 Every sound is either synthesized for the game or cut from recordings
 dedicated to the public domain under Creative Commons 0 (CC0 1.0, which
@@ -197,3 +215,12 @@ Each file's Commons page is in `tools/reference/views.json` (`photo.page`).
   libsrtp (Cisco, BSD 3-clause), plog (MIT) and Mbed TLS 3.6.7 (Apache 2.0).
   The licenses are next to it (`LICENSE.*`) and in both downloads'
   `licenses` folder, with the engine's.
+
+## Shop location references
+
+The fictional shops use hand-authored offsets from the geographic coordinates
+of [Union Square](https://en.wikipedia.org/wiki/Union_Square,_Manhattan),
+[Brooklyn Borough Hall](https://en.wikipedia.org/wiki/Brooklyn_Borough_Hall)
+and [Yankee Stadium](https://en.wikipedia.org/wiki/Yankee_Stadium), checked
+November 17, 2026. Only coordinate facts are used; no article text, photos or
+map extracts are bundled. Wikipedia article text is CC BY-SA 4.0.

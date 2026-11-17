@@ -91,6 +91,9 @@ var hero: Hero
 var camera_rig: ThirdPersonCamera
 var coop_panel: CoopPanel
 var options_panel: OptionsPanel
+var pause_menu: PauseMenu
+var world_map: WorldMap
+var shop_panel: ShopPanel
 ## Turned on by a touch: Godot's mouse emulation stays on until that first
 ## finger lifts, so the mouse press it made is released too.
 var started_by_touch := false
@@ -138,6 +141,7 @@ func _ready() -> void:
 	_pill_style_pressed = _pill(FILL_PRESSED)
 	_pill_style_on = _pill(FILL_ON)
 	_muted = GameAudio.is_muted()
+	_add(&"interact", "CAR", &"interact")
 	_add(&"punch", "PUNCH", &"attack")
 	_add(&"jump", "JUMP", &"jump", false, true)
 	_add(&"down", "DOWN", &"descend")
@@ -151,8 +155,14 @@ func _ready() -> void:
 	if not started_by_touch:
 		Input.emulate_mouse_from_touch = false
 	coop_panel.toggled.connect(_on_menu_toggled)
+	if pause_menu:
+		pause_menu.toggled.connect(_on_menu_toggled)
+	if world_map:
+		world_map.toggled.connect(_on_menu_toggled)
 	if options_panel:
 		options_panel.toggled.connect(_on_menu_toggled)
+	if shop_panel:
+		shop_panel.toggled.connect(_on_menu_toggled)
 	_read_look_settings()
 	Settings.changed.connect(func(key: String) -> void:
 		if key in ["look_touch", "invert_y"]:
@@ -310,9 +320,9 @@ func _press(button: TouchButton, index: int, at: Vector2) -> void:
 			GameAudio.toggle_mute()
 			_muted = GameAudio.is_muted()
 		&"options":
-			if options_panel:
+			if pause_menu:
 				coop_panel.close()
-				options_panel.open()
+				pause_menu.open()
 		_:
 			if button.toggle:
 				_set_toggle(button, not button.on)
@@ -388,7 +398,7 @@ func _on_menu_toggled(open: bool) -> void:
 
 
 func _menu_open() -> bool:
-	return coop_panel.visible or (options_panel != null and options_panel.visible)
+	return (pause_menu != null and pause_menu.visible) or coop_panel.visible or (options_panel != null and options_panel.visible) or (world_map != null and world_map.visible) or (shop_panel != null and shop_panel.visible)
 
 
 ## Labels and which buttons show follow what the hero is doing.
@@ -400,12 +410,17 @@ func _update_hero_state(delta: float) -> void:
 		return
 	_mode = mode
 	_airborne = airborne
+	var driving := mode == &"Drive"
+	(_by_id[&"interact"] as TouchButton).label = "EXIT" if driving else "CAR"
+	_show(&"punch", not driving)
+	_show(&"fly", not driving)
+	_show(&"speed", not driving)
 	var flying := mode == &"Flight"
 	(_by_id[&"punch"] as TouchButton).label = "DIVE" if airborne or flying else "PUNCH"
-	(_by_id[&"jump"] as TouchButton).label = "UP" if flying else "JUMP"
+	(_by_id[&"jump"] as TouchButton).label = "BRAKE" if driving else ("UP" if flying else "JUMP")
 	(_by_id[&"fly"] as TouchButton).on = flying
 	_show(&"down", flying)
-	_show(&"web", not flying)
+	_show(&"web", not flying and not driving)
 	queue_redraw()
 
 
@@ -425,6 +440,17 @@ func _poll_page() -> void:
 		_layout()
 
 
+## Safari's bars and the home indicator can leave less than a phone's full
+## landscape height. Reserve a separate upper radar and lower thumb region.
+func compact_landscape() -> bool:
+	return size.x > size.y and size.y - safe_insets.y - safe_insets.w < 390.0
+
+
+func radar_rect() -> Rect2:
+	var diameter := minf(112.0, size.y - safe_insets.y - safe_insets.w - 204.0) if compact_landscape() else 136.0
+	return Rect2(Vector2(safe_insets.x + 16.0, safe_insets.y + (42.0 if compact_landscape() else 94.0)), Vector2.ONE * diameter)
+
+
 func _layout() -> void:
 	if _buttons.is_empty():
 		return  # resized before _ready made them
@@ -436,14 +462,17 @@ func _layout() -> void:
 		_release_all()
 	var right := size.x - safe_insets.z - MARGIN
 	var bottom := size.y - safe_insets.w - MARGIN
-	# A thumb's arc around PUNCH in the bottom right corner.
-	var punch := Vector2(right - 44.0, bottom - 44.0)
-	_place(&"punch", punch, 44.0)
-	_place(&"jump", punch + Vector2(-104.0, 8.0), 36.0)
-	_place(&"down", punch + Vector2(-190.0, 8.0), 32.0)
-	_place(&"web", punch + Vector2(6.0, -100.0), 36.0)
-	_place(&"speed", punch + Vector2(-88.0, -84.0), 31.0)
-	_place(&"fly", punch + Vector2(-14.0, -182.0), 31.0)
+	# A thumb's arc around PUNCH in the bottom right corner. Its full
+	# height is 257 px; leave 90 px for the toolbar and clearance in Safari.
+	var arc := clampf((size.y - safe_insets.y - safe_insets.w - 90.0) / 257.0, 0.70, 0.82) if compact_landscape() else 1.0
+	var punch := Vector2(right - 44.0 * arc, bottom - 44.0 * arc)
+	_place(&"interact", punch + Vector2(-174.0, -86.0) * arc, maxf(22.0, 30.0 * arc))
+	_place(&"punch", punch, 44.0 * arc)
+	_place(&"jump", punch + Vector2(-104.0, 8.0) * arc, maxf(22.0, 36.0 * arc))
+	_place(&"down", punch + Vector2(-190.0, 8.0) * arc, maxf(22.0, 32.0 * arc))
+	_place(&"web", punch + Vector2(6.0, -100.0) * arc, maxf(22.0, 36.0 * arc))
+	_place(&"speed", punch + Vector2(-88.0, -84.0) * arc, maxf(22.0, 31.0 * arc))
+	_place(&"fly", punch + Vector2(-14.0, -182.0) * arc, maxf(22.0, 31.0 * arc))
 	# The gear in the top right corner, co-op to its left, then full screen
 	# and the speaker.
 	var top := safe_insets.y + 10.0

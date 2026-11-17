@@ -4,9 +4,9 @@ class_name Device
 ## builds, headless tests) it's always a computer with a mouse and keyboard.
 ##
 ## Touch controls: ?touch=1 forces them on and ?touch=0 off (--touch=1 on
-## desktop). Otherwise they're on when the browser's main pointer is a finger
-## (the CSS media query "pointer: coarse": phones and tablets), and Game also
-## turns them on at the first touch of a touch screen.
+## desktop). Otherwise they're on for a mobile browser or a coarse primary pointer.
+## A real touch also latches this shared state, so prompts and layout agree
+## with the controls even on touchscreens whose primary pointer is fine.
 ##
 ## The page (html/head_include in export_presets.cfg) sets up window.nycPage:
 ## full screen, the "turn your phone" overlay and the screen's safe area.
@@ -17,6 +17,8 @@ class_name Device
 const TABLET_MIN_SIDE := 600.0
 
 static var _cache := {}
+## A real touch can activate controls even when Chrome reports a fine pointer.
+static var _touch_active := false
 
 
 static func is_web() -> bool:
@@ -28,7 +30,7 @@ static func wants_touch_controls() -> bool:
 	var forced := LaunchOptions.get_string("touch")
 	if forced == "1" or forced == "0":
 		return forced == "1"
-	return is_web() and _js_bool("coarse_pointer", "matchMedia('(pointer: coarse)').matches")
+	return _touch_active or is_mobile()
 
 
 ## Whether a touch may turn the controls on later (not with ?touch=0).
@@ -133,6 +135,7 @@ static func request_fullscreen() -> void:
 ## Tells the page whether touch controls are on: it then asks to turn the
 ## phone sideways when it's upright, and goes full screen at the first tap.
 static func set_page_touch_mode(on: bool) -> void:
+	_touch_active = on
 	if _has_page():
 		JavaScriptBridge.eval("nycPage.setTouch(%s)" % ("true" if on else "false"), true)
 

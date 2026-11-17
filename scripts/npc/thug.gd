@@ -35,6 +35,16 @@ const ANIMATE_DISTANCE := 60.0
 
 ## The hero this thug is after (or, while idle, the one its gang was put near).
 var hero: Hero
+## Story opponents share the regular authoritative thug hit/replication path.
+var story_variant := 0
+var story_victim: Node3D
+var _story_cooldown := 5.0
+var _story_windup := 0.0
+var _story_charge := 0.0
+var _story_direction := Vector3.ZERO
+var _story_hit := false
+var _story_warning: MeshInstance3D
+
 var health := 100.0
 var state := State.IDLE
 var gang := 0
@@ -166,6 +176,10 @@ func ground_position() -> Vector3:
 func take_hit(damage: float, push: Vector3, launch: bool) -> void:
 	if state == State.DOWN:
 		return
+	# Powered rigs absorb launch attacks until their health is exhausted.
+	if story_variant > 0 and health - damage > 0.0:
+		launch = false
+		push *= 0.12  # Heavy rigs stay on their rooftop during a surviving hit.
 	health -= damage
 	_release_attack_slot()
 	if Combat.effects:
@@ -204,6 +218,8 @@ func go_down(launch: Vector3, counts := true) -> void:
 
 
 func _process(delta: float) -> void:
+	if story_variant > 0 and is_down():
+		_story_warning.visible = false
 	_detail_check -= delta
 	if _detail_check > 0.0:
 		return
@@ -227,6 +243,8 @@ func _physics_process(delta: float) -> void:
 		_follow_updates(delta)
 		return
 	if frozen:
+		return
+	if story_variant > 0 and _advance_story_special(delta):
 		return
 	_timer -= delta
 	_cooldown -= delta
@@ -283,6 +301,9 @@ func _physics_process(delta: float) -> void:
 		velocity.y = 0.0
 	else:
 		velocity.y -= Hero.GRAVITY * delta
+	if story_variant > 0 and horizontal.length() > 0.1 and not _story_floor_ahead(horizontal.normalized(), 2.0):
+		velocity.x = 0.0
+		velocity.z = 0.0
 	var intended := velocity
 	move_and_slide()
 	LedgeClimb.climb(self, intended, delta)
@@ -308,11 +329,17 @@ func _nearest_hero() -> Hero:
 
 ## Run to this thug's spot around the hero, or a wider ring when the hero is out of reach.
 func _surround_velocity(reachable: bool) -> Vector3:
+	if is_instance_valid(story_victim) and hero.global_position.distance_to(global_position) > 9.0:
+		var toward := story_victim.global_position - global_position
+		toward.y = 0.0
+		return toward.normalized() * minf(RUN_SPEED, maxf(0.0, toward.length() - 1.5) * 4.0)
 	var radius := SURROUND_RADIUS if reachable else WAIT_RADIUS
 	var spot := hero.global_position + Vector3(sin(surround_angle), 0.0, cos(surround_angle)) * radius
 	var to_spot := spot - global_position
 	to_spot.y = 0.0
 	if to_spot.length() < 0.3:
+		return Vector3.ZERO
+	if story_variant > 0 and not _story_floor_ahead(to_spot.normalized(), 2.0):
 		return Vector3.ZERO
 	return to_spot.normalized() * minf(RUN_SPEED, to_spot.length() * 4.0)
 
@@ -337,6 +364,8 @@ func _follow_updates(delta: float) -> void:
 	global_position = WorldOrigin.to_local((older[0] as Vector3).lerp(newer[0], weight))
 	_facing = lerp_angle(older[1], newer[1], weight)
 	health = minf(health, newer[2])
+	if story_variant > 0 and _story_warning:
+		_story_warning.visible = int(newer[3]) == 4 and float(newer[4]) < 0.2
 	var restarts: int = newer[5]
 	if Time.get_ticks_msec() >= _local_animation_until:
 		var restart := _shown_restarts >= 0 and restarts != _shown_restarts
@@ -406,3 +435,91 @@ func _on_origin_shifted(delta: Vector3) -> void:
 		var body := bones[i] as PhysicalBone3D
 		if (body.global_position - global_position).distance_to(_bone_offsets[i]) > delta.length() * 0.5:
 			body.global_position -= delta
+
+
+## Three lieutenants and a final rig, colored consistently on every peer.
+func set_story_variant(variant: int, reset_health := true) -> void:
+	story_variant = clampi(variant, 1, 4)
+	if reset_health:
+		health = [100.0, 420.0, 500.0, 550.0, 900.0][story_variant]
+	var color: Color = [Color.WHITE, Color("e37833"), Color("9580f0"), Color("38c7c3"), Color("f2cd59")][story_variant]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = net_id
+	NpcLook._dress($Model, {top_color = color.darkened(0.4), bottom_color = Color("182030"),
+		joint_color = color, shoe_color = Color("e0e0df"), cuts = Vector4(0.9, 0.17, 0.17, 0.7)}, rng)
+	_model.scale = Vector3.ONE * (1.35 if story_variant == 4 else 1.2)
+	if is_instance_valid(_story_warning):
+		_story_warning.free()
+	_story_warning = MeshInstance3D.new()
+	var ring := TorusMesh.new()
+	ring.inner_radius = 7.7
+	ring.outer_radius = 8.0
+	ring.rings = 24
+	ring.ring_segments = 6
+	_story_warning.mesh = ring
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color.GOLD
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_story_warning.material_override = material
+	_story_warning.position.y = 0.15
+	_story_warning.visible = false
+	add_child(_story_warning)
+
+
+## Drawn by GameHud at the UI's native resolution, even on Low's 360p city.
+## Replicated rigs use the same name, health and warning as their owner.
+func story_tag() -> String:
+	var text: String = ["", "NERA FLINT", "OREN PIKE", "SABLE QUILL", "ALDEN VOSS"][story_variant]
+	return text + " · BOSS  %d" % maxi(0, ceili(health)) + (" · RISE!" if _story_warning and _story_warning.visible else "")
+
+
+## A 1.2-second warning makes every heavy attack avoidable with flight/jump.
+## Owners run damage; remote heroes receive it through Combat.hurt_hero.
+func _advance_story_special(delta: float) -> bool:
+	_story_cooldown -= delta
+	if not is_instance_valid(hero):
+		return false
+	if _story_charge > 0.0:
+		_story_charge -= delta
+		if not _story_floor_ahead(_story_direction, 4.0):
+			_story_charge = 0.0
+			return false
+		velocity = _story_direction * 24.0 + Vector3.DOWN * 3.0
+		move_and_slide()
+		for candidate in Combat.heroes:
+			if not _story_hit and candidate.global_position.distance_to(global_position) < 3.0:
+				Combat.hurt_hero(candidate, 22.0, _story_direction * 16.0)
+				_story_hit = true
+		return true
+	if _story_windup > 0.0:
+		_story_windup -= delta
+		if _story_windup <= 0.0:
+			_story_warning.visible = false
+			_play(&"Idle")
+			if story_variant == 1 or story_variant == 3 or (story_variant == 4 and health > 450):
+				_story_charge = 0.65
+				_story_hit = false
+			else:
+				Combat.show_shockwave(WorldOrigin.to_world(global_position), 8.0)
+				for candidate in Combat.heroes:
+					var toward := candidate.global_position - global_position
+					if absf(toward.y) < 2.5 and toward.length() < 8.0:
+						Combat.hurt_hero(candidate, 26.0, toward.normalized() * 12.0)
+		return true
+	if _story_cooldown <= 0.0 and hero.global_position.distance_to(global_position) < 18.0:
+		_story_cooldown = 6.0
+		_story_windup = 1.2
+		_story_direction = hero.global_position - global_position
+		_story_direction.y = 0
+		_story_direction = _story_direction.normalized()
+		_story_warning.visible = true
+		_play(&"Punch_Cross", 0.15, 0.1, true)
+		return true
+	return false
+
+
+## Rigs stop at ledges, especially on the final observation-deck roof.
+func _story_floor_ahead(direction: Vector3, distance: float) -> bool:
+	var at := global_position + direction * distance + Vector3.UP * 1.0
+	var query := PhysicsRayQueryParameters3D.create(at, at + Vector3.DOWN * 4.0, Combat.WORLD_LAYER)
+	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
