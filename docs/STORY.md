@@ -224,3 +224,24 @@ regressions. Pilot-only fixes cover steep descents, low buildings, vehicle
 punch range, elevated targets and catching moving vans. Chapter 11's recorded
 retry used bounded flight waypoints around WTC before returning to its normal
 rings. Browser screenshots and co-op status are recorded in the QA pull request.
+
+### Two-browser co-op QA
+
+Two isolated Chromium sessions joined private rooms through the local signaling
+service. The guest received the host's sedan model 0 / paint 0, movement, and
+crash health (100 → 61.0827 on both sides). Wanted tags carried the host's count;
+three-star snapshots included two patrol copies and six officer copies with
+matching positions and damage. Both browser views are attached to the QA PR.
+The guest alone also defeated the host-owned Flint rig: host health observations
+were 420 → -30 and the host advanced to its exit flight while supplying only
+hovering input.
+
+Limits: a clear, unobstructed guest-camera sequence of moving police pursuit
+was not captured; scenery obscured portions of the view, although patrol and
+officer replication was observed. Explosion/wreck replication was not completed
+within the co-op time box. The car capture used the ordinary G takeover of a
+launch-supplied starter, rather than a live traffic-slot carjack. Phones,
+gamepads and Windows GPUs were not exercised. Private connection attempts
+initially timed out while one maximized browser fully covered the other;
+keeping both windows partly visible let their simulation clocks and networking
+continue. This was a sandbox window issue, not a game sync fix.
