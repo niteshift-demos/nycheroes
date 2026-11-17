@@ -4,8 +4,9 @@ extends Node
 ## godot --headless --path . res://tests/story_test.tscn
 
 class TestCity extends CityStreamer:
+	var overhang := false
 	func ground_height_at(_at: Vector3, _search := INF) -> float:
-		return 0.0
+		return (16.0 if _search > 5.0 else 10.0) if overhang else 0.0
 	func has_collision_at(_at: Vector3) -> bool:
 		return true
 	func traffic_lanes() -> Dictionary:
@@ -45,6 +46,21 @@ func _run() -> void:
 	hero = load("res://scenes/hero/hero.tscn").instantiate()
 	hero.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(hero)
+	var pilot := StoryPlaytest.new()
+	hero.set_mode(&"Flight")
+	hero.position = Vector3(0, 350, 0)
+	var controls := HeroInput.new()
+	pilot._fly_to(Vector3(80, 20, 0), controls, hero)
+	check(controls.aim.x > 0.9 and is_zero_approx(controls.aim.y),
+		"QA pilot clears the rooftop horizontally before descending to the street")
+	check(hero.position == Vector3(0, 350, 0) and hero.health == 100,
+		"QA routing feeds input without moving or healing the hero")
+	hero.position = Vector3(0, 5, 0)
+	pilot._fly_to(Vector3(200, 5, 0), controls, hero)
+	check(controls.aim.y > 0.99, "QA pilot rises above park buildings before crossing to low targets")
+	pilot.free()
+	hero.set_mode(&"OnFoot")
+	hero.position = Vector3.ZERO
 	var city := TestCity.new()
 	city.process_mode = Node.PROCESS_MODE_DISABLED
 	encounters = EncounterDirector.new()
@@ -68,6 +84,24 @@ func _run() -> void:
 	director.wallet = wallet
 	director.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(director)
+	var removed_gang := encounters.spawn_gang(Vector3.ZERO, 2, Vector3.RIGHT, hero)
+	for member in removed_gang:
+		member.free()
+	encounters._clear_far_gangs()
+	check(encounters._gangs.is_empty(), "encounter cleanup accepts freed story actors without typed callback errors")
+	city.overhang = true
+	begin(Mission.boss(Vector3(0, 10, 0), 2, "Under the stadium overhang"))
+	director.active.chapter = 7
+	director.advance(0.1, Vector3(0, 10, 0))
+	check(director.gang.size() == 1 and WorldOrigin.to_world(director.gang[0].global_position).y < 11.0,
+		"story boss keeps the street surface beneath a six-metre overhead structure")
+	director.finish(false)
+	begin(Mission.protect(Vector3(0, 10, 0), 45, "Street witness"))
+	director.advance(0.1, Vector3(0, 10, 0))
+	check(director.gang.size() == 2 and director.gang[0].global_position.y < 11.0,
+		"protection attackers use the witness street rather than the overhead structure")
+	director.finish(false)
+	city.overhang = false
 	var chapters := StoryCatalog.all()
 	check(chapters.size() == 12 and director.available_missions().filter(func(m: Mission) -> bool: return m.chapter > 0).size() == 1,
 		"twelve chapters, exactly one story giver")

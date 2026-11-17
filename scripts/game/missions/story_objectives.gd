@@ -151,7 +151,7 @@ func advance(delta: float, position: Vector3) -> int:
 			if _wave <= 0.0 and alive < 5:
 				_wave = 18.0
 				var spawn := _ground(step.position + Vector3(16, 0, 8))
-				var wave := director.encounters.spawn_gang(spawn, 2, Vector3.RIGHT, hero)
+				var wave := director.encounters.spawn_gang(spawn, 2, Vector3.RIGHT, hero, 5.0)
 				for thug in wave:
 					thug.story_victim = witness
 				director.gang.append_array(wave)
