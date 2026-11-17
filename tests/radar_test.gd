@@ -4,10 +4,15 @@ extends Node
 ## and standing police shown only while the local hero is wanted.
 ## Run: godot --headless --path . res://tests/radar_test.tscn
 
+class QuietCity extends CityStreamer:
+	func _ready() -> void:
+		set_process(false)
+
 var _failed := 0
 
 
 func _ready() -> void:
+	_check_atlas()
 	var radar := Radar.new()
 	add_child(radar)
 	_check(radar.enabled == (LaunchOptions.get_string("radar", "1") != "0"), "launch option sets initial radar visibility")
@@ -66,6 +71,29 @@ func _ready() -> void:
 	map._pan(point + Vector2(50, 30))
 	map._end_drag(point + Vector2(50, 30))
 	_check(radar.waypoint_position.is_equal_approx(world), "pan does not replace waypoint")
+	# A two-finger pinch changes scale without creating or moving a pin.
+	var old_pin := radar.waypoint_position
+	var old_scale := map.pixels_per_meter
+	for index in 2:
+		var touch := InputEventScreenTouch.new()
+		touch.index = index
+		touch.position = point + Vector2(index * 100, 0)
+		touch.pressed = true
+		map._input(touch)
+	var pinch := InputEventScreenDrag.new()
+	pinch.index = 1
+	pinch.position = point + Vector2(180, 0)
+	map._input(pinch)
+	_check(map.pixels_per_meter > old_scale, "two-finger spread zooms map")
+	for index in 2:
+		var touch := InputEventScreenTouch.new()
+		touch.index = index
+		touch.position = point + Vector2(index * 180, 0)
+		touch.pressed = false
+		map._input(touch)
+	_check(radar.waypoint_position == old_pin, "pinch release does not place waypoint")
+	map.fit_city()
+	_check(map.pixels_per_meter < 0.02, "city view fits all five boroughs")
 	radar.clear_waypoint()
 	_check(not radar.waypoint_active and not radar.blips.has(Radar.WAYPOINT_ID), "clear removes waypoint")
 	var empty: Array[PackedVector3Array] = []
@@ -117,6 +145,34 @@ func _ready() -> void:
 	radar.hero = null
 	officer.free()
 	hero.free()
+	# Exercise the real collision ray, including its scene/world Y conversion.
+	var city := QuietCity.new()
+	add_child(city)
+	radar.city = city
+	var ground := StaticBody3D.new()
+	ground.collision_layer = CityStreamer.COLLISION_LAYER
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(100, 4, 100)
+	shape.shape = box
+	ground.add_child(shape)
+	add_child(ground)
+	ground.position = Vector3(0, 10, 0)
+	ground.add_to_group("floating")
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	radar.place_map_waypoint(Vector3.ZERO)
+	_check(is_equal_approx(radar.waypoint_position.y, 12.0), "map pin uses loaded ground height")
+	WorldOrigin.shift(Vector3(1000, 50, 2000))
+	await get_tree().physics_frame
+	radar.place_map_waypoint(Vector3.ZERO)
+	_check(is_equal_approx(radar.waypoint_position.y, 12.0), "map ground height survives vertical origin shift")
+	radar.place_map_waypoint(Vector3(50000, 0, 50000))
+	_check(is_zero_approx(radar.waypoint_position.y), "unloaded map pin falls back to sea level")
+	WorldOrigin.shift(-WorldOrigin.offset)
+	ground.free()
+	radar.city = null
+	city.free()
 	print("radar test finished: %d failures" % _failed)
 	get_tree().quit(1 if _failed else 0)
 
@@ -125,3 +181,25 @@ func _check(ok: bool, label: String) -> void:
 	print("%s: %s" % ["PASS" if ok else "FAIL", label])
 	if not ok:
 		_failed += 1
+
+
+func _check_atlas() -> void:
+	# Independent pyproj reference pixels in the committed 8192-square bake.
+	var landmarks := [
+		[40.7580, -73.9855, Vector2(4096, 3072), "Times Square"],
+		[40.7061, -73.9969, Vector2(3935.4352, 4032.5611), "Brooklyn Bridge"],
+		[40.689249, -74.0445, Vector2(3264.7972, 4344.1710), "Statue of Liberty"],
+	]
+	for landmark: Array in landmarks:
+		var world := Geo.to_world(landmark[0], landmark[1])
+		var pixel := CityMapAtlas.world_to_pixel(world)
+		_check(pixel.distance_to(landmark[2]) < 0.01, "%s projects onto expected atlas pixel" % landmark[3])
+		var cell := Vector2i((pixel / 1024.0).floor())
+		var texture := load("res://assets/map/2/%d_%d.webp" % [cell.x, cell.y]) as Texture2D
+		var image := texture.get_image()
+		var local := Vector2i(pixel) - cell * 1024
+		var color := image.get_pixelv(local)
+		_check(color.r > 0.19, "%s sits on baked land or bridge, not water" % landmark[3])
+	var park := CityMapAtlas.world_to_pixel(Geo.to_world(40.7829, -73.9654))
+	var north := CityMapAtlas.world_to_pixel(Geo.to_world(40.8005, -73.9580))
+	_check(park.x > 4096 and park.y < 3072 and north.x > park.x and north.y < park.y, "Central Park and Manhattan grid run northeast")
