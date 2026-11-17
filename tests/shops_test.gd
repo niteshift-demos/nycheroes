@@ -47,6 +47,19 @@ func _run() -> void:
 	_check(not shops.respawn(), "no apartment keeps ordinary recovery location")
 	shops._physics_process(0.1)
 	_check(shops.active.get("kind") == &"shop", "walking into marker enters shop")
+	shops.close()
+	shops._physics_process(0.1)
+	_check(shops.active.is_empty(), "closed panel stays closed inside the marker")
+	hero.position.x = 30
+	shops._physics_process(0.1)
+	hero.position.x = 0
+	shops._physics_process(0.1)
+	_check(not shops.active.is_empty(), "leaving and returning reopens the shop")
+	hero.position.x = 30
+	shops._physics_process(0.1)
+	_check(shops.active.is_empty(), "moving outside a service closes it in co-op")
+	hero.position.x = 0
+	shops._physics_process(0.1)
 	_check(not shops.purchase("health") and HeroUpgrades.tier("health") == 0, "insufficient funds do not grant a tier")
 	wallet.add(250000, "test")
 	_check(shops.purchase("health") and wallet.balance == 248000 and hero.max_health == 125.0, "purchase charges $2000 and adds 25 health")
