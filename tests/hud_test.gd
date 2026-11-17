@@ -60,7 +60,8 @@ func _run() -> void:
 	Settings.set_value("upgrade_health", 2)
 	pause.show_page("stats")
 	_check(pause._content.get_child(0).text.begins_with("Cash"), "stats includes current wallet")
-	_check((pause._content.get_child(7) as Label).text.ends_with("2 / 3") and HeroUpgrades.tier("health") == 2, "Stats lists owned upgrade tiers without changing them")
+	pause.show_page("upgrades")
+	_check((pause._content.get_child(1) as Label).text.ends_with("2 / 3") and HeroUpgrades.tier("health") == 2, "Stats lists owned upgrade tiers without changing them")
 	pause.close(false)
 	_check(not get_tree().paused, "Resume releases owned pause")
 	Net.state = Net.State.HOSTING

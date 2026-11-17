@@ -56,6 +56,7 @@ func _ready() -> void:
 	_heading = HudStyle.label("", 28, HudStyle.GOLD)
 	column.add_child(_heading)
 	_scroll = ScrollContainer.new()
+	_scroll.follow_focus = true
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(_scroll)
 	_content = VBoxContainer.new()
@@ -169,10 +170,13 @@ func show_page(page: String) -> void:
 				"Distance driven  %.2f km" % (float(stats.totals.get("driven_m", 0.0)) / 1000.0)]
 			for row in rows:
 				_content.add_child(HudStyle.label(row, 20))
-			_content.add_child(HudStyle.label("UPGRADES · OWNED TIERS", 14, HudStyle.GOLD))
-			for id: String in HeroUpgrades.NAMES:
-				_content.add_child(HudStyle.label("%s  ·  %d / 3" % [HeroUpgrades.NAMES[id], HeroUpgrades.tier(id)]))
+			_button("Upgrades", func() -> void: show_page("upgrades"))
 			_button("Back", func() -> void: show_page("home"))
+		"upgrades":
+			_content.add_child(HudStyle.label("OWNED TIERS", 14, HudStyle.GOLD))
+			for id: String in HeroUpgrades.NAMES:
+				_content.add_child(HudStyle.label("%s  ·  %d / 3" % [HeroUpgrades.NAMES[id], HeroUpgrades.tier(id)], 18))
+			_button("Back", func() -> void: show_page("stats"))
 	var first := _content.find_children("*", "Button", false, false)
 	if not first.is_empty():
 		(first[0] as Button).grab_focus()

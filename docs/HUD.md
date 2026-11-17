@@ -38,7 +38,7 @@ Browser Esc may first release pointer lock; P is always available.
   abandon and retry live here. Walk into a giver to start its contract.
 - Stats shows current cash, successful missions, distinct cars taken during a
   session, highest wanted level, kilometres flown/driven, and the owned tier of
-  each of the six shop upgrades. This list is read-only.
+  each of the six shop upgrades through Stats → Upgrades. This list is read-only.
 - Hero / Options and Co-op open the existing menus. O and M remain direct
   shortcuts, respectively. T changes time; N toggles sound.
 - Skip tutorial permanently marks the contextual lessons as seen.

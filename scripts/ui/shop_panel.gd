@@ -32,6 +32,7 @@ func _ready() -> void:
 	_panel.add_theme_stylebox_override("panel", style)
 	add_child(_panel)
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_panel.add_child(scroll)
 	_rows = VBoxContainer.new()
