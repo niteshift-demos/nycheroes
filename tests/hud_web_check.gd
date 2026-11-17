@@ -32,7 +32,7 @@ func _run() -> void:
 func _input(event: InputEvent) -> void:
 	if not _ready_for_checks or not event is InputEventKey or not event.pressed or event.echo:
 		return
-	var cases := {KEY_F5: "foot", KEY_F6: "car", KEY_F7: "passed", KEY_F8: "busted", KEY_F9: "knocked", KEY_F10: "shop"}
+	var cases := {KEY_F5: "foot", KEY_F6: "car", KEY_F7: "passed", KEY_F8: "busted", KEY_F9: "knocked", KEY_F10: "shop", KEY_F4: "desktop"}
 	if cases.has(event.keycode):
 		get_viewport().set_input_as_handled()
 		_scenario(cases[event.keycode])
@@ -43,6 +43,18 @@ func _scenario(scenario: String) -> void:
 	var display := _game.hud.get_node("GameHud") as GameHud
 	var wanted := _game.get_node("Wanted") as Wanted
 	match scenario:
+		"desktop":
+			# Reuse the loaded city to compare HUD layouts without another cold GPU compile.
+			LaunchOptions._options["touch"] = "0"
+			var controls := _game._touch_controls
+			if controls:
+				controls._release_all()
+				controls.queue_free()
+			_game._touch_controls = null
+			display.touch_controls = null
+			_game.radar.touch_controls = null
+			get_window().content_scale_factor = 1.0
+			Device.set_page_touch_mode(false)
 		"foot":
 			display.banner_remaining = 0.0
 			_game.missions.banner_remaining = 0.0

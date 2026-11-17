@@ -83,7 +83,8 @@ banners for capture. It does not replace the interactive pause/navigation check.
 In that fixture, F5 resumes play, F6 enters the starter car on a wanted
 mission, F7 completes the real contract, F8 triggers an arrest through lethal
 damage while wanted, and F9 triggers a knockout without police heat. F10
-opens the real Hero Supply panel; its normal buttons buy upgrades.
+opens the real Hero Supply panel; its normal buttons buy upgrades. F4 removes
+the touch overlay for a desktop-size comparison in the same loaded scene.
 
 The fixture suppresses rendering only while the city assembles, then restores
 normal rendering before the title or any interaction. This speeds software
