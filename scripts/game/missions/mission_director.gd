@@ -221,7 +221,8 @@ func advance(delta: float, position: Vector3) -> void:
 					if not is_finite(ground) or absf(ground + WorldOrigin.offset.y - target.y) > 20.0:
 						return
 					target.y = ground + WorldOrigin.offset.y + 0.2
-				gang = encounters.spawn_gang(target, int(step.count), Vector3.RIGHT, hero)
+				gang = encounters.spawn_gang(target, int(step.count), Vector3.RIGHT, hero,
+					5.0 if active.chapter > 0 else EncounterDirector.GROUND_SEARCH)
 				if step.has("boss"):
 					gang[0].set_story_variant(int(step.boss))
 				_gang_spawned = true

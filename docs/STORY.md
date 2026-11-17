@@ -169,3 +169,79 @@ There is no recorded dialogue, gunplay or custom imported art.
   simulation clock. Ordinary play keeps its chosen quality preset. It never teleports,
   edits health, deals direct damage or advances objectives. It is a debugging
   aid, not proof that every possible route or co-op flow has been played.
+
+## Browser QA instrumentation
+
+The opt-in `story_playtest` telemetry also reports cash, a simulation clock,
+private room code, peer IDs, remote heroes (mode, wanted tag, model, paint and
+car health), nearby thugs/bosses, and patrol cars. These are observations of
+ordinary game state, not setters.
+
+For controlled co-op checks after a mission, `window.nycStoryInput` may supply
+ordinary input fields: `stick: [right, back]`, `move: [x, 0, z]`,
+`aim: [x, y, z]`, `vertical`, and the boolean fields in `HeroInput`.
+`flight: true/false` and `driving: true/false` request a toggle only when the
+current mode differs. Vehicle telemetry includes wreck state.
+`toward: [x, y, z]` converts a flight waypoint into aim/throttle each physics
+tick, avoiding stale browser telemetry on slow software-rendered frames.
+Delete `window.nycStoryInput` to return to the pilot or keyboard. This interface
+exists only with `?story_playtest=1`; it cannot set position, health, cash,
+wanted level, mission progress, or network state. The pilot clears roofs before
+steep descents, crosses low park buildings at height, and approaches cars
+within punching range instead of relying on the thug-only melee lunge.
+
+## Recorded browser QA — 2026-11-17
+
+Godot 4.7.2 web export, Chromium/SwiftShader, Low quality, real public city
+tiles, `?story=n&story_playtest=1`, zero ambient pedestrians/traffic and the
+ordinary campaign actors. The opt-in pilot and manual overrides feed
+`HeroInput`; no positions, health, rewards or objectives were edited. Each
+run starts with cash zero. Final cash also includes $50 thug bounties.
+Times are wall time from observed mission activation, excluding initial city
+loading and including calls, screenshots and manual navigation.
+
+| Chapter | Browser result | Wall time | Chapter reward | Final cash | Stuck / retry |
+| --- | --- | ---: | ---: | ---: | --- |
+| 2 | MISSION PASSED | 59.7 s | $12,000 | $12,000 | Pilot descent adjusted; fresh run passed. |
+| 4 | MISSION PASSED | 102.8 s | $18,000 | $18,400 | Witness 100%; no softlock. |
+| 5 | MISSION PASSED | 175.8 s | $20,000 | $20,000 | Manual detour around park building. |
+| 6 | MISSION PASSED | 33.3 s | $25,000 | $25,250 | No softlock. |
+| 7 | MISSION PASSED | 88.1 s | $30,000 | $30,350 | Overhead spawn bug fixed; fresh run passed. |
+| 8 | MISSION PASSED | 366.9 s | $35,000 | $35,600 | Manual flight around raised roadway; no retry. |
+| 9 | MISSION PASSED | 64.3 s | $40,000 | $40,000 | First detour failed after target despawn; fresh run passed. |
+| 10 | MISSION PASSED | 159.2 s | $42,000 | $42,000 | Manual full-throttle catch; escape completed. |
+| 11 | MISSION PASSED | 296.6 s | $45,000 | $45,250 | First flight timed out at WTC; routed retry passed. |
+
+Chapters 1, 3 and 12 were reported browser-complete by the prior story task;
+they were not repeated in this QA pass. Chapter jumps intentionally do not
+advance saved story progress when earlier chapters remain unfinished.
+
+The chapter 7 failure exposed a second, higher gang-spawn raycast selecting
+an overhead structure after the story had selected the street. Story bosses
+and protection attackers now retain the short street search. Mission cleanup
+also accepts freed actors before applying a typed callback. Both have story
+regressions. Pilot-only fixes cover steep descents, low buildings, vehicle
+punch range, elevated targets and catching moving vans. Chapter 11's recorded
+retry used bounded flight waypoints around WTC before returning to its normal
+rings. Browser screenshots and co-op status are recorded in the QA pull request.
+
+### Two-browser co-op QA
+
+Two isolated Chromium sessions joined private rooms through the local signaling
+service. The guest received the host's sedan model 0 / paint 0, movement, and
+crash health (100 → 61.0827 on both sides). Wanted tags carried the host's count;
+three-star snapshots included two patrol copies and six officer copies with
+matching positions and damage. Both browser views are attached to the QA PR.
+The guest alone also defeated the host-owned Flint rig: host health observations
+were 420 → -30 and the host advanced to its exit flight while supplying only
+hovering input.
+
+Limits: a clear, unobstructed guest-camera sequence of moving police pursuit
+was not captured; scenery obscured portions of the view, although patrol and
+officer replication was observed. Explosion/wreck replication was not completed
+within the co-op time box. The car capture used the ordinary G takeover of a
+launch-supplied starter, rather than a live traffic-slot carjack. Phones,
+gamepads and Windows GPUs were not exercised. Private connection attempts
+initially timed out while one maximized browser fully covered the other;
+keeping both windows partly visible let their simulation clocks and networking
+continue. This was a sandbox window issue, not a game sync fix.

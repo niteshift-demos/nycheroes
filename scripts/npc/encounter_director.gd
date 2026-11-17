@@ -144,14 +144,16 @@ func nearest_thug(world_position: Vector3) -> Thug:
 
 ## Places a gang of `count` thugs in a line along `direction`, centered on a
 ## world position, after `target` (our hero if null). Used by the spawner,
-## and by demos and tests.
-func spawn_gang(world_center: Vector3, count: int, direction: Vector3, target: Hero = null) -> Array[Thug]:
+## and by demos and tests. Story jobs pass their short ground search so an
+## overhead structure cannot replace the street already chosen by the job.
+func spawn_gang(world_center: Vector3, count: int, direction: Vector3,
+		target: Hero = null, ground_search := GROUND_SEARCH) -> Array[Thug]:
 	var gang: Array[Thug] = []
 	for k in count:
 		var spot := world_center + direction * (k - (count - 1) * 0.5) * SPACING
-		var ground := city.ground_height_at(spot, GROUND_SEARCH)
-		if ground > spot.y - GROUND_SEARCH:
-			spot.y = ground
+		var ground := city.ground_height_at(spot, ground_search)
+		if is_finite(ground) and ground + WorldOrigin.offset.y > spot.y - ground_search:
+			spot.y = ground + WorldOrigin.offset.y
 		var thug: Thug = THUG_SCENE.instantiate()
 		thug.net_id = _next_id * ID_STRIDE + Net.local_id() % ID_STRIDE
 		_next_id += 1
@@ -185,7 +187,7 @@ func _clear_far_gangs() -> void:
 	for target in Combat.heroes:
 		centers.append(target.world_position())
 	for gang: Array in _gangs.duplicate():
-		var members: Array = gang.filter(func(thug: Thug) -> bool: return is_instance_valid(thug))
+		var members: Array = gang.filter(func(thug) -> bool: return is_instance_valid(thug))
 		var far: bool = members.all(func(thug: Thug) -> bool:
 			var at := WorldOrigin.to_world(thug.global_position)
 			return centers.all(func(center: Vector3) -> bool: return at.distance_to(center) > despawn_distance))

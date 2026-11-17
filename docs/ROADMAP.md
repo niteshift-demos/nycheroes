@@ -2374,6 +2374,10 @@ All gameplay positions use the floating origin; no city tiles need rebuilding.
 `?stats` logs GTA CPU parts (exclusive nested timings), both per physics tick
 and per drawn frame; `?police_profile=1` isolates 5 Hz patrol decisions.
 `?story_playtest=1` enables the opt-in input pilot/telemetry in STORY.md.
+Browser QA preserves the short street raycast when spawning story bosses and
+witness attackers, so River Avenue's overhead structures cannot move them
+above the street. Encounter cleanup accepts mission actors that have already
+been freed. Story regressions cover both cases and the pilot's roof/street routes.
 
 **Regression:** `drive_test`, `wanted_test`, `police_cars_test`,
 `missions_test`, `story_test`, `shops_test`, `radar_test`, `hud_test`, and
