@@ -212,6 +212,8 @@ func markers() -> Array[Dictionary]:
 		else:
 			result.append({position = current_target(), label = "TARGET", color = Color.GOLD})
 	else:
+		if banner_remaining > 0.0:
+			return result  # Distant giver labels must not cross the result banner.
 		for mission in catalog:
 			result.append({position = mission.giver, label = mission.title.to_upper(), color = Color(0.75, 0.5, 1.0)})
 	return result

@@ -79,6 +79,8 @@ func _run() -> void:
 	director.advance(0.5, Vector3(200, 0, 0))
 	director.finish(true)
 	_check(director.active == null and wallet.balance == 17450 and director.banner.begins_with("MISSION PASSED"), "finish pays exactly once")
+	_check(director.markers().is_empty() and radar.blips.has(&"mission/giver/times_square"),
+		"result banners hide 3D giver labels while radar givers remain available")
 	_check(_events.has("start:test") and _events.has("step:test") and _events.has("end:testtrue") and _events.has("end:testfalse"), "integration signals include mission ids")
 	var pickups: Array[Vector3] = [Vector3(5, 0, 0), Vector3(25, 0, 0)]
 	mission.steps = [Mission.collect(pickups, "Collect", 2.0)]
