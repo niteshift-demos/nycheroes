@@ -64,7 +64,7 @@ func _ready() -> void:
 	hero.wanted_searching = true
 	var sync := PlayerSync.new()
 	var state := sync._encode(hero)
-	_check(state.size() == 21 and state[4] == 6 and state[15] == car.model and state[16] == car.paint, "snapshot carries driving model and paint")
+	_check(state.size() == 22 and state[4] == 6 and state[15] == car.model and state[16] == car.paint, "snapshot carries driving model and paint")
 	_check(state[13] == 3 and state[14] == true, "driving snapshot preserves wanted fields")
 	var remote: Hero = load("res://scenes/hero/hero.tscn").instantiate()
 	remote.remote_id = 2
@@ -156,6 +156,7 @@ func _ready() -> void:
 	print("wall slide position: ", wall_at, " velocity: ", car.velocity)
 	_check(wall_at.x < 4.5 and wall_at.z > 5.0, "car hits wall and slides along it")
 	await _car_feel(hero, traffic, lane)
+	await _wreck_sync(hero)
 	print("DRIVE TEST: %s" % ("PASS" if _failures == 0 else "FAIL (%d)" % _failures))
 	get_tree().quit(0 if _failures == 0 else 1)
 
@@ -290,3 +291,107 @@ func _ramp_check(hero: Hero) -> void:
 	car.driver = null
 	car.queue_free()
 	ramp.queue_free()
+
+
+## Real hero RPC: a lost blast packet is recovered by the following full state.
+func _wreck_sync(hero: Hero) -> void:
+	hero.set_mode(&"OnFoot")
+	hero.frozen = true
+	hero.global_position = WorldOrigin.to_local(Vector3(900, 0, 900))
+	var owner := Node3D.new()
+	var guest := Node3D.new()
+	add_child(owner)
+	add_child(guest)
+	var server := SceneMultiplayer.new()
+	var client := SceneMultiplayer.new()
+	get_tree().set_multiplayer(server, owner.get_path())
+	get_tree().set_multiplayer(client, guest.get_path())
+	var host_peer := ENetMultiplayerPeer.new()
+	var guest_peer := ENetMultiplayerPeer.new()
+	var port := 29000 + OS.get_process_id() % 10000
+	_check(host_peer.create_server(port) == OK, "wreck transport opens ENet server")
+	server.multiplayer_peer = host_peer
+	guest_peer.create_client("127.0.0.1", port)
+	client.multiplayer_peer = guest_peer
+	var send := PlayerSync.new()
+	var receive := PlayerSync.new()
+	for sync: PlayerSync in [send, receive]:
+		sync.name = "Players"
+		sync.hero = hero
+	owner.add_child(send)
+	guest.add_child(receive)
+	var remote: Hero = load("res://scenes/hero/hero.tscn").instantiate()
+	remote.remote_id = 1
+	guest.add_child(remote)
+	var buffer := SnapshotBuffer.new()
+	receive._snapshots[1] = buffer
+	for i in 120:
+		if not server.get_peers().is_empty():
+			break
+		await get_tree().process_frame
+	if server.get_peers().is_empty():
+		_check(false, "wreck client connects")
+		return
+	var drive := hero.get_mode(&"Drive") as DriveMode
+	var car := DriveVehicle.new()
+	add_child(car)
+	car.global_position = hero.global_position + Vector3(20, 0, 0)
+	drive.car = car
+	hero.set_mode(&"Drive")
+	car.explode()
+	_check(hero.mode.name != &"Drive" and car.is_in_group("shared_wrecks"), "occupied explosion survives driver exit in shared state")
+	var state := send._encode(hero)
+	var event: Array = (state[21] as Array).back()
+	state[21] = [event]
+	var explosions: Array[int] = [0]
+	var count_blast := func(_at: Vector3, _strength: float) -> void: explosions[0] += 1
+	Combat.impact.connect(count_blast)
+	var health := hero.health
+	var crimes := _crimes.size()
+	# No explosion-frame packet: the next ordinary state must be enough.
+	send._hero_state.rpc_id(server.get_peers()[0], state)
+	await get_tree().create_timer(0.2).timeout
+	explosions[0] = 0  # Ignore unrelated physical crashes while the RPC was in flight.
+	receive._follow(remote, buffer)
+	var copies: Dictionary = receive._wreck_copies.get(1, {})
+	_check(copies.has(car.wreck_id), "real ENet hero snapshot creates wreck after driver exits")
+	if copies.has(car.wreck_id):
+		var wreck: DriveVehicle = copies[car.wreck_id]
+		_check(wreck.exploded and wreck.collision_layer == 0 and wreck.driver == null, "remote wreck is charred and visual-only")
+		_check(WorldOrigin.to_world(wreck.global_position).distance_to(event[1]) < 0.01, "remote wreck uses blast location, not ejected hero")
+		var at := WorldOrigin.to_world(wreck.global_position)
+		WorldOrigin.shift(Vector3(500, 0, 500))
+		_check(WorldOrigin.to_world(wreck.global_position).distance_to(at) < 0.01, "remote wreck survives floating-origin shift")
+		receive._follow(remote, buffer)
+		_check(explosions[0] == 1 and receive._wreck_copies[1][car.wreck_id] == wreck, "repeated snapshot does not replay blast or duplicate wreck")
+	_check(hero.health == health and _crimes.size() == crimes, "remote explosion causes no duplicate damage or crime")
+	car.wreck_age = PlayerSync.WRECK_SECONDS + 1.0
+	receive._follow_wrecks(remote, send._encode_wrecks(hero))
+	_check(not receive._wreck_copies[1].has(car.wreck_id), "expired wreck disappears from shared state and receiver")
+	# Re-entering range or joining after the blast shows a wreck without old fire.
+	event[6] = 5.0
+	receive._last_wreck.clear()
+	receive._follow_wrecks(remote, [event])
+	_check(explosions[0] == 1, "late snapshot does not replay an old explosion")
+	receive._remove_player(1)
+	_check(not receive._wreck_copies.has(1), "disconnect removes peer wreck copies")
+	var burst: Array[DriveVehicle] = []
+	for i in 4:
+		var body := DriveVehicle.new()
+		body.wreck_id = car.wreck_id + 10 - i  # Tree order differs from blast order.
+		body.exploded = true
+		body.puppet = true
+		add_child(body)
+		body.add_to_group("shared_wrecks")
+		burst.append(body)
+	var bounded := send._encode_wrecks(hero)
+	_check(bounded.size() == 3 and bounded[0][0] == car.wreck_id + 8 and bounded[2][0] == car.wreck_id + 10,
+		"snapshot retains only the three newest wrecks regardless of tree order")
+	for body in burst:
+		body.queue_free()
+	Combat.impact.disconnect(count_blast)
+	car.queue_free()
+	host_peer.close()
+	guest_peer.close()
+	owner.queue_free()
+	guest.queue_free()

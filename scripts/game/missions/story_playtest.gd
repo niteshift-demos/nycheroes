@@ -175,7 +175,8 @@ func _publish() -> void:
 	var state := {active = director.active.id if director.active else "", step = director.step_index,
 		objective = director.objective_text(), mode = String(hero.mode.name), position = [at.x, at.y, at.z],
 		completed = director.story.completed, banner = director.banner, health = hero.health,
-		frozen = hero.frozen, phone = director.phone_lines, stars = hero.wanted_stars,
+		frozen = hero.frozen, loading = not director.encounters.city._initial_load_done,
+		phone = director.phone_lines, stars = hero.wanted_stars,
 		cash = director.wallet.balance if director.wallet else 0, clock = _clock,
 		room = Net.room_code, peers = Net.peers(), remote = []}
 	var sync := hero.get_parent().get_node_or_null("Players") as PlayerSync
@@ -202,6 +203,10 @@ func _publish() -> void:
 		var point := WorldOrigin.to_world(vehicle.global_position)
 		state.vehicles.append({position = [point.x, point.y, point.z], model = vehicle.model,
 			paint = vehicle.paint, health = vehicle.health, exploded = vehicle.exploded})
+	state.wrecks = []
+	for wreck: DriveVehicle in get_tree().get_nodes_in_group("remote_wrecks"):
+		var point := WorldOrigin.to_world(wreck.global_position)
+		state.wrecks.append({position = [point.x, point.y, point.z], burnt = wreck.exploded, paint = wreck.paint})
 	if director.active:
 		var target := director.current_target()
 		state.target = [target.x, target.y, target.z]

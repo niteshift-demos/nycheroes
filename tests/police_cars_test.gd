@@ -240,6 +240,11 @@ func _damage_checks(hero: Hero, pursuit: PolicePursuit) -> void:
 	await get_tree().create_timer(3.2).timeout
 	_check(patrol.exploded and not patrol.ai_controlled, "exploded patrol stops AI driving and remains a wreck")
 	_check(witness.is_knocked_down() and _crime_severity == 0.0, "AI explosion hurts bystanders without blaming hero")
+	_check(patrol.is_in_group("shared_wrecks") and not patrol.is_in_group("police_cars"), "patrol shares wreck after releasing fleet slot")
+	var sync := PlayerSync.new()
+	var wrecks := sync._encode_wrecks(hero)
+	_check(wrecks.any(func(row: Array) -> bool: return row[0] == patrol.wreck_id and row[4] == PoliceLivery.PAINT), "player snapshot retains destroyed patrol and its livery")
+	sync.free()
 	var description := patrol.description()
 	_check(description.size() == 13 and description[9] == 0.0 and description[12], "fleet snapshot includes destroyed patrol state")
 	patrol.queue_free()

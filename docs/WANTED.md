@@ -142,7 +142,8 @@ synthetic street. Keep `wanted_test`, `drive_test`, `traffic_test`, `combat_test
 Routing is deliberately local and greedy, not citywide shortest-path planning.
 Cars can still get stuck at complex corners, blocked streets or dead ends.
 They do not obey traffic lights during a pursuit and use direct contact for
-ramming; there are no weapon attacks, tire damage or vehicle destruction.
+ramming; there are no weapon attacks or tire damage. Patrols use the shared
+vehicle damage, fire and explosion path.
 
 ## Stuck response recovery
 
@@ -154,7 +155,10 @@ unseen patrol beyond 25 m can leave the fleet for normal replacement. No
 visible car teleports. Real travel clears the failed-attempt count. Story
 chase vans use the same reverse detector and choose another loaded road.
 Disabled patrols cannot witness crimes or keep a suspect spotted; explosions
-release their fleet slot and blip while retaining a solid wreck.
+release their fleet slot and blip while retaining a solid local wreck. A bounded
+recent-wreck list in PlayerSync keeps the explosion and charred visual visible
+to nearby guests after fleet removal (three wrecks per owner, 30 seconds,
+400 m range; see DRIVING.md).
 
 Officers exiting patrols and normal foot reinforcements share the same
 ten-officer maximum. A deployed fleet cannot silently double the foot

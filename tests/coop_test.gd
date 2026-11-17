@@ -96,7 +96,7 @@ func _host_steps() -> Array[Dictionary]:
 			var along := Vector3(1.0, 0.0, 0.0)
 			_gang = _encounters.spawn_gang(other.world_position() + Vector3(0.0, 0.0, -5.0), 3, along, other)),
 		_step("their punches take our thugs down", 45.0, Callable(), func() -> bool:
-			return _gang.all(func(thug: Thug) -> bool: return not is_instance_valid(thug) or thug.is_down())),
+			return _gang.all(func(thug) -> bool: return not is_instance_valid(thug) or thug.is_down())),
 		_step("they go across the city: we run no thugs there, nor load its streets", 60.0, Callable(), func() -> bool:
 			var other := _other_hero()
 			if other == null or other.frozen or other.global_position.distance_to(_hero.global_position) < 1000.0:
@@ -121,7 +121,7 @@ func _host_steps() -> Array[Dictionary]:
 				center += thug.global_position / _gang.size()
 			(_world as Game).place_hero(WorldOrigin.to_world(center) + Vector3(0.0, 2.0, 2.5), _hero.facing, true),
 			func() -> bool:
-				return _gang.all(func(thug: Thug) -> bool: return not is_instance_valid(thug) or thug.is_down())),
+				return _gang.all(func(thug) -> bool: return not is_instance_valid(thug) or thug.is_down())),
 		_step("they report back", 20.0, Callable(), func() -> bool: return not _client_report.is_empty()),
 		_step("their hero goes away when they leave", 10.0, Callable(), func() -> bool:
 			return _players.remote_heroes.is_empty()),

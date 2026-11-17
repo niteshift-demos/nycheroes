@@ -26,6 +26,9 @@ var health := 100.0
 var _hero_damage := false
 var burn_time := 0.0
 var exploded := false
+## Recent owned blasts stay in plain snapshots after the driver/fleet lets go.
+var wreck_id := 0
+var wreck_age := 0.0
 var slip := 0.0
 var body_roll := 0.0
 var body_pitch := 0.0
@@ -280,6 +283,10 @@ func _process(delta: float) -> void:
 
 
 func _drivevehicle_timed_process(delta: float) -> void:
+	if exploded:
+		wreck_age += delta
+		if wreck_age >= PlayerSync.WRECK_SECONDS and is_in_group("shared_wrecks"):
+			remove_from_group("shared_wrecks")
 	_impact_cooldown = maxf(0.0, _impact_cooldown - delta)
 	_hood_cooldown -= delta
 	if health < 40.0 and not exploded and _hood_cooldown <= 0.0:
@@ -313,6 +320,9 @@ func explode() -> void:
 	burn_time = 0.0
 	body_pitch = -0.1
 	var occupant := driver
+	if is_instance_valid(occupant) or is_in_group("police_cars"):
+		wreck_id = Time.get_ticks_usec()
+		add_to_group("shared_wrecks")
 	if LaunchOptions.has("car_crash"):
 		print("[car-check] explosion; driver inside: %s" % is_instance_valid(occupant))
 	if is_instance_valid(occupant):

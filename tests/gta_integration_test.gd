@@ -239,8 +239,8 @@ func _run() -> void:
 	var buffer := SnapshotBuffer.new()
 	sync._snapshots[0] = buffer
 	var state := sync._encode(hero)
-	check(state.size() == 21, "combined drive/wanted/damage snapshot is 21 fields")
-	for size in [13, 15, 18, 21]:
+	check(state.size() == 22, "combined drive/wanted/damage snapshot is 22 fields")
+	for size in [13, 15, 18, 21, 22]:
 		var packet := state.slice(0, size)
 		packet[0] = size * 1000
 		sync._hero_state(packet)
@@ -249,7 +249,7 @@ func _run() -> void:
 	var malformed := state.slice(0, 20)
 	malformed[0] = 99999
 	sync._hero_state(malformed)
-	check((buffer.sample()[1] as Array).size() == 21, "PlayerSync rejects a partial damage snapshot")
+	check((buffer.sample()[1] as Array).size() == 22, "PlayerSync rejects a partial damage snapshot")
 	var boss := encounters.spawn_gang(Vector3(0, 0, 30), 1, Vector3.RIGHT, hero)[0]
 	boss.set_story_variant(4)
 	boss.set_story_variant(4, false)

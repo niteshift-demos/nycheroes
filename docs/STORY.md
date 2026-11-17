@@ -236,12 +236,43 @@ The guest alone also defeated the host-owned Flint rig: host health observations
 were 420 → -30 and the host advanced to its exit flight while supplying only
 hovering input.
 
-Limits: a clear, unobstructed guest-camera sequence of moving police pursuit
-was not captured; scenery obscured portions of the view, although patrol and
-officer replication was observed. Explosion/wreck replication was not completed
-within the co-op time box. The car capture used the ordinary G takeover of a
-launch-supplied starter, rather than a live traffic-slot carjack. Phones,
-gamepads and Windows GPUs were not exercised. Private connection attempts
-initially timed out while one maximized browser fully covered the other;
-keeping both windows partly visible let their simulation clocks and networking
-continue. This was a sandbox window issue, not a game sync fix.
+### Follow-up pursuit and destruction QA — 2026-11-17
+
+Two Chromium/SwiftShader windows, both partly visible, used a private room and
+the ordinary `?wanted=3&car=1&story_playtest=1` launch options. The driver took
+the starter with G; the guest used ordinary flight input above the avenue,
+looking back toward the driver and approaching patrols. No health, position,
+wanted or network state was edited. The original host rejoined between runs;
+the room host migrated to the observer while the suspect continued to own
+its own police, as the distributed encounter model intends.
+
+The guest camera showed the wanted driver and moving police cars without
+buildings or trees hiding the pursuit. At guest simulation times 1224.817 and
+1229.083, the driver moved from (455.404, 18.617, -240.440) to
+(470.563, 18.908, -268.609); one patrol moved from
+(417.013, 17.831, -180.132) to (462.262, 18.800, -254.199).
+The driver's tag rose from four to five stars and its car health fell from
+83.101 to 41.876, then zero as patrols collided with it.
+
+The guest saw the explosion effects and charred wrecks after the driver exited
+and destroyed patrols left their active fleet. At time 1245.617, the guest had
+both a burnt sedan (paint 0) at (492.372, 18.964, -317.688) and a burnt patrol
+(paint 12) at (477.515, 18.999, -281.215); a second burnt patrol followed.
+At 1280.8 the bounded wreck list was empty. Guest-side screenshots of the
+pursuit, blast plume and settled wrecks are attached to the follow-up PR.
+The brief orange fireball was also seen in an earlier capture at the lower
+edge of the view; the selected sequence shows the later expanding plume.
+
+Before this fix, an occupied car exited Drive before sending a destroyed
+state, and a burned patrol left the fleet before that state could be sent.
+The new bounded recent-wreck list in PlayerSync fixes both paths; see
+DRIVING.md for lifetime, distance and local-only limits. QA telemetry now
+also reports `loading` and received visual `wrecks` so captures can distinguish
+city loading, a missing occupied-car copy and an actual shared wreck.
+
+Limits: this uses G takeover of a launch-supplied starter, rather than a live
+traffic-slot carjack. Phones, gamepads and Windows GPUs were not exercised.
+Private connection attempts can time out while one maximized browser fully
+covers the other; keeping both windows partly visible lets their simulation
+clocks and networking continue. Wait for city loading and private-room spawn
+placement before driving away; otherwise arrival can interrupt the setup.

@@ -2353,7 +2353,10 @@ All gameplay positions use the floating origin; no city tiles need rebuilding.
   Disabled/burned patrols cannot spot or report the player, and wrecks release
   their response slot. Suspect-owned fleets and hero wanted/driving/damage
   snapshots replicate plain state; legacy 13/15/18-field hero packets and
-  current 21-field packets remain accepted.
+  21-field packets remain accepted. New 22-field packets append at most three
+  recent occupied-car/patrol wrecks for 30 seconds. Nearby peers see one blast
+  and a charred visual body after the driver exits or patrol leaves its fleet;
+  remote effects do no damage. Older abandoned cars remain local.
 - **Navigate and recover:** [RADAR.md](RADAR.md), [SHOPS.md](SHOPS.md).
   The camera-relative street radar, whole-city atlas, drag/pinch/wheel zoom
   and waypoints share gold S stories, purple contracts and red hostiles with
@@ -2379,7 +2382,7 @@ witness attackers, so River Avenue's overhead structures cannot move them
 above the street. Encounter cleanup accepts mission actors that have already
 been freed. Story regressions cover both cases and the pilot's roof/street routes.
 
-**Regression:** `drive_test`, `wanted_test`, `police_cars_test`,
+**Regression:** `drive_test` (including real ENet wreck replication), `coop_test`, `wanted_test`, `police_cars_test`,
 `missions_test`, `story_test`, `shops_test`, `radar_test`, `hud_test`, and
 `gta_integration_test` cover the GTA layer. The integration scene checks
 recovery, disabled police sight, story arrest/fine/retry/cleanup, all snapshot

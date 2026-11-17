@@ -62,11 +62,20 @@ The take-car hint appears only within 3.5 m of an available car.
 The driver continues receiving plain `HeroInput`. `PlayerSync` adds Drive
 at the end of its mode list and appends model, paint and seed after wanted
 stars/searching in snapshots (indices 15–17), followed by health and body
-roll/pitch (18–20).
+roll/pitch (18–20) and recent wreck descriptions (21).
 Remote cars draw at the interpolated hero position without local simulation.
-Only occupied cars are network-visible; abandoned cars are currently local,
-and traffic populations are local, so simultaneous claims across peers are
-not arbitrated. New receivers also accept the original 13-field, wanted-only 15-field and earlier driving 18-field snapshots;
+Occupied cars and recent wrecks are network-visible. When an occupied car or
+an owned patrol explodes, the next ordinary player snapshot retains its world
+position, heading and appearance after the driver/fleet releases it. Nearby
+peers draw one explosion and a charred, non-colliding wreck. Repeated snapshots
+recover packet loss without repeating the blast; joins or range re-entry more
+than two seconds later show only the wreck. Each owner shares at most the three
+newest wrecks for 30 seconds, visible within 400 m; leaving the room removes
+those copies. Remote effects never apply damage or report crimes again.
+Ordinary abandoned cars (including cars exited before they explode) and traffic
+populations remain local, so simultaneous claims across peers are not arbitrated.
+New receivers also accept the original 13-field, wanted-only 15-field, earlier
+driving 18-field and damage 21-field snapshots;
 all peers need the new build to see driving. Car and hero separately join
 `floating`, so origin shifts preserve their world positions and velocity.
 
@@ -122,3 +131,13 @@ glass glints. Both existing and newly spawned effects survive origin shifts.
 Settled, unoccupied physical cars stop repeating collision queries and mesh
 writes. A hit that gives a car velocity wakes it through the same physics
 path; distance cleanup still runs once a second.
+
+
+`drive_test` sends the new 22-field snapshot over a real ENet connection after
+an occupied car explodes and the driver exits. It checks one visual blast,
+charred body placement, origin shifts, repeated/late packets, expiry,
+disconnection, the three-wreck cap, and no duplicate damage/crime.
+`police_cars_test` also checks that destroyed patrols leave their fleet slot
+while their wreck/livery remain in player snapshots. `coop_test` accepts freed
+gang members before checking their type, so completed fights cannot break its
+cleanup predicate.
