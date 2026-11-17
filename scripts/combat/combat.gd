@@ -18,6 +18,8 @@ signal danger(world_position: Vector3, radius: float)
 signal impact(position: Vector3, strength: float)
 signal thug_defeated(thug: Thug)
 ## A crime committed by our hero; positions are world space.
+## Damaging local power attacks, in world space, for mission relay vehicles.
+signal area_hit(world_position: Vector3, radius: float, damage: float)
 signal crime(kind: StringName, world_position: Vector3, severity: float)
 
 ## Physics layers (bit values): 1 world, 2 heroes, 3 npcs, 4 ragdolls (and
@@ -87,6 +89,7 @@ func strike(center: Vector3, radius: float, damage: float, push: Vector3, launch
 		if not thug.is_down() and thug.body_center().distance_to(center) <= radius:
 			hits.append([thug, damage, push, launch])
 	_hit_thugs(hits)
+	area_hit.emit(WorldOrigin.to_world(center), radius, damage)
 	_hit_bystanders(center, radius, damage, push)
 	if not hits.is_empty():
 		raise_danger(WorldOrigin.to_world(center), 35.0)
@@ -113,6 +116,7 @@ func shockwave(center: Vector3, radius: float, damage: float, launch_speed: floa
 		hits.append([thug, damage, away * strength + Vector3.UP * strength * 0.6, damage > 0.0])
 	_hit_thugs(hits)
 	_hit_bystanders(center, radius, damage, Vector3.UP * launch_speed)
+	area_hit.emit(WorldOrigin.to_world(center), radius, damage)
 	show_shockwave(WorldOrigin.to_world(center), radius)
 	raise_danger(WorldOrigin.to_world(center), radius * 6.0)
 	impact.emit(center, clampf(radius / 10.0, 0.3, 1.0))

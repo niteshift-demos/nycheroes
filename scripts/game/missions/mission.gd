@@ -26,3 +26,42 @@ static func reach_in_time(position: Vector3, seconds: float, text: String, radiu
 
 static func collect(items: Array[Vector3], text: String, radius := 9.0) -> Dictionary:
 	return {kind = "collect", position = items[0], items = items, radius = radius, text = text}
+
+## Zero for replayable contracts; story chapters unlock in this order.
+@export var chapter := 0
+@export var calls: Array[Dictionary] = []
+
+
+static func drive_to(position: Vector3, text: String, radius := 22.0) -> Dictionary:
+	return {kind = "drive_to", position = position, text = text, radius = radius}
+
+
+## A marked car is supplied at position; false accepts any occupied car.
+static func steal_car(position: Vector3, text: String, marked := true) -> Dictionary:
+	return {kind = "steal_car", position = position, text = text, marked = marked}
+
+
+static func chase(position: Vector3, text: String) -> Dictionary:
+	return {kind = "chase", position = position, text = text, seconds = 150.0}
+
+
+static func escape_wanted(position: Vector3, stars: int, text: String) -> Dictionary:
+	return {kind = "escape_wanted", position = position, stars = stars, text = text}
+
+
+static func protect(position: Vector3, seconds: float, text: String) -> Dictionary:
+	return {kind = "protect", position = position, duration = seconds, text = text}
+
+
+static func destroy(position: Vector3, count: int, text: String) -> Dictionary:
+	return {kind = "destroy", position = position, count = count, text = text}
+
+
+static func fly_through(rings: Array[Vector3], text: String, radius := 22.0) -> Dictionary:
+	return {kind = "fly_through", position = rings[0], items = rings, radius = radius, text = text, seconds = 120.0}
+
+
+static func boss(position: Vector3, variant: int, text: String) -> Dictionary:
+	var step := defeat_gang_at(position, 1, text)
+	step.boss = variant
+	return step
