@@ -42,6 +42,8 @@ var touch_controls: TouchControls:
 		if _options_button:
 			_options_button.visible = value == null
 
+## Set by Game; mission logic and text live in their own nodes.
+var missions: MissionDirector
 ## Navigation pin uses the same projection and edge treatment as combat markers.
 var radar: Radar
 
@@ -102,13 +104,18 @@ func _draw() -> void:
 		_text(Vector2(size.x * 0.5 - 110.0, size.y * 0.35), "KNOCKED OUT", 40, MARKER_COLOR)
 	_draw_wanted()
 	_draw_coop_status()
+	if missions:
+		for marker in missions.markers():
+			_draw_marker(WorldOrigin.to_local(marker.position) + Vector3.UP * 2.0, marker.label, marker.color, 0.0)
 	if city and city.photo_count > 0:
 		var width := _font.get_string_size(AERIAL_CREDIT, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12).x
 		var at := Vector2(size.x - width - 16.0, size.y - 12.0)
 		if touch_controls:  # bottom middle, between the thumbs
 			at = Vector2((size.x - width) * 0.5, size.y - touch_controls.safe_insets.w - 8.0)
 		_text(at, AERIAL_CREDIT, 12, Color(1.0, 1.0, 1.0, 0.8))
-	if radar and radar.waypoint_active:
+	var mission_pin := missions != null and missions.active != null and radar != null \
+		and radar.waypoint_position.distance_squared_to(missions.current_target()) < 1.0
+	if radar and radar.waypoint_active and not mission_pin:
 		_draw_marker(WorldOrigin.to_local(radar.waypoint_position) + Vector3.UP * 2.0, "WAYPOINT", Radar.WAYPOINT_COLOR, 0.0)
 	var thug := encounters.nearest_thug(hero.world_position())
 	if thug:
@@ -151,6 +158,8 @@ func _draw_coop_status() -> void:
 		_text(at, line, 16)
 	# Notices: centered, under the debug text in the top left.
 	var y := maxf(size.y * 0.2, 130.0)
+	if missions and not touch_controls:
+		y = maxf(y, size.y * 0.6)  # Clear of the contract card.
 	for text in current_notices():
 		var width := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 22).x
 		_text(Vector2((size.x - width) * 0.5, y), text, 22, NOTICE_COLOR)
@@ -240,14 +249,9 @@ func _text(at: Vector2, text: String, font_size: int, color := Color.WHITE) -> v
 func _draw_wanted() -> void:
 	if hero.wanted_stars <= 0:
 		return
-	var right := size.x - 28.0
-	var y := 70.0
-	var debug := get_parent().get_node_or_null("DebugLabel") as Control
-	if debug and debug.visible:
-		y = 132.0  # Below the four desktop stats/control lines.
-	if touch_controls:
-		right -= touch_controls.safe_insets.z + TOUCH_BUTTONS_WIDTH
-		y = touch_controls.safe_insets.y + 112.0
+	var anchor := wanted_anchor()
+	var right := anchor.x
+	var y := anchor.y
 	var flashing := hero.wanted_searching and fmod(Time.get_ticks_msec() / 1000.0, 0.8) > 0.4
 	for i in 5:
 		var center := Vector2(right - (4 - i) * 29.0, y)
@@ -262,3 +266,16 @@ func _draw_wanted() -> void:
 		points.append(points[0])
 		draw_polyline(points, Color.BLACK, 1.5, true)
 	_text(Vector2(right - 128.0, y + 30.0), "SEARCHING" if hero.wanted_searching else "WANTED", 14, NOTICE_COLOR)
+
+
+## Shared anchor for the cash readout below the wanted stars and label.
+func wanted_anchor() -> Vector2:
+	var right := size.x - 28.0
+	var y := 70.0
+	var debug := get_parent().get_node_or_null("DebugLabel") as Control
+	if debug and debug.visible:
+		y = 132.0  # Below the four desktop stats/control lines.
+	if touch_controls:
+		right -= touch_controls.safe_insets.z + TOUCH_BUTTONS_WIDTH
+		y = touch_controls.safe_insets.y + 112.0
+	return Vector2(right, y)
