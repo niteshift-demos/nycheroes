@@ -19,6 +19,11 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		# Keep full-size UI while making software-rendered QA practical.
 		get_tree().root.scaling_3d_scale = 0.25
+		# The loading overlay covers the city. Avoid software-rendering every
+		# partially built tile; restore the real scene before any mission starts.
+		get_tree().root.disable_3d = true
+		director.encounters.city.initial_load_finished.connect(func(_seconds: float) -> void:
+			get_tree().root.disable_3d = false, CONNECT_ONE_SHOT)
 		JavaScriptBridge.eval("window.nycStoryPilot=false;window.nycStoryState={}")
 
 

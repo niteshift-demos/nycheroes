@@ -154,7 +154,8 @@ There is no recorded dialogue, gunplay or custom imported art.
   `window.nycStoryState`. Set `window.nycStoryPilot=true` to drive ordinary
   hero input, or false to return to keyboard controls. This QA option renders
   3-D at quarter resolution while retaining full-size UI and allows up to
-  120 physics ticks per drawn frame so software rendering does not slow the
+  120 physics ticks per drawn frame and skips covered 3-D draws during city
+  loading, so software rendering does not slow the
   simulation clock. Ordinary play keeps its chosen quality preset. It never teleports,
   edits health, deals direct damage or advances objectives. It is a debugging
   aid, not proof that every possible route or co-op flow has been played.
