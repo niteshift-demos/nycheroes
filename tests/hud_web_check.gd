@@ -148,6 +148,9 @@ func _scenario(scenario: String) -> void:
 			car.take_hit(1000.0, Vector3.ZERO, false)
 			await car.detonated
 			# Let the expanding fire and CPU debris reach their visible peak.
+			# Slow only this transient capture so software-rendered idle frames
+			# cannot skip the whole burst before the physics timer can hold it.
+			Engine.time_scale = 0.05
 			await get_tree().create_timer(0.18, false, true).timeout
 			# Frame the actual blast and wreck above the driver's shoulder.
 			camera.global_position += Vector3.UP * 6.0
