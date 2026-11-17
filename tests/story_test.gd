@@ -114,6 +114,11 @@ func _run() -> void:
 	director.advance(0.1, Vector3.ZERO)
 	check(director.active == null and is_instance_valid(marked) and marked.driver == hero, "marked takeover completes and preserves occupied car")
 	hero.set_mode(&"OnFoot")
+	begin(Mission.steal_car(Vector3.ZERO, "Broken recovery car"))
+	director.advance(0.1, Vector3.ZERO)
+	director.story_objectives.car.take_hit(1000, Vector3.ZERO, false)
+	director.advance(0.1, Vector3.ZERO)
+	check(director.active == null and director.banner == "MISSION FAILED", "destroyed marked recovery car fails instead of leaving an impossible theft")
 	begin(Mission.steal_car(Vector3.ZERO, "Any", false))
 	drive.car = car
 	hero.set_mode(&"Drive")

@@ -71,6 +71,8 @@ func advance(delta: float, position: Vector3) -> int:
 			if not _spawned:
 				car = _make_car(step.position, false)
 				_spawned = car != null
+			if _spawned and (not is_instance_valid(car) or car.health <= 0.0):
+				return -1
 			return int(_spawned and driving and drive.car == car)
 		"chase", "destroy":
 			if not _spawned and position.distance_to(step.position) < 160.0:
