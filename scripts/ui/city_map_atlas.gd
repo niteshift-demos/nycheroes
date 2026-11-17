@@ -8,7 +8,7 @@ const ORIGIN := Vector2(-24576, -18432)
 const EXTENT := 49152.0
 const LEVEL_PIXELS := [1024, 2048, 8192]
 const OVERVIEW: Texture2D = preload("res://assets/map/0/0_0.webp")
-## Bound shared texture memory to roughly 48 MiB, plus visible tiles/overview.
+## Bound shared texture memory to roughly 64 MiB with mipmaps, plus visible tiles/overview.
 const CACHE_LIMIT := 12
 static var _cache: Dictionary[String, Texture2D] = {}
 static var _recent: Array[String] = []
