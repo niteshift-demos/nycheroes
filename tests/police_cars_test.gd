@@ -126,6 +126,19 @@ func _run() -> void:
 	add_child(player_car)
 	mode.car = player_car
 	hero.set_mode(&"Drive")
+	wanted.set_stars(3)
+	var rammer := pursuit.spawn(Vector3(0, 0.1, -25), 0.0)
+	rammer.net_id |= 1
+	var before_ram := player_car.global_position
+	for i in 180:
+		pursuit.think(rammer, 1.0 / 60.0)
+		await get_tree().physics_frame
+	_check(player_car.global_position.distance_to(before_ram) > 1.0, "patrol physically rams occupied suspect car")
+	rammer.queue_free()
+	pursuit.cars.clear()
+	player_car.global_position = Vector3.ZERO
+	player_car.velocity = Vector3.ZERO
+	await _ticks(2)
 	wanted.set_stars(4)
 	hero.velocity = Vector3(0, 0, -15)
 	_check(pursuit._spawn_patrol(true), "four-star driving suspect gets roadblock ahead")

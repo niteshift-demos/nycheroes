@@ -178,7 +178,10 @@ func think(car: PoliceCar, delta: float) -> void:
 		target += Vector3(sin(phase), 0, cos(phase)) * 22.0
 	elif distance < 45.0 and hero.mode.name == &"Drive":
 		var side := Vector3(cos(hero.facing), 0, -sin(hero.facing))
-		target += hero.velocity * 0.45 + side * (2.3 if car.net_id % 2 == 0 else -2.3)
+		if car.net_id % 2 == 0:
+			target += hero.velocity * 0.45 + side * 2.3
+		else:
+			target += hero.velocity * 0.1
 	if distance > 45.0 or wanted.searching:
 		target = _lane_target(car, target)
 	var toward := target - at
