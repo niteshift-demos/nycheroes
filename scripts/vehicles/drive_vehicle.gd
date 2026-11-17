@@ -33,6 +33,7 @@ var body_pitch := 0.0
 var _ramp_rise := 0.0
 var _impact_cooldown := 0.0
 var _hood_cooldown := 0.0
+var _despawn_check := 0.0
 var _material: ShaderMaterial
 var _engine: LoopVoice
 var _tyres: LoopVoice
@@ -84,9 +85,18 @@ func _physics_process(delta: float) -> void:
 func _drivevehicle_timed_physics_process(delta: float) -> void:
 	if puppet or driver or ai_controlled:
 		return
-	velocity.x = move_toward(velocity.x, 0.0, delta * 4.0)
-	velocity.z = move_toward(velocity.z, 0.0, delta * 4.0)
-	_step(delta)
+	# Settled wrecks and parked takeovers need no sliding query or material /
+	# MultiMesh writes. A punch, ram or blast sets velocity and wakes them.
+	if not is_on_floor() or velocity.length_squared() > 0.01:
+		velocity.x = move_toward(velocity.x, 0.0, delta * 4.0)
+		velocity.z = move_toward(velocity.z, 0.0, delta * 4.0)
+		_step(delta)
+	else:
+		velocity = Vector3.ZERO
+	_despawn_check -= delta
+	if _despawn_check > 0.0:
+		return
+	_despawn_check = 1.0
 	var camera := get_viewport().get_camera_3d()
 	if camera and global_position.distance_to(camera.global_position) > 420.0:
 		queue_free()

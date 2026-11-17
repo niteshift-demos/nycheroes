@@ -10,6 +10,7 @@ var _telemetry := 0.0
 var _drive_lane: TrafficLanes.Lane
 var _drive_distance := 0.0
 var _drive_recovery := AiRecovery.new()
+var _chase_elapsed := -1.0
 
 
 func _ready() -> void:
@@ -50,12 +51,23 @@ func _input(event: InputEvent) -> void:
 func _scenario(scenario: String) -> void:
 	get_tree().paused = false
 	Engine.time_scale = 1.0
+	_chase_elapsed = -1.0
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.nycDrivePilot=false")
 	var display := _game.hud.get_node("GameHud") as GameHud
 	var wanted := _game.get_node("Wanted") as Wanted
+	if scenario in ["boss", "explosion", "call", "foot"]:
+		wanted.set_stars(0)
+		wanted._clear_response()
+		wanted.pursuit.advance(0.0)
+	if scenario in ["boss", "explosion"]:
+		_game.hero.set_mode(&"OnFoot")
 	(_game.hud.get_node("DebugLabel") as DebugHud).visible = scenario == "chase" and LaunchOptions.has("stats")
 	match scenario:
 		"chase":
 			_scenario("car")
+			_seed_chase_car(wanted)
+			_chase_elapsed = 0.0
 			# Fill the ordinary response through its actual spawn checks. The
 			# optional pilot below supplies only steering/throttle, never travel.
 			for attempt in 10:
@@ -116,7 +128,7 @@ func _scenario(scenario: String) -> void:
 			if _game.hero.mode.name == &"KnockedOut":
 				_game.hero.set_mode(&"OnFoot")
 		"car":
-			_game.missions.start("rooftop_courier")
+			_game.missions.start("broadway_dash")
 			var drive := _game.hero.get_mode(&"Drive") as DriveMode
 			if _game.hero.mode != drive:
 				_game.hero.set_mode(&"OnFoot")
@@ -177,6 +189,8 @@ func _process(delta: float) -> void:
 		paused = get_tree().paused, nodes = get_tree().get_node_count(),
 		position = _game.hero.world_position(), phone = _game.missions.phone_lines.size()}
 	state.blasts = Combat.effects._explosions.size() if Combat.effects else 0
+	state.chase_seconds = _chase_elapsed
+	state.speed = _game.hero.velocity.length()
 	var rectangles := {}
 	for child in _game.hud.get_children():
 		if child is StoryPhone and child.visible:
@@ -199,6 +213,42 @@ func _rect(rect: Rect2) -> Array[float]:
 	return [rect.position.x, rect.position.y, rect.size.x, rect.size.y]
 
 
+## Seed on an actual free loaded road, as story recovery cars do. Takeover
+## uses Drive mode; the steering pilot never changes this placement again.
+func _seed_chase_car(wanted: Wanted) -> void:
+	var hero := _game.hero
+	var nearest := INF
+	var spot := Vector3.ZERO
+	var selected: TrafficLanes.Lane
+	var progress := 0.0
+	for lanes: Array in wanted.pursuit.graph.tiles.values():
+		for lane: TrafficLanes.Lane in lanes:
+			if lane.length < 45.0:
+				continue
+			var d := minf(lane.length * 0.5, lane.length - 20.0)
+			var point := lane.point_on(lane.segment_at(d, 0), d) + Vector3.UP * 0.12
+			var distance := point.distance_squared_to(hero.world_position())
+			if distance < nearest and _game.city.has_collision_at(point) and wanted.pursuit._free_spot(point, lane.yaws[lane.segment_at(d, 0)]):
+				nearest = distance
+				spot = point
+				selected = lane
+				progress = d
+	if selected == null:
+		return
+	hero.set_mode(&"OnFoot")
+	var car := DriveVehicle.new()
+	car.traffic = _game.get_node("Traffic") as Traffic
+	car.heading = selected.yaws[selected.segment_at(progress, 0)]
+	_game.add_child(car)
+	car.global_position = WorldOrigin.to_local(spot)
+	var drive := hero.get_mode(&"Drive") as DriveMode
+	drive.car = car
+	hero.set_mode(&"Drive")
+	_drive_lane = selected
+	_drive_distance = progress
+	_drive_recovery = AiRecovery.new()
+
+
 ## Repeatable CPU stress route using the real car's ordinary input. No health,
 ## position, wanted or mission edits happen while the pilot is driving.
 func _physics_process(delta: float) -> void:
@@ -209,6 +259,13 @@ func _physics_process(delta: float) -> void:
 	var drive := hero.get_mode(&"Drive") as DriveMode
 	if hero.mode != drive or not is_instance_valid(drive.car):
 		return
+	if _chase_elapsed >= 0.0:
+		_chase_elapsed += delta
+		if _chase_elapsed >= 8.0:
+			(_game.hud.get_node("DebugLabel") as DebugHud).visible = false
+			get_tree().paused = true
+			print("[hud-check] chase held after %.1f seconds of ordinary driving" % _chase_elapsed)
+			return
 	var car := drive.car
 	var at := hero.world_position()
 	var graph := (_game.get_node("Wanted") as Wanted).pursuit.graph

@@ -13,6 +13,12 @@ class Street extends CityStreamer:
 	func lanes_near(_at: Vector3, _radius: float) -> Array[PackedVector3Array]:
 		return [PackedVector3Array([Vector3(-20, 0, -20), Vector3(20, 0, -20)])]
 
+class ParkedCar extends DriveVehicle:
+	var moves := 0
+	func _step(delta: float) -> void:
+		moves += 1
+		super._step(delta)
+
 var _failed := 0
 
 
@@ -48,6 +54,21 @@ func _run() -> void:
 	floor_body.add_child(shape)
 	add_child(floor_body)
 	floor_body.position.y = -0.5
+	var parked := ParkedCar.new()
+	add_child(parked)
+	parked.position = Vector3(-40, 0.2, -40)
+	for tick in 45:
+		await get_tree().physics_frame
+	var moves := parked.moves
+	for tick in 10:
+		await get_tree().physics_frame
+	check(parked.is_on_floor() and parked.moves == moves, "settled physical car sleeps without repeating collision or mesh updates")
+	var resting := parked.global_position
+	parked.take_hit(1.0, Vector3(6, 1, 0), false)
+	for tick in 10:
+		await get_tree().physics_frame
+	check(parked.moves > moves and parked.global_position.distance_to(resting) > 0.2, "a hit wakes the parked car and moves its real body")
+	parked.queue_free()
 	var hero: Hero = load("res://scenes/hero/hero.tscn").instantiate()
 	hero.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(hero)

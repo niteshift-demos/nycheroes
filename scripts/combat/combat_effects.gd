@@ -262,14 +262,14 @@ func car_explosion(at: Vector3) -> void:
 		lobe.mesh = _fire_mesh
 		var glow := (_fire_mesh.material as StandardMaterial3D).duplicate() as StandardMaterial3D
 		glow.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-		glow.albedo_color = Color(1.0, 0.32, 0.025, 1.0)
+		glow.albedo_color = Color(1.0, 0.6, 0.08, 1.0)
 		lobe.material_override = glow
 		lobe.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(lobe)
 		lobe.position = offset
-		lobe.scale = Vector3.ONE * 2.0
+		lobe.scale = Vector3.ONE * 5.0
 		var flare := root.create_tween().set_parallel()
-		flare.tween_property(lobe, "scale", Vector3.ONE * 5.5, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		flare.tween_property(lobe, "scale", Vector3.ONE * 7.5, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		flare.tween_property(glow, "albedo_color:a", 0.0, 1.0).set_delay(0.15)
 		flare.chain().tween_callback(lobe.queue_free)
 	var tween := create_tween()
