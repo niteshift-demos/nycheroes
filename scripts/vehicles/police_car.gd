@@ -62,6 +62,7 @@ func _update_siren(delta: float) -> void:
 		player.bus = &"Ambience"
 		player.unit_size = 25.0
 		player.max_distance = 350.0
+		player.max_db = -19.0
 		player.attenuation_filter_db = 0.0
 		add_child(player)
 		_siren = LoopVoice.new(player, -19.0, 1.0)
