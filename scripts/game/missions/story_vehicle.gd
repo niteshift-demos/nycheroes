@@ -9,7 +9,7 @@ var fleeing := false
 var city: CityStreamer
 var _path := PackedVector3Array()
 var _point := 1
-var _stuck := 0.0
+var recovery := AiRecovery.new()
 var _label: Label3D
 
 
@@ -73,16 +73,14 @@ func _follow_lane(delta: float) -> void:
 	var angle := wrapf(atan2(toward.x, toward.z) - heading, -PI, PI)
 	var input := HeroInput.new()
 	input.stick = Vector2(clampf(-angle * 2.5, -1.0, 1.0), -0.58 if absf(angle) < 0.7 else -0.25)
-	_stuck = _stuck + delta if Vector2(velocity.x, velocity.z).length() < 1.0 else 0.0
-	if _stuck > 2.0:
-		input.stick = Vector2(signf(angle), 0.65)
-	if _stuck > 4.0:
-		_stuck = 0.0
-		_path.clear()
+	if recovery.advance(WorldOrigin.to_world(global_position), delta, true, angle):
+		_choose_lane(true)
+	if recovery.reverse_time > 0.0:
+		input.stick = Vector2(recovery.turn, 0.8)
 	drive(input, delta)
 
 
-func _choose_lane() -> void:
+func _choose_lane(recovering := false) -> void:
 	var at := WorldOrigin.to_world(global_position)
 	var best := INF
 	var chosen := PackedVector3Array()
@@ -92,8 +90,12 @@ func _choose_lane() -> void:
 		for lane: PackedVector3Array in tile[0]:
 			for i in lane.size() - 1:
 				var point := Geometry3D.get_closest_point_to_segment(at, lane[i], lane[i + 1])
+				if point.distance_squared_to(at) > 100.0 * 100.0:
+					continue
 				var direction := (lane[i + 1] - lane[i]).normalized()
 				var score := point.distance_to(at) + (1.0 - forward.dot(direction)) * 18.0
+				if recovering and lane == _path:
+					score += 60.0
 				if at.distance_to(lane[-1]) < 9.0:
 					score += 100.0  # Prefer a successor over the lane just completed.
 				if score < best:

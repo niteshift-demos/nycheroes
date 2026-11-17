@@ -56,7 +56,7 @@ func _run() -> void:
 	(pause._content.get_child(3) as Button).pressed.emit()
 	await get_tree().process_frame
 	_check(pause._page == "missions", "mission button safely replaces its own page while emitting")
-	_check(pause._content.find_children("*", "Button", false, false).size() >= director.catalog.size() + 2, "all contracts have waypoint actions and side job is in menu")
+	_check(pause._content.find_children("*", "Button", false, false).size() >= director.available_missions().size() + 2, "available missions have waypoint actions and locked chapters stay compact")
 	Settings.set_value("upgrade_health", 2)
 	pause.show_page("stats")
 	_check(pause._content.get_child(0).text.begins_with("Cash"), "stats includes current wallet")
@@ -69,6 +69,22 @@ func _run() -> void:
 	_check(not get_tree().paused, "co-op pause leaves the shared world running")
 	pause.close(false)
 	Net.state = Net.State.OFFLINE
+	var map := WorldMap.new()
+	map.radar = radar
+	add_child(map)
+	map.size = Vector2(844, 390)
+	map.open()
+	_check(map.visible and get_tree().paused, "map preserves a solo pause while planning a route")
+	map.close()
+	_check(not get_tree().paused, "closing the map releases its owned pause")
+	Net.state = Net.State.HOSTING
+	map.open()
+	_check(not get_tree().paused, "co-op map leaves shared simulation running")
+	map.close()
+	Net.state = Net.State.OFFLINE
+	map.open()
+	map.free()
+	_check(not get_tree().paused, "removing an open map cannot strand a paused tree")
 	var tutorial := Onboarding.new()
 	add_child(tutorial)
 	_check(tutorial.title_pending, "new save has title card pending")

@@ -100,3 +100,7 @@ For a deterministic unseen-payment check in a slow browser, replace
 `wanted=3` with `shop_check=garage`: entering a garage in a car seeds three
 stars immediately before opening the panel. The normal police sight and
 payment checks still apply. This is a QA fixture, not a normal gameplay mode.
+
+Respraying a stolen patrol also removes its NYPD markings and light bar.
+Remote driven-car copies follow that paint change without replacing their
+physical display, including when normal and police cars share the same model.

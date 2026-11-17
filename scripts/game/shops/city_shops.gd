@@ -64,6 +64,12 @@ func _register(location: Dictionary) -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_cityshops_timed_physics_process(_delta)
+	GtaTiming.end(&"shops", stamp)
+
+
+func _cityshops_timed_physics_process(_delta: float) -> void:
 	if hero.frozen or hero.mode.name == &"KnockedOut" or (can_enter.is_valid() and not can_enter.call() and active.is_empty()):
 		return
 	var nearby := ""

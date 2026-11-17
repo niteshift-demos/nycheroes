@@ -77,7 +77,7 @@ func _on_crime(_kind: StringName, world_position: Vector3, severity: float) -> v
 ## The victim can report their own assault. Walls block all witnesses.
 func witnessed(at: Vector3) -> bool:
 	for car: PoliceCar in get_tree().get_nodes_in_group("police_cars"):
-		if car.driver == null and not car.deployed and car.global_position.distance_to(WorldOrigin.to_local(at)) < WITNESS_RANGE \
+		if car.health > 0.0 and car.driver == null and not car.deployed and car.global_position.distance_to(WorldOrigin.to_local(at)) < WITNESS_RANGE \
 				and _clear_sight(WorldOrigin.to_world(car.global_position), at):
 			return true
 	for ped: Pedestrian in get_tree().get_nodes_in_group("pedestrians"):
@@ -100,7 +100,7 @@ func _clear_sight(from_world: Vector3, to_world: Vector3) -> bool:
 
 func police_see_hero() -> bool:
 	for car: PoliceCar in get_tree().get_nodes_in_group("police_cars"):
-		if car.suspect_id == Net.local_id() and car.driver == null and not car.deployed \
+		if car.health > 0.0 and car.suspect_id == Net.local_id() and car.driver == null and not car.deployed \
 				and car.global_position.distance_to(hero.global_position) < SIGHT_RANGE \
 				and _clear_sight(WorldOrigin.to_world(car.global_position), hero.world_position()):
 			return true
@@ -127,6 +127,12 @@ func advance_heat(delta: float, seen: bool) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_wanted_timed_physics_process(delta)
+	GtaTiming.end(&"wanted", stamp)
+
+
+func _wanted_timed_physics_process(delta: float) -> void:
 	# A slow browser can have ground before its loading overlay lifts.
 	# Never let the launch-option pursuit arrest a player under that overlay.
 	if not enabled or hero.frozen or (hud and hud.get_parent().has_node("LoadingScreen")):
@@ -166,11 +172,7 @@ func _clear_response() -> void:
 func _spawn_response() -> void:
 	if not city or not encounters:
 		return
-	var count := 0
-	for thug in Combat.thugs:
-		if thug is PoliceOfficer and not thug.puppet:
-			count += 1
-	if count >= mini(stars * 2, MAX_POLICE):
+	if response_count() >= mini(stars * 2, MAX_POLICE):
 		return
 	var lanes := city.lanes_near(hero.world_position(), 65.0)
 	var camera := get_viewport().get_camera_3d()
@@ -193,6 +195,15 @@ func _spawn_response() -> void:
 			continue
 		encounters.spawn_police(at, hero, stars)
 		return
+
+
+## Foot reinforcements and officers leaving patrols share the same cap.
+func response_count() -> int:
+	var count := 0
+	for thug in Combat.thugs:
+		if thug is PoliceOfficer and not thug.puppet and not thug.is_down() and thug.suspect_id == Net.local_id():
+			count += 1
+	return count
 
 
 func _on_mode_changed(mode_name: StringName) -> void:

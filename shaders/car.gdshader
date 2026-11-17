@@ -44,6 +44,8 @@ render_mode ambient_light_disabled, skip_vertex_transform;
 
 // Physical cars use their own material; ordinary traffic leaves these at zero.
 uniform float damage_amount = 0.0;
+// Wrecks lose paint and glass glints; traffic's shared material stays pristine.
+uniform float burnt = 0.0;
 uniform vec2 body_tilt = vec2(0.0);
 
 #include "res://shaders/patterns.gdshaderinc"
@@ -659,6 +661,8 @@ void fragment() {
 		}
 
 		color *= 1.0 - damage_amount * 0.82;
+		color = mix(color, srgb(vec3(0.055, 0.047, 0.04)), burnt);
+		glint *= 1.0 - burnt;
 		glow *= 1.0 - damage_amount;
 		ALBEDO = toon_night_albedo(color);
 		EMISSION = ALBEDO * toon_ambient(world_normal, occlusion) + glow;

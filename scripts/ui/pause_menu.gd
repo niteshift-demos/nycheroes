@@ -153,9 +153,10 @@ func show_page(page: String) -> void:
 				var label := HudStyle.label("%s%s  ·  %s  ·  %s" % [prefix, mission.title, Wallet.format_cash(mission.reward), status], 17, HudStyle.MUTED if status == "LOCKED" else (HudStyle.GOLD if mission.chapter > 0 else Color.WHITE))
 				label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				_content.add_child(label)
-				_button("Set waypoint", func() -> void:
-					radar.set_waypoint(missions.current_target() if running else mission.giver)
-					_leave(map_requested), status != "LOCKED" and not (mission.chapter > 0 and status == "PASSED"))
+				if status != "LOCKED":
+					_button("Set waypoint", func() -> void:
+						radar.set_waypoint(missions.current_target() if running else mission.giver)
+						_leave(map_requested), not (mission.chapter > 0 and status == "PASSED"))
 			if missions.active:
 				_button("Abandon current mission", func() -> void:
 					missions.finish(false)

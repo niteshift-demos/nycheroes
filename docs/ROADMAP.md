@@ -2321,67 +2321,71 @@ deployed); in a computer's browser the co-op menu links to it.
 
 ## 10. Open-world (GTA-style) play
 
-- [The Borrowed Skyline story campaign](STORY.md): twelve original chained
-  chapters across all five boroughs, saved per-player unlocks, gold S givers,
-  skippable phone calls, driving/chase/escape/protect/destroy/sky-ring steps
-  and three powered lieutenants plus a rooftop boss. `?story=1`–`12` jumps
-  to a chapter; `?story=reset` clears chapter progress.
-  `tests/story_test.tscn` checks all new objectives, failure/retry boundaries,
-  boss descriptions, floating origin, chapter unlocks and persisted completion.
-  Rewards run from $10,000 to $50,000. No tile rebuild is needed.
+The superhero powers, city simulation and co-op now share an open-world
+layer: take a car, earn contract cash, buy permanent upgrades, evade the
+police, or follow the gold S through an original twelve-chapter campaign.
+All gameplay positions use the floating origin; no city tiles need rebuilding.
 
-- [Cohesive HUD, pause and onboarding](HUD.md): radar health, wanted/cash,
-  bottom-centre objectives, top-left toasts and shared result banners with a
-  cheap neutral overlay and generated stinger. Esc/P/Start and the touch gear
-  open a navigable pause menu with map, contracts, persisted stats, Options
-  and Co-op, plus read-only owned upgrade tiers in Stats. Nearby services
-  share the HUD marker limits and panel style. First-visit title and contextual lessons; `?tutorial=reset`
-  restarts just onboarding. `hud_test.tscn` checks pause ownership, menu focus,
-  stats, lesson persistence and bindings. No new assets or tiles needed.
-- [Shops, upgrades and safehouses](SHOPS.md): three Hero Supply locations,
-  six saved three-tier upgrades, two Precinct Payoff garages and two apartment
-  recovery points with eight-hour sleep. Radar icons and entry panels support
-  mouse, gamepad and touch. `shops_test.tscn` covers purchases, persistence,
-  sight-gated resprays and both recovery paths; `?upgrades=reset` clears tiers.
+- **Drive and crash:** [DRIVING.md](DRIVING.md). G / R3 takes a nearby car;
+  WASD / left stick accelerates, steers, brakes and reverses, Space / A
+  handbrakes. Solid traffic, weight transfer, seated animation, chase/reverse
+  cameras, engine/tyre audio and swept collision queries support powered
+  shoves, crashes, fire and explosions. Blasts use bounded CPU fire/soot/debris
+  bursts, a brief unshadowed light and camera impact; wrecks lose paint and
+  glass glints. Garage armor and resprays use the same damage path.
+- **Earn and progress:** [MISSIONS.md](MISSIONS.md), [STORY.md](STORY.md).
+  Five replayable contracts and local street bounties feed a saved wallet.
+  The Borrowed Skyline's twelve chapters span all five boroughs, with
+  skippable phone calls, car thefts/chases, wanted escapes, witness protection,
+  relay destruction, flight rings, three lieutenants and Voss's rooftop fight.
+  Gold S givers unlock in order; completed chapters save immediately.
+  Failure/Abandon restarts at the giver. BUSTED fails the active job, clears
+  its actors/call/target and takes a capped 10% fine. Boss names, health and
+  attack warnings render in the full-resolution HUD, including on Low.
+- **Escape the law:** [WANTED.md](WANTED.md). Witnessed crimes raise 0–5 stars;
+  gang fights stay legal. Assigned foot officers pursue, 2★+ brings up to
+  four patrol cars and 4★+ adds two-car roadblocks. Break sight to shed heat;
+  wanted knockouts mean BUSTED. Stalled officers detour around walls. Patrols
+  and chase vans finish a reverse manoeuvre, try another lane and alternate
+  steering on repeated failures; irrecoverable hidden patrols get replaced.
+  Disabled/burned patrols cannot spot or report the player, and wrecks release
+  their response slot. Suspect-owned fleets and hero wanted/driving/damage
+  snapshots replicate plain state; legacy 13/15/18-field hero packets and
+  current 21-field packets remain accepted.
+- **Navigate and recover:** [RADAR.md](RADAR.md), [SHOPS.md](SHOPS.md).
+  The camera-relative street radar, whole-city atlas, drag/pinch/wheel zoom
+  and waypoints share gold S stories, purple contracts and red hostiles with
+  HUD labels and a wrapping map legend. Three supply shops sell six saved
+  three-tier upgrades. Two garages clear unseen pursuit and repair the car;
+  two safehouses heal, save recovery and advance sleep by eight hours.
+- **One presentation:** [HUD.md](HUD.md). Health/radar, wanted/cash,
+  bottom-centre objectives, short toasts, phone calls and shared result banners
+  use one palette. Esc/P/Start or the touch gear opens pause with Map,
+  Missions, saved Stats, upgrades, Hero/Options and Co-op. Locked chapters are
+  compact grey rows without unusable waypoint buttons. First-visit title and
+  contextual lessons persist; solo menus and the whole-city map pause simulation, co-op menus release
+  local controls while the shared world runs.
 
-- Local cash and replayable city contracts: [Missions and cash](MISSIONS.md).
-  Five starter routes, nearby street bounties, touch actions and gold target
-  markers. `missions_test.tscn` covers wallet saves and mission progression.
-  Launch with `?mission=<id>` and `?cash=N` to exercise a route and balance.
-  BUSTED fails the active contract and charges a capped 10% cash fine.
-- [Radar and waypoint map](RADAR.md): a baked five-borough atlas with land,
-  water, parks, roads and amber highways/bridges beneath camera-relative live
-  streets; speed zoom, co-op/target blips and flashing wanted police, comma
-  to open the city map, borough/neighborhood/landmark labels, smooth wheel
-  zoom, touch pinch/pan and radar access,
-  and world-space waypoints on the radar and HUD. Options → Show radar or
-  `?radar=0` hides it. `tests/radar_test.tscn` checks blips, transforms, tile
-  unloads, landmark-to-atlas pixels, pinch gestures, ground-height waypoints
-  and floating-origin shifts. `test_map_image.py` checks the offline bake
-  decoder and layers on synthetic data. Rebuild the committed atlas with
-  `tools/citygen/map_image.py`; no new gameplay tiles needed.
-- Solid traffic collisions, superpowered car shoves, damage/smoke/fire and
-  timed explosions, engine and tyre audio, seated driving animation, body
-  weight transfer, reverse camera and contextual takeover hints. Nearby car
-  collision queries use a world-space grid and swept footprints; wrecks
-  retain the existing traffic braking path. `?car=1&car_crash=1` adds the
-  repeatable crash fixture described in DRIVING.md.
-  Garage armor reduces occupied-car damage; paid resprays repair damage and
-  cancel fires, covered alongside driver armor in `shops_test`.
-- Driving and car hijacking: [DRIVING.md](DRIVING.md), including controls,
-  physical cars, chase camera, co-op snapshots, crime hooks and current limits.
-  Run `res://tests/drive_test.tscn`; `?car=1` places a starter sedan by the hero.
+**Launch checks:** `?car=1`, `?car_crash=1`, `?wanted=1`–`5`, `?police=0`,
+`?mission=<id>`, `?cash=N`, `?story=1`–`12` / `?story=reset`,
+`?upgrades=reset`, `?radar=0`, `?tutorial=reset`, `?touch=1`.
+`?stats` logs GTA CPU parts (exclusive nested timings), both per physics tick
+and per drawn frame; `?police_profile=1` isolates 5 Hz patrol decisions.
+`?story_playtest=1` enables the opt-in input pilot/telemetry in STORY.md.
 
-- [Police car pursuits](WANTED.md#patrol-cars-and-roadblocks): NYPD sedans at
-  2★+, lane steering and close pursuit through shared driving physics, sirens,
-  flashing roof bars/radar, foot deployment, 4★+ roadblocks and severity-two
-  police-car theft. Suspect-owned fleets share plain co-op state. Run
-  `res://tests/police_cars_test.tscn`; `?wanted=3&car=1` exercises a pursuit,
-  `?police_profile=1` logs decision cost. No new assets or tiles.
-- [Wanted levels and foot police](WANTED.md): witnessed civilian assaults and
-  attacks on police raise 0–5 stars, officers pursue the suspect, and escaping
-  their sight clears stars. Knockouts while wanted result in BUSTED and a
-  nearby sidewalk respawn. Heroes keep all their powers; gang fights are legal.
+**Regression:** `drive_test`, `wanted_test`, `police_cars_test`,
+`missions_test`, `story_test`, `shops_test`, `radar_test`, `hud_test`, and
+`gta_integration_test` cover the GTA layer. The integration scene checks
+recovery, disabled police sight, story arrest/fine/retry/cleanup, all snapshot
+generations, boss presentation and explosion placement/lifetime across origin
+shifts. Keep every existing `tests/*_test.tscn`, `flight_streaming_regression`,
+Python citygen/audio suites, exported audio-loop checks and
+`tools/shader_compile_check.mjs` in the final integration pass.
+
+The real-world browser fixture in HUD.md adds F2 / `hud_case=boss` and
+F3 / `hud_case=explosion` for reproducible captures; F6 / `hud_case=car`
+starts five-star driving. These seed QA state and do not prove a complete
+campaign playthrough. All fixture scenes remain excluded from ordinary exports.
 
 ## Options menu (done; added 2026-10-16 at the user's request)
 

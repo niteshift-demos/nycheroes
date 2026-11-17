@@ -109,3 +109,16 @@ AI-caused crashes and explosions do not create hero crimes; hero attacks
 and driven impacts retain attribution through chain explosions.
 `police_cars_test` covers pursuit behavior plus patrol destruction,
 bystander injury without false crimes, and damage over real ENet snapshots.
+
+## Integration polish
+
+Explosions combine CPU fire, three low-poly hot cores, rising soot and tumbling
+metal, a brief unshadowed light and the shared camera impact. Flash animations
+follow the physics clock so browser frame catch-up cannot skip them.
+Up to three blasts overlap;
+all particles and their roots expire. Charred wrecks lose their paint and
+glass glints. Both existing and newly spawned effects survive origin shifts.
+
+Settled, unoccupied physical cars stop repeating collision queries and mesh
+writes. A hit that gives a car velocity wakes it through the same physics
+path; distance cleanup still runs once a second.

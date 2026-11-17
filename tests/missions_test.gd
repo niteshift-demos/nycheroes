@@ -52,7 +52,7 @@ func _run() -> void:
 	add_child(director)
 	var navigation := director.get_node("MissionRadar") as MissionRadar
 	_check(radar.blips.has(&"mission/giver/times_square") and radar.blips[&"mission/giver/times_square"].kind == &"mission"
-		and radar.blips[&"mission/giver/times_square"].color == Color.YELLOW, "available givers have yellow mission radar blips")
+		and radar.blips[&"mission/giver/times_square"].color == Radar.CONTRACT_COLOR, "available givers have purple contract radar blips matching the HUD and map")
 	director.mission_started.connect(func(id: String) -> void: _events.append("start:" + id))
 	director.mission_step_changed.connect(func(id: String, _at: Vector3) -> void: _events.append("step:" + id))
 	director.mission_finished.connect(func(id: String, success: bool) -> void: _events.append("end:" + id + str(success)))

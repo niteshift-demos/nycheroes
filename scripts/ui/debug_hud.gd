@@ -27,6 +27,7 @@ var _log_stats := false
 
 func _ready() -> void:
 	_log_stats = LaunchOptions.has("stats")
+	GtaTiming.enabled = _log_stats
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = wanted()
 
@@ -87,3 +88,4 @@ func _process(delta: float) -> void:
 		if _log_cooldown <= 0.0:
 			_log_cooldown = LOG_INTERVAL
 			print("[stats] %s | %s | %s | world %s" % [render, status, tiles, world.round()])
+			print("[frame parts] " + GtaTiming.read())

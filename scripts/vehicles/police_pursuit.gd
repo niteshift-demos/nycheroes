@@ -39,6 +39,12 @@ static func cap(stars: int) -> int:
 
 
 func _physics_process(delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_policepursuit_timed_physics_process(delta)
+	GtaTiming.end(&"pursuit", stamp)
+
+
+func _policepursuit_timed_physics_process(delta: float) -> void:
 	if wanted.hero.frozen or not wanted.enabled or (wanted.hud and wanted.hud.get_parent().has_node("LoadingScreen")):
 		return
 	decision_frames += 1
@@ -197,15 +203,42 @@ func think(car: PoliceCar, delta: float) -> void:
 		if distance < 16.0 and car.velocity.length() < 2.0:
 			_deploy(car)
 			return
-	car.stuck_time = car.stuck_time + delta if car.velocity.length() < 1.0 and speed > 3.0 else 0.0
-	if car.stuck_time > 2.0:
-		car.reverse_time = 1.4
-		car.stuck_time = 0.0
+	if car.recovery.advance(at, delta, speed > 3.0, angle):
+		_reroute(car, at)
+		# Replace an irrecoverable response through the usual hidden spawn path.
+		# Never teleport a patrol in front of the player or retire an occupied car.
+		if car.recovery.attempts >= 3 and distance > 25.0 and hidden(at):
+			car.queue_free()
+			cars.erase(car)
+			return
 	car.controls.jump_held = speed < 0.2
 	car.controls.stick = Vector2(clampf(-angle * 1.8, -1, 1), -speed / DriveVehicle.TOP_SPEED)
+	car.reverse_time = car.recovery.reverse_time
 	if car.reverse_time > 0.0:
-		car.reverse_time -= delta
-		car.controls.stick = Vector2(clampf(angle, -1, 1), 0.7)
+		car.controls.jump_held = false
+		car.controls.stick = Vector2(car.recovery.turn, 0.8)
+
+
+## Recovery-only local scan. Reacquire a lane after a shove and prefer a
+## different approach after repeated failure, rather than the same blocked turn.
+func _reroute(car: PoliceCar, at: Vector3) -> void:
+	var previous := car.lane
+	var best := INF
+	var key := Vector2i(floori(at.x / 500.0), floori(at.z / 500.0))
+	for tile: Vector2i in graph.tiles:
+		if absi(tile.x - key.x) > 1 or absi(tile.y - key.y) > 1:
+			continue
+		for lane: TrafficLanes.Lane in graph.tiles[tile]:
+			for i in lane.points.size() - 1:
+				var point := Geometry3D.get_closest_point_to_segment(at, lane.points[i], lane.points[i + 1])
+				var distance := point.distance_squared_to(at)
+				if distance > 40.0 * 40.0:
+					continue
+				var score := distance + (400.0 if lane == previous else 0.0)
+				if score < best:
+					best = score
+					car.lane = lane
+					car.lane_distance = lane.along[i] + lane.points[i].distance_to(point)
 
 
 func _lane_target(car: PoliceCar, destination: Vector3) -> Vector3:
@@ -242,5 +275,7 @@ func _deploy(car: PoliceCar) -> void:
 	if wanted.encounters:
 		var side := Vector3(cos(car.heading), 0, -sin(car.heading)) * 1.8
 		for sign_value: float in [-1.0, 1.0]:
+			if wanted.response_count() >= mini(wanted.stars * 2, Wanted.MAX_POLICE):
+				break
 			var at := WorldOrigin.to_world(car.global_position) + side * sign_value
 			wanted.encounters.spawn_police(at, wanted.hero, wanted.stars)

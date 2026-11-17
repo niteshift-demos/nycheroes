@@ -93,6 +93,12 @@ func current_notices() -> PackedStringArray:
 
 
 func _process(delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_gamehud_timed_process(delta)
+	GtaTiming.end(&"hud", stamp)
+
+
+func _gamehud_timed_process(delta: float) -> void:
 	banner_remaining = maxf(0.0, banner_remaining - delta)
 	if hero and hero.mode:
 		var knocked := hero.mode.name == &"KnockedOut"
@@ -117,6 +123,12 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	var stamp := GtaTiming.begin()
+	_gamehud_timed_draw()
+	GtaTiming.end(&"hud", stamp)
+
+
+func _gamehud_timed_draw() -> void:
 	_marker_labels.clear()
 	if not hero or size.x < 1.0 or size.y < 1.0:
 		return
@@ -136,6 +148,11 @@ func _draw() -> void:
 		return
 	_draw_wanted()
 	_draw_coop_status()
+	# Boss labels belong to the full-resolution HUD: 3-D text turns into
+	# broken glyphs when a phone renders the city at 360p.
+	for boss in Combat.thugs:
+		if boss.story_variant > 0 and not boss.is_down() and boss.global_position.distance_squared_to(hero.global_position) < 150.0 * 150.0:
+			_draw_marker(boss.global_position + Vector3.UP * 3.1, boss.story_tag(), HudStyle.GOLD, 0.0, false)
 	if missions:
 		for marker in missions.markers():
 			var target := WorldOrigin.to_local(marker.position) + Vector3.UP * 2.0
@@ -179,6 +196,8 @@ func _draw_coop_status() -> void:
 	if Net.is_reconnecting():
 		_text(Vector2(24.0, y), "CO-OP · RECONNECTING", 14, HudStyle.MUTED)
 		y += 30.0
+	if touch_controls and missions and not missions.phone_lines.is_empty():
+		return  # The compact phone call owns the space between radar and buttons.
 	var notices := current_notices()
 	var count := mini(1 if touch_controls else 3, notices.size())
 	for i in count:

@@ -31,6 +31,12 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_missionhud_timed_process(delta)
+	GtaTiming.end(&"hud", stamp)
+
+
+func _missionhud_timed_process(delta: float) -> void:
 	_display_cash = move_toward(_display_cash, float(wallet.balance), maxf(50.0, absf(wallet.balance - _display_cash) * 5.0) * delta)
 	_cash.text = Wallet.format_cash(roundi(_display_cash))
 	var touch := Device.wants_touch_controls()
@@ -40,8 +46,9 @@ func _process(delta: float) -> void:
 	var running := director.active != null
 	_title.visible = running and (_game_hud == null or _game_hud.banner_remaining <= 0.0)
 	_objective.visible = _title.visible
-	var width := minf(700.0, size.x * (0.44 if touch else 0.64))
-	var bottom := size.y - (132.0 if touch else 144.0)
+	var portrait := touch and size.y > size.x
+	var width := size.x - 32.0 if portrait else minf(700.0, size.x * (0.38 if touch else 0.64))
+	var bottom := size.y - (310.0 if portrait else 132.0 if touch else 144.0)
 	_title.position = Vector2((size.x - width) * 0.5, bottom - 30.0)
 	_title.size = Vector2(width, 22.0)
 	_title.text = director.active.title.to_upper() if running else ""
