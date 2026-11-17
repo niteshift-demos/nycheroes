@@ -122,7 +122,7 @@ func _run() -> void:
 	WorldOrigin.shift(Vector3(-500, 0, 0))
 	Combat.strike(WorldOrigin.to_local(target) + Vector3.UP, 3, 80, Vector3.ZERO, false)
 	director.advance(0.1, Vector3.ZERO)
-	check(director.active != null and van.health == 80, "one punch damages only the chase relay without premature completion")
+	check(director.active != null and van.relay_health == 80, "one punch damages only the chase relay without premature completion")
 	Combat.strike(WorldOrigin.to_local(target) + Vector3.UP, 3, 80, Vector3.ZERO, false)
 	director.advance(0.1, Vector3.ZERO)
 	check(director.active == null, "disabled chase target completes")

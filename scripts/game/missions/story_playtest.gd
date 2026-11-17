@@ -131,7 +131,21 @@ func _publish() -> void:
 	if director.active:
 		var target := director.current_target()
 		state.target = [target.x, target.y, target.z]
-		state.enemies = director.gang.filter(func(t: Thug) -> bool: return is_instance_valid(t) and not t.is_down()).size()
+		var standing := 0
+		for thug in director.gang:
+			if is_instance_valid(thug) and not thug.is_down():
+				standing += 1
+		state.enemies = standing
+		if is_instance_valid(director.story_objectives):
+			var objective := director.story_objectives
+			var relays: Array[Dictionary] = []
+			for car in objective.targets:
+				if is_instance_valid(car):
+					var location := WorldOrigin.to_world(car.global_position)
+					relays.append({position = [location.x, location.y, location.z], health = car.relay_health})
+			state.relays = relays
+			if objective.step.kind == "protect":
+				state.witness_health = objective.witness_health
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.nycStoryState=" + JSON.stringify(state))
 	else:

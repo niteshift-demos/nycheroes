@@ -50,7 +50,7 @@ func target() -> Vector3:
 	if is_instance_valid(car):
 		return WorldOrigin.to_world(car.global_position)
 	for vehicle in targets:
-		if is_instance_valid(vehicle) and vehicle.health > 0.0:
+		if is_instance_valid(vehicle) and vehicle.relay_health > 0.0:
 			return WorldOrigin.to_world(vehicle.global_position)
 	return step.position
 
@@ -94,7 +94,7 @@ func advance(delta: float, position: Vector3) -> int:
 			for vehicle in targets:
 				if not is_instance_valid(vehicle):
 					return -1
-				if vehicle.health <= 0:
+				if vehicle.relay_health <= 0:
 					down += 1
 			if step.kind == "chase":
 				_lost = _lost + delta if position.distance_to(target()) > 350 else 0.0

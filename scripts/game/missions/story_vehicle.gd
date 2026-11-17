@@ -3,7 +3,8 @@ extends DriveVehicle
 ## Mission-owned physical car. AI follows loaded traffic polylines using
 ## plain HeroInput; punches/slams and relative-speed impacts damage its relay.
 
-var health := 160.0
+## Separate from chassis damage so the crash system can own vehicle health.
+var relay_health := 160.0
 var fleeing := false
 var city: CityStreamer
 var _path := PackedVector3Array()
@@ -29,7 +30,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if health <= 0.0 or driver:
+	if relay_health <= 0.0 or driver:
 		super._physics_process(delta)
 		return
 	_impact_wait = maxf(0.0, _impact_wait - delta)
@@ -46,12 +47,12 @@ func _physics_process(delta: float) -> void:
 		_follow_lane(delta)
 	else:
 		super._physics_process(delta)
-	_label.text = ("LEDGER VAN" if fleeing else "RELAY") + "  %d%%" % maxi(0, ceili(health / 160.0 * 100.0))
+	_label.text = ("LEDGER VAN" if fleeing else "RELAY") + "  %d%%" % maxi(0, ceili(relay_health / 160.0 * 100.0))
 
 
 func damage(amount: float) -> void:
-	health = maxf(0.0, health - maxf(0.0, amount))
-	if health <= 0.0:
+	relay_health = maxf(0.0, relay_health - maxf(0.0, amount))
+	if relay_health <= 0.0:
 		fleeing = false
 		ai_controlled = false
 		velocity *= 0.15

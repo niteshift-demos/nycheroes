@@ -153,7 +153,7 @@ There is no recorded dialogue, gunplay or custom imported art.
 - Export with `.niteshift/files/build-web`. Browser software rendering flags
   are documented in `.niteshift/services.yaml`.
 - `?story_playtest=1` adds an opt-in QA pilot and read-only telemetry at
-  `window.nycStoryState`. Set `window.nycStoryPilot=true` to drive ordinary
+  `window.nycStoryState` (including relay positions/health and witness health). Set `window.nycStoryPilot=true` to drive ordinary
   hero input, or false to return to keyboard controls. This QA option renders
   3-D at quarter resolution while retaining full-size UI and allows up to
   120 physics ticks per drawn frame and skips covered 3-D draws during city
