@@ -73,7 +73,8 @@ const TOUCH_HELP: Array[Array] = [
 	["SPEED", "super speed, on and off"],
 	["CO-OP", "play with friends"],
 	["Radar", "tap for map and waypoint"],
-	["CAR", "take or leave a nearby car"],
+	["CAR / EXIT", "take a nearby car; leave the car"],
+	["Stick / BRAKE", "drive and reverse; hold BRAKE to drift"],
 	["Gear", "pause, missions, stats and options"],
 ]
 

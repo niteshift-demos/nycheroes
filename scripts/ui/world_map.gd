@@ -83,6 +83,8 @@ func _add_button(text: String, action: Callable) -> void:
 
 
 func _layout() -> void:
+	if not _buttons.is_empty():
+		_buttons.back().text = "Close" if Device.wants_touch_controls() else "Close  ,"
 	var x := size.x - 16.0
 	for i in range(_buttons.size() - 1, -1, -1):
 		var button := _buttons[i]
@@ -96,6 +98,7 @@ func open() -> void:
 	if visible:
 		return
 	visible = true
+	_layout()
 	_recapture = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_paused_game = Net.state == Net.State.OFFLINE and not get_tree().paused
@@ -294,9 +297,10 @@ func draw_overlay(canvas: Control) -> void:
 	canvas.draw_rect(Rect2(0, 0, size.x, _header_height()), Color("101c26"))
 	canvas.draw_rect(Rect2(0, size.y - 42, size.x, 42), Color("101c26"))
 	canvas.draw_string(font, Vector2(20, 36), "NEW YORK", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("ffdc86"))
-	var hint := "NORTH UP   ·   FIVE BOROUGHS   ·   Drag to explore · Click to pin" if size.x >= 650 else "N UP · FIVE BOROUGHS · Drag / pinch / tap"
+	var touch := Device.wants_touch_controls()
+	var hint := "N UP · FIVE BOROUGHS · Drag / pinch / tap" if touch or size.x < 650 else "NORTH UP   ·   FIVE BOROUGHS   ·   Drag to explore · Click to pin"
 	canvas.draw_string(font, Vector2(20, _header_height() - 10), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("b4c5d2"))
-	var text := "Tap to set waypoint" if size.x < 650 else "Click to set waypoint · Wheel / + − to zoom"
+	var text := "Tap the map to set a waypoint · + − to zoom" if touch else "Tap to set waypoint" if size.x < 650 else "Click to set waypoint · Wheel / + − to zoom"
 	if radar.waypoint_active:
 		text = "WAYPOINT  ·  %d m from you" % int(radar.waypoint_position.distance_to(radar.world_center))
 	canvas.draw_string(font, Vector2(20, size.y - 16), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Radar.WAYPOINT_COLOR)

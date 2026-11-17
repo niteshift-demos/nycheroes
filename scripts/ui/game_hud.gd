@@ -186,29 +186,43 @@ func _gamehud_timed_draw() -> void:
 			Net.player_color(id).lightened(0.35), PLAYER_NEAR_ENOUGH)
 
 
-func _draw_coop_status() -> void:
-	var y := 34.0
+## Toasts use the gap beside the radar and before the full touch toolbar.
+## Portrait stacks cash and notices below the radar instead of sharing its row.
+func notice_rect(text: String) -> Rect2:
+	var at := Vector2(20.0, 15.0)
+	var width := minf(size.x * 0.55, 620.0)
 	if touch_controls:
-		y += touch_controls.safe_insets.y
-	var debug := get_parent().get_node_or_null("DebugLabel") as Control
-	if debug and debug.visible:
-		y += 100.0
-	if Net.is_reconnecting():
-		_text(Vector2(24.0, y), "CO-OP · RECONNECTING", 14, HudStyle.MUTED)
-		y += 30.0
+		var insets := touch_controls.safe_insets
+		if size.y > size.x:
+			at = Vector2(insets.x + 16.0, insets.y + 340.0)
+			width = size.x - insets.x - insets.z - 32.0
+		else:
+			at = Vector2(insets.x + 168.0, insets.y + 14.0)
+			width = minf(440.0, size.x - insets.z - 316.0 - at.x)
+	else:
+		var debug := get_parent().get_node_or_null("DebugLabel") as Control
+		if debug and debug.visible:
+			at.y += 100.0
+	var measured := _font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, width - 24.0, 14)
+	return Rect2(at, Vector2(width, maxf(34.0, measured.y + 12.0)))
+
+
+func _draw_coop_status() -> void:
 	if touch_controls and missions and not missions.phone_lines.is_empty():
 		return  # The compact phone call owns the space between radar and buttons.
 	var notices := current_notices()
+	if Net.is_reconnecting():
+		notices.append("CO-OP · RECONNECTING")
 	var count := mini(1 if touch_controls else 3, notices.size())
+	var next_y := 0.0
 	for i in count:
 		var text := notices[notices.size() - count + i]
-		var width := minf(size.x * (0.48 if touch_controls else 0.55), 620.0)
-		var measured := _font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, width - 24.0, 14)
-		var height := maxf(34.0, measured.y + 12.0)
-		draw_rect(Rect2(20.0, y - 19.0, width, height), HudStyle.INK)
-		draw_rect(Rect2(20.0, y - 19.0, 3.0, height), HudStyle.GOLD)
-		draw_multiline_string(_font, Vector2(32.0, y + 2.0), text, HORIZONTAL_ALIGNMENT_LEFT, width - 24.0, 14)
-		y += height + 6.0
+		var box := notice_rect(text)
+		box.position.y += next_y
+		draw_rect(box, HudStyle.INK)
+		draw_rect(Rect2(box.position, Vector2(3.0, box.size.y)), HudStyle.GOLD)
+		draw_multiline_string(_font, box.position + Vector2(12.0, 21.0), text, HORIZONTAL_ALIGNMENT_LEFT, box.size.x - 24.0, 14)
+		next_y += box.size.y + 6.0
 
 
 ## A marker pointing at a scene position, labeled with the distance to it.
@@ -342,7 +356,9 @@ func wanted_anchor() -> Vector2:
 		y = 132.0  # Below the four desktop stats/control lines.
 	if touch_controls:
 		right -= touch_controls.safe_insets.z + TOUCH_BUTTONS_WIDTH
-		y = touch_controls.safe_insets.y + 84.0
+		y = touch_controls.safe_insets.y + (260.0 if size.y > size.x else 84.0)
+		if size.y > size.x:
+			right = size.x - touch_controls.safe_insets.z - 28.0
 	return Vector2(right, y)
 
 

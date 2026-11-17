@@ -14,7 +14,10 @@ buttons, distant contract labels and the defeated-thug counter are removed. Near
 givers label only within 150 m and on-screen; they never clamp to screen
 edges. Labels avoid each other, radar/health, wanted/cash and the driving hint.
 Mission targets, navigation pins and nearby combat markers remain useful.
-Short notifications stack at top-left, with at most three visible at once.
+Desktop notifications stack at top-left, with at most three visible at once.
+Touch shows one wrapped toast in the gap beside the radar and before the
+top-right toolbar. In portrait, cash and toasts stack below the radar. The
+compact two-line touch stats readout sits clear of health and the toast.
 The driving mode owns its contextual car hint independently.
 
 Mission completion, failure, knockouts and arrests share a centre-screen
@@ -148,3 +151,18 @@ markings; telemetry exposes the resulting paint, livery and service message.
 hero. It uses the game's ordinary animator and skin warm-up; it never poses
 or stops the hero's animation. Telemetry includes the assigned animation,
 playback flag and upper-arm bone pose to distinguish a held Idle from bind.
+
+Touch prompts share the controls' active state, including mobile browsers that
+report a fine primary pointer and desktops activated by their first real touch.
+Tutorials, loading tips, the driving hint, controls help, phone-call buttons,
+mission intro and map hints name the visible buttons. FLY changes JUMP to UP;
+CAR becomes EXIT and JUMP becomes BRAKE while driving. The map always says to
+tap on touch, including wide landscape tablets.
+
+`hud_test` also checks analog stick drags with distinct finger indices, holding
+JUMP and looking while moving, independent finger releases, focus loss, and
+toast/radar/health/cash/toolbar separation at 844×390, 915×412, 1616×720 and
+390×844, including a left safe inset. On Android 15 Chrome, the ordinary
+8-second ADB swipe from (272,555) to (272,440) produces movement; it ramps
+through the analog deadzone and releases at its end. Capture while held, or
+use a TouchEvent start/move/held/end sequence to inspect sustained movement.

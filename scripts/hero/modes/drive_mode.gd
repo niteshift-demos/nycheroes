@@ -160,7 +160,7 @@ func _process(_delta: float) -> void:
 		_hint.offset_right = -(viewport.x - width) * 0.5
 		_hint.offset_top = -218.0 if viewport.y > viewport.x else -68.0
 		_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		var help := "BRAKE: drift" if viewport.y > viewport.x else "Stick: drive · BRAKE: drift"
+		var help := "BRAKE: drift · EXIT: leave" if viewport.y > viewport.x else "Stick: drive · BRAKE: drift · EXIT: leave"
 		_hint.text = "%d km/h · %s\n%s" % [roundi(hero.horizontal_speed() * 3.6), condition, help] if hero.mode == self else "CAR: take a nearby car"
 		return
 	_hint.text = "%d km/h   •   %s   •   WASD drive   Space brake   G / R3 exit" % [roundi(hero.horizontal_speed() * 3.6), condition] if hero.mode == self else "G / R3: take a nearby car"

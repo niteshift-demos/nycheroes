@@ -81,7 +81,17 @@ func _process(delta: float) -> void:
 		people += "  ·  co-op: %sroom %s, player %d of %d" % ["public " if Net.is_public else "", Net.room_code,
 			Net.local_id(), Net.peers().size() + 1]
 	tiles += "  ·  " + people
-	text = "\n".join([render, status, tiles, FREE_CAMERA_HELP if free else HERO_HELP])
+	if Device.wants_touch_controls():
+		# Two short lines in the centre gap leave radar, health, toasts and cash clear.
+		var viewport := get_viewport_rect().size
+		var insets := Device.safe_area_css()
+		var portrait := viewport.y > viewport.x
+		position = Vector2(insets.x + (16.0 if portrait else 168.0), insets.y + (414.0 if portrait else 86.0))
+		size = Vector2(viewport.x - insets.x - insets.z - (32.0 if portrait else 506.0), 34.0)
+		clip_text = true
+		text = "FPS %d · %s · %.0f m/s (%.0f km/h)\n%.5f, %.5f · %s" % [Engine.get_frames_per_second(), who, speed, speed * 3.6, lat, lon, time_of_day.clock_text()]
+	else:
+		text = "\n".join([render, status, tiles, FREE_CAMERA_HELP if free else HERO_HELP])
 
 	if _log_stats:
 		_log_cooldown -= REFRESH_INTERVAL

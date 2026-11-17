@@ -25,8 +25,8 @@ const TIPS: Array[String] = [
 ]
 const TOUCH_TIPS: Array[String] = [
 	"The right side of the screen looks around.",
-	"Hold jump to charge a super jump.",
-	"The co-op button: play with everyone online, alone, or with friends.",
+	"Hold JUMP to charge a super jump.",
+	"Tap CO-OP to play online, alone, or with friends.",
 	"The gear opens pause: missions, stats and options.",
 ]
 const TIP_TIME := 5.0
