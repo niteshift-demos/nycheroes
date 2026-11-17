@@ -43,6 +43,7 @@ var enabled := true
 var _profile_usec := 0
 var _profile_frames := 0
 var _profile_max := 0
+var _atlas: CityMapAtlas
 var _streets: RadarStreets
 var _overlay: Overlay
 ## Position-derived speed also covers a hero carried by a vehicle.
@@ -59,6 +60,8 @@ func _ready() -> void:
 	Settings.changed.connect(func(key: String) -> void:
 		if key == "show_radar":
 			enabled = bool(Settings.get_value(key, true)))
+	_atlas = CityMapAtlas.new()
+	add_child(_atlas)
 	_streets = RadarStreets.new()
 	add_child(_streets)
 	_overlay = Overlay.new()
@@ -108,6 +111,16 @@ func set_waypoint(world_position: Vector3) -> void:
 	waypoint_position = world_position
 	add_blip(WAYPOINT_ID, world_position, &"waypoint", WAYPOINT_COLOR)
 	waypoint_changed.emit(world_position, true)
+
+
+## Map pins use loaded collision height; sea level is a stable fallback beyond
+## loaded tiles. CityStreamer returns scene Y, so restore the floating offset.
+func place_map_waypoint(world_position: Vector3) -> void:
+	if city:
+		var height := city.ground_height_at(world_position)
+		if is_finite(height):
+			world_position.y = height + WorldOrigin.offset.y
+	set_waypoint(world_position)
 
 
 func clear_waypoint() -> void:
@@ -166,6 +179,7 @@ func _process(delta: float) -> void:
 		var forward := -camera.global_basis.z
 		heading = atan2(-forward.x, -forward.z)
 	if visible:
+		_atlas.place(size * 0.5, Vector2(world_center.x, world_center.z), heading, pixels_per_meter(), size)
 		_streets.place(size * 0.5, Vector2(world_center.x, world_center.z), heading, pixels_per_meter())
 	_cooldown -= delta
 	if _cooldown <= 0.0:
@@ -239,7 +253,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Color("17252e"))
+	draw_rect(Rect2(Vector2.ZERO, size), Color("183544"))
 
 
 func draw_overlay(canvas: Control) -> void:

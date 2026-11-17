@@ -1,6 +1,6 @@
 class_name WorldMap
 extends Control
-## North-up map of loaded streets. Drag to pan, wheel or +/- to zoom, click
+## North-up atlas of all five boroughs. Drag to pan, wheel or +/- to zoom, click
 ## to set a world-space waypoint. No extra tile downloads or game teleporting.
 
 signal toggled(open: bool)
@@ -8,6 +8,7 @@ signal toggled(open: bool)
 var radar: Radar
 var world_center := Vector2.ZERO
 var pixels_per_meter := 0.65
+var _atlas: CityMapAtlas
 var _streets: RadarStreets
 var _overlay: MapOverlay
 var _buttons: Array[Button] = []
@@ -16,6 +17,11 @@ var _drag_start := Vector2.ZERO
 var _last_pointer := Vector2.ZERO
 var _drag_distance := 0.0
 var _touch_id := -1
+var _touches: Dictionary[int, Vector2] = {}
+var _pinched := false
+var _opened_once := false
+var _zoom_tween: Tween
+var _zoom_target := 0.65
 var _recapture := false
 var _refresh := 0.0
 
@@ -41,6 +47,8 @@ func _ready() -> void:
 	clip_contents = true
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
+	_atlas = CityMapAtlas.new()
+	add_child(_atlas)
 	_streets = RadarStreets.new()
 	add_child(_streets)
 	_overlay = MapOverlay.new()
@@ -50,9 +58,10 @@ func _ready() -> void:
 	for key: Vector2i in radar.street_tiles:
 		_streets.set_tile(key, radar.street_tiles[key])
 	radar.streets_changed.connect(_streets.set_tile)
-	_add_button("−", func() -> void: zoom_at(size * 0.5, 0.75))
-	_add_button("+", func() -> void: zoom_at(size * 0.5, 1.333333))
-	_add_button("Center", recenter)
+	_add_button("−", func() -> void: zoom_smooth(size * 0.5, 0.75))
+	_add_button("+", func() -> void: zoom_smooth(size * 0.5, 1.333333))
+	_add_button("City", fit_city)
+	_add_button("You", recenter)
 	_add_button("Clear pin", radar.clear_waypoint)
 	_add_button("Close  ,", func() -> void: close(true))
 	resized.connect(_layout)
@@ -85,7 +94,9 @@ func open() -> void:
 	visible = true
 	_recapture = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	recenter()
+	if not _opened_once:
+		fit_city()
+		_opened_once = true
 	toggled.emit(true)
 
 
@@ -95,12 +106,16 @@ func close(by_pointer := false) -> void:
 	visible = false
 	_dragging = false
 	_touch_id = -1
+	_touches.clear()
+	_pinched = false
 	if _recapture and (by_pointer or not Device.is_web()):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	toggled.emit(false)
 
 
 func recenter() -> void:
+	_stop_zoom()
+	pixels_per_meter = 0.35
 	world_center = Vector2(radar.world_center.x, radar.world_center.z)
 
 
@@ -116,7 +131,7 @@ func map_to_world(point: Vector2) -> Vector3:
 ## Zoom stays anchored under the cursor instead of sliding the chosen street.
 func zoom_at(point: Vector2, factor: float) -> void:
 	var before := map_to_world(point)
-	pixels_per_meter = clampf(pixels_per_meter * factor, 0.06, 3.0)
+	pixels_per_meter = clampf(pixels_per_meter * factor, 0.006, 3.0)
 	var after := map_to_world(point)
 	world_center += Vector2(before.x - after.x, before.z - after.z)
 
@@ -124,6 +139,8 @@ func zoom_at(point: Vector2, factor: float) -> void:
 func _process(delta: float) -> void:
 	if not visible:
 		return
+	_atlas.place(size * 0.5, world_center, 0.0, pixels_per_meter, size)
+	_streets.visible = pixels_per_meter > 0.25
 	_streets.place(size * 0.5, world_center, 0.0, pixels_per_meter)
 	_refresh -= delta
 	if _refresh <= 0.0:
@@ -140,26 +157,53 @@ func _input(event: InputEvent) -> void:
 			if event.is_action_pressed(&"world_map") or event.keycode == KEY_ESCAPE:
 				close()
 			elif event.keycode == KEY_EQUAL or event.keycode == KEY_PLUS:
-				zoom_at(size * 0.5, 1.333333)
+				zoom_smooth(size * 0.5, 1.333333)
 			elif event.keycode == KEY_MINUS:
-				zoom_at(size * 0.5, 0.75)
+				zoom_smooth(size * 0.5, 0.75)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMagnifyGesture:
+		zoom_at(event.position, event.factor)
 		get_viewport().set_input_as_handled()
 	elif event is InputEventScreenTouch:
 		get_viewport().set_input_as_handled()
-		if event.pressed and _touch_id == -1:
+		if event.pressed:
 			for button in _buttons:
 				if button.get_global_rect().has_point(event.position):
 					button.pressed.emit()
 					return
-			_touch_id = event.index
-			_begin_drag(event.position)
-		elif not event.pressed and event.index == _touch_id:
-			_end_drag(event.position)
-			_touch_id = -1
+			_touches[event.index] = event.position
+			if _touches.size() == 1:
+				_touch_id = event.index
+				_pinched = false
+				_begin_drag(event.position)
+			else:
+				_pinched = true
+				_dragging = false
+		elif _touches.has(event.index):
+			if not _pinched and event.index == _touch_id:
+				_end_drag(event.position)
+			_touches.erase(event.index)
+			if _touches.is_empty():
+				_touch_id = -1
+				_pinched = false
 	elif event is InputEventScreenDrag:
 		get_viewport().set_input_as_handled()
-		if event.index == _touch_id:
-			_pan(event.position)
+		if not _touches.has(event.index):
+			return
+		if _touches.size() == 2:
+			var points: Array[Vector2] = _touches.values()
+			var old_center := (points[0] + points[1]) * 0.5
+			var old_distance := points[0].distance_to(points[1])
+			_touches[event.index] = event.position
+			points = _touches.values()
+			var new_center := (points[0] + points[1]) * 0.5
+			if old_distance > 1.0:
+				zoom_at(old_center, points[0].distance_to(points[1]) / old_distance)
+			world_center -= (new_center - old_center) / pixels_per_meter
+		else:
+			_touches[event.index] = event.position
+			if event.index == _touch_id and not _pinched:
+				_pan(event.position)
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -171,17 +215,18 @@ func _gui_input(event: InputEvent) -> void:
 			else:
 				_end_drag(event.position)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			zoom_at(event.position, 1.2)
+			zoom_smooth(event.position, 1.2)
 		elif event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			zoom_at(event.position, 1.0 / 1.2)
+			zoom_smooth(event.position, 1.0 / 1.2)
 	elif event is InputEventMouseMotion and _dragging:
 		_pan(event.position)
 		accept_event()
 
 
 func _begin_drag(at: Vector2) -> void:
-	if at.y < _header_height() or at.y > size.y - 42:
+	if at.y < _header_height() or at.y > size.y - (78 if size.x >= 650 else 42):
 		return
+	_stop_zoom()
 	_dragging = true
 	_drag_start = at
 	_last_pointer = at
@@ -199,7 +244,7 @@ func _pan(at: Vector2) -> void:
 
 func _end_drag(at: Vector2) -> void:
 	if _dragging and maxf(_drag_distance, at.distance_to(_drag_start)) <= 6.0:
-		radar.set_waypoint(map_to_world(at))
+		radar.place_map_waypoint(map_to_world(at))
 	_dragging = false
 
 
@@ -208,34 +253,67 @@ func _header_height() -> float:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Color("101c26"))
-	# A quiet grid distinguishes unmapped areas from the actual street network.
-	var step := 500.0 * pixels_per_meter
-	var origin := size * 0.5 - world_center * pixels_per_meter
-	for x in range(int(fposmod(origin.x, step)), int(size.x), maxi(1, int(step))):
-		draw_line(Vector2(x, 0), Vector2(x, size.y), Color("1a2a35"))
-	for y in range(int(fposmod(origin.y, step)), int(size.y), maxi(1, int(step))):
-		draw_line(Vector2(0, y), Vector2(size.x, y), Color("1a2a35"))
+	draw_rect(Rect2(Vector2.ZERO, size), Color("183544"))
 
 
 func draw_overlay(canvas: Control) -> void:
 	var font := ThemeDB.fallback_font
+	CityMapLabels.draw(canvas, self)
 	for blip: Radar.Blip in radar.blips.values():
 		Radar.draw_blip(canvas, world_to_map(blip.world_position), blip.kind, blip.color)
 	var player_at := world_to_map(radar.world_center)
 	canvas.draw_circle(player_at, 9, Color("152633"))
-	Radar.draw_blip(canvas, player_at, &"player", Color.WHITE)
+	var arrow := PackedVector2Array([Vector2(0, -10), Vector2(6, 7), Vector2(0, 3), Vector2(-6, 7)])
+	for i in arrow.size():
+		arrow[i] = player_at + arrow[i].rotated(-radar.hero.facing if radar.hero else 0.0)
+	canvas.draw_colored_polygon(arrow, Color.WHITE)
 	canvas.draw_string(font, player_at + Vector2(12, 5), "YOU", HORIZONTAL_ALIGNMENT_LEFT, -1, 13)
 	canvas.draw_rect(Rect2(0, 0, size.x, _header_height()), Color("101c26"))
 	canvas.draw_rect(Rect2(0, size.y - 42, size.x, 42), Color("101c26"))
 	canvas.draw_string(font, Vector2(20, 36), "NEW YORK", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("ffdc86"))
-	var hint := "NORTH UP   ·   LOADED STREETS  ·  Drag to pan · Tap to place a waypoint" if size.x >= 650 else "N UP · Loaded streets · Drag / tap to pin"
+	var hint := "NORTH UP   ·   FIVE BOROUGHS   ·   Drag to explore · Click to pin" if size.x >= 650 else "N UP · FIVE BOROUGHS · Drag / pinch / tap"
 	canvas.draw_string(font, Vector2(20, _header_height() - 10), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("b4c5d2"))
 	var text := "Tap to set waypoint" if size.x < 650 else "Click to set waypoint · Wheel / + − to zoom"
 	if radar.waypoint_active:
 		text = "WAYPOINT  ·  %d m from you" % int(radar.waypoint_position.distance_to(radar.world_center))
 	canvas.draw_string(font, Vector2(20, size.y - 16), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Radar.WAYPOINT_COLOR)
-	var bar_m := 100.0 if pixels_per_meter > 0.4 else 500.0
+	if size.x >= 650:
+		var labels := ["Park", "Highway / bridge", "Mission", "Police", "Player", "Waypoint"]
+		var colors := [Color("426b58"), Color("e8ba79"), Color("ffdc86"), Color("57a5ff"), Color.WHITE, Radar.WAYPOINT_COLOR]
+		var kinds: Array[StringName] = [&"shop", &"shop", &"mission", &"police", &"player", &"waypoint"]
+		canvas.draw_rect(Rect2(0, size.y - 78, size.x, 36), Color(0.06, 0.11, 0.15, 0.93))
+		var legend_x := 24.0
+		for i in labels.size():
+			Radar.draw_blip(canvas, Vector2(legend_x, size.y - 60), kinds[i], colors[i])
+			canvas.draw_string(font, Vector2(legend_x + 13, size.y - 55), labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("c9d6d9"))
+			legend_x += font.get_string_size(labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 38
+	var credit := "NYC Open Data · © OpenStreetMap contributors"
+	var credit_at := Vector2(20, size.y - (84 if size.x >= 650 else 48))
+	canvas.draw_string_outline(font, credit_at, credit, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, 3, Color("192c36"))
+	canvas.draw_string(font, credit_at, credit, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("a8bdc7"))
+	var bar_m := 100.0 if pixels_per_meter > 0.4 else 500.0 if pixels_per_meter > 0.08 else 5000.0
 	var at := Vector2(size.x - bar_m * pixels_per_meter - 24, size.y - 18)
 	canvas.draw_line(at, at + Vector2(bar_m * pixels_per_meter, 0), Color.WHITE, 2)
 	canvas.draw_string(font, at + Vector2(0, -8), "%d m" % int(bar_m), HORIZONTAL_ALIGNMENT_LEFT, -1, 12)
+
+
+## Fit the actual five-borough extent with space for the header and legend.
+func fit_city() -> void:
+	_stop_zoom()
+	world_center = CityMapAtlas.ORIGIN + Vector2.ONE * CityMapAtlas.EXTENT * 0.5
+	pixels_per_meter = minf((size.x - 80.0) / CityMapAtlas.EXTENT, (size.y - _header_height() - 120.0) / CityMapAtlas.EXTENT)
+
+
+func _stop_zoom() -> void:
+	if _zoom_tween and _zoom_tween.is_running():
+		_zoom_tween.kill()
+
+
+## Short anchored wheel interpolation; repeated wheel ticks accumulate a target.
+func zoom_smooth(point: Vector2, factor: float) -> void:
+	if not _zoom_tween or not _zoom_tween.is_running():
+		_zoom_target = pixels_per_meter
+	_stop_zoom()
+	_zoom_target = clampf(_zoom_target * factor, 0.006, 3.0)
+	_zoom_tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_zoom_tween.tween_method(func(ppm: float) -> void: zoom_at(point, ppm / pixels_per_meter), pixels_per_meter, _zoom_target, 0.16)
