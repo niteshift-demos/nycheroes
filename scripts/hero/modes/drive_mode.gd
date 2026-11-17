@@ -26,10 +26,9 @@ func interact() -> void:
 			distance = reach
 	if nearest:
 		car = nearest
-		if car is PoliceCar:
-			car.abandon_pursuit()
-		if car.paint == PoliceLivery.PAINT:
+		if car is PoliceCar and car.is_in_group("police_cars"):
 			Combat.report_crime(&"steal_police_car", hero.world_position(), 2.0)
+			car.abandon_pursuit()
 	else:
 		for traffic: Traffic in hero.get_tree().get_nodes_in_group("traffic"):
 			car = traffic.take_car(hero.world_position(), 3.5)
