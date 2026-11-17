@@ -166,3 +166,13 @@ toast/radar/health/cash/toolbar separation at 844×390, 915×412, 1616×720 and
 8-second ADB swipe from (272,555) to (272,440) produces movement; it ramps
 through the analog deadzone and releases at its end. Capture while held, or
 use a TouchEvent start/move/held/end sequence to inspect sustained movement.
+
+Safari landscape uses the height remaining inside the safe area, including
+browser chrome reported by `visualViewport`. Below 390 usable CSS pixels,
+the radar moves up and shrinks, the cash rises and the action arc uses 70–82%
+spacing/radii (the smallest targets remain 44 px). The ordinary Android,
+tablet and desktop layouts retain their existing geometry. `hud_test` also
+checks 844×340, 844×320 and 874×344/292 with left/right 59 px island insets and
+a 21 px home indicator, including radar/health/stick and every visible action
+button against the HUD, toolbar and safe edges. Standalone iOS omits the
+Add to Home Screen suggestion; the portrait rotation prompt still applies.

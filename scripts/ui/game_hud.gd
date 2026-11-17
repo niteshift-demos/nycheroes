@@ -356,7 +356,7 @@ func wanted_anchor() -> Vector2:
 		y = 132.0  # Below the four desktop stats/control lines.
 	if touch_controls:
 		right -= touch_controls.safe_insets.z + TOUCH_BUTTONS_WIDTH
-		y = touch_controls.safe_insets.y + (260.0 if size.y > size.x else 84.0)
+		y = touch_controls.safe_insets.y + (260.0 if size.y > size.x else (68.0 if touch_controls.compact_landscape() else 84.0))
 		if size.y > size.x:
 			right = size.x - touch_controls.safe_insets.z - 28.0
 	return Vector2(right, y)

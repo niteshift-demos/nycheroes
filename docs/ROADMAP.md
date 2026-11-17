@@ -1913,6 +1913,11 @@ phone, in the phone's browser, at https://nycheroes.party.
   `hud_test` covers stick drag/hold/multi-touch/release and four HUD sizes
   (844×390, 915×412, 1616×720 and 390×844). Android 15 Chrome accepts the
   ordinary ADB swipe and held JavaScript TouchEvents through the real canvas.
+- **Safari layout follow-up:** short landscape viewports use a compact radar,
+  cash and action arc based on visible height and safe insets; `visualViewport`
+  accounts for Safari chrome while the canvas resizes. Geometry checks include
+  844×320/340 and 874×344/292 with the island on either side and a home indicator.
+  Standalone mode suppresses the Add to Home Screen suggestion.
 - **Still to check on real phones:** frame rate and heat on low (and
   whether tablets should get medium), whether iOS Safari keeps the tab
   alive, fullscreen and landscape lock on Android, Add to Home Screen on
@@ -2393,7 +2398,7 @@ been freed. Story regressions cover both cases and the pilot's roof/street route
 `missions_test`, `story_test`, `shops_test`, `radar_test`, `hud_test`, and
 `gta_integration_test` cover the GTA layer. `hud_test` includes touch detection
 and stick multi-touch regressions plus radar/toast/cash/toolbar geometry; see
-HUD.md for Android gesture reproduction and the four viewport sizes. The integration scene checks
+HUD.md for Android gesture reproduction and the Android/Safari viewport sizes. The integration scene checks
 recovery, disabled police sight, story arrest/fine/retry/cleanup, all snapshot
 generations, boss presentation and explosion placement/lifetime across origin
 shifts, plus initial posed bones and animation after warm-up, car exit, travel,
