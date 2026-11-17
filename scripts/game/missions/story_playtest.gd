@@ -89,7 +89,7 @@ func _physics_process(delta: float) -> void:
 			if hero.mode.name == &"Drive":
 				input.interact_pressed = true
 			elif hero.mode.name == &"Flight":
-				if step.has("boss"):
+				if step.has("boss") or step.kind == "destroy":
 					_fly_to(target + Vector3.UP * 2.0, input, hero)
 					if offset.length() < 4.0:
 						input.fly_toggle_pressed = true
@@ -135,7 +135,7 @@ func _publish() -> void:
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.nycStoryState=" + JSON.stringify(state))
 	else:
-		var summary := "%s step %d %s %s at %s target %s" % [state.active, state.step, state.objective, state.banner, at.round(), state.get("target", [])]
+		var summary := "%s step %d %s %s %s at %s target %s" % [state.active, state.step, state.mode, state.objective, state.banner, at.round(), state.get("target", [])]
 		if summary != _last_native and int(_clock) % 5 == 0:
 			print("[story-playtest] " + summary)
 			_last_native = summary

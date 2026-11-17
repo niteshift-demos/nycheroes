@@ -191,12 +191,22 @@ func _make_car(position: Vector3, destructible: bool) -> DriveVehicle:
 	for tile: Array in city.traffic_lanes().values():
 		for lane: PackedVector3Array in tile[0]:
 			for i in lane.size() - 1:
-				var point := Geometry3D.get_closest_point_to_segment(position, lane[i], lane[i + 1])
-				var distance := Vector2(point.x - position.x, point.z - position.z).length()
-				if distance < best:
-					best = distance
-					spot = point.move_toward(lane[i + 1], 28.0) if step.kind == "chase" else point
-					along = lane[i + 1] - lane[i]
+				var nearest := Geometry3D.get_closest_point_to_segment(position, lane[i], lane[i + 1])
+				# Several authored props can project onto one lane point. Sample
+				# nearby positions along that segment and keep their bodies apart.
+				var offsets := PackedFloat32Array([0.0])
+				if step.kind == "destroy":
+					offsets = PackedFloat32Array([0.0, 9.0, -9.0, 18.0, -18.0])
+				var direction := (lane[i + 1] - lane[i]).normalized()
+				for offset in offsets:
+					var point := Geometry3D.get_closest_point_to_segment(nearest + direction * offset, lane[i], lane[i + 1])
+					if not _clear_of_targets(point):
+						continue
+					var distance := Vector2(point.x - position.x, point.z - position.z).length()
+					if distance < best:
+						best = distance
+						spot = point.move_toward(lane[i + 1], 28.0) if step.kind == "chase" else point
+						along = lane[i + 1] - lane[i]
 	if best > 120.0:
 		return null  # Wait for actual road lanes, never put a car in a building.
 	var vehicle: DriveVehicle = StoryVehicle.new() if destructible else DriveVehicle.new()
@@ -209,3 +219,10 @@ func _make_car(position: Vector3, destructible: bool) -> DriveVehicle:
 	add_child(vehicle)
 	vehicle.global_position = WorldOrigin.to_local(spot) + Vector3.UP * 0.25
 	return vehicle
+
+
+func _clear_of_targets(position: Vector3) -> bool:
+	for vehicle in targets:
+		if is_instance_valid(vehicle) and WorldOrigin.to_world(vehicle.global_position).distance_to(position) < 7.0:
+			return false
+	return true

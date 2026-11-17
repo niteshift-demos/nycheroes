@@ -101,7 +101,9 @@ All positions are absolute world meters. Constructors live in `Mission`:
   standing attackers. Nearby attackers deal seven damage per second each.
   Heroes can draw the attackers away or defeat them. Progress pauses beyond
   100 m; staying away for ten seconds fails. Witness death fails immediately.
-- `destroy(position, count, text)`: disable every marked relay car.
+- `destroy(position, count, text)`: disable every marked relay car. Lane
+  placements remain at least seven meters apart, including when several
+  authored positions project onto the same straight road segment.
 - `fly_through(rings, text, radius := 22.0)`: enter the gold torus rings in
   order while in Flight mode, with a 120-second time limit.
 - `boss(position, variant, text)`: a regular EncounterDirector fight with

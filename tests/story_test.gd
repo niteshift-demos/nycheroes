@@ -129,13 +129,21 @@ func _run() -> void:
 	begin(Mission.chase(Vector3.ZERO, "Timeout"))
 	director.advance(151.0, Vector3.ZERO)
 	check(director.active == null and director.banner == "MISSION FAILED", "chase timeout fails")
-	begin(Mission.destroy(Vector3.ZERO, 2, "Destroy"))
+	begin(Mission.destroy(Vector3.ZERO, 3, "Destroy"))
 	director.advance(0.1, Vector3.ZERO)
 	var targets := director.story_objectives.targets.duplicate()
+	var separated := true
+	for i in targets.size():
+		for j in i:
+			separated = separated and targets[i].global_position.distance_to(targets[j].global_position) >= 7.0
+	check(separated, "three relay cars cannot overlap on the same road projection")
 	targets[0].damage(160)
 	director.advance(0.1, Vector3.ZERO)
 	check(director.active != null, "destroy requires every marked car")
 	targets[1].damage(160)
+	director.advance(0.1, Vector3.ZERO)
+	check(director.active != null, "third relay remains required")
+	targets[2].damage(160)
 	director.advance(0.1, Vector3.ZERO)
 	check(director.active == null, "destroy completes after every relay is disabled")
 	begin(Mission.escape_wanted(Vector3.ZERO, 2, "Escape"))
