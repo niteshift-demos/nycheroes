@@ -61,7 +61,7 @@ static func draw(canvas: Control, map: WorldMap) -> void:
 	if _world.is_empty():
 		for place: Array in PLACES:
 			_world.append(Geo.to_world(place[1], place[2]))
-	var occupied: Array[Rect2] = []
+	var occupied: Array[Rect2] = [Rect2(map.world_to_map(map.radar.world_center) - Vector2(12, 14), Vector2(60, 30))]
 	var font := ThemeDB.fallback_font
 	for i in PLACES.size():
 		var place: Array = PLACES[i]
@@ -71,7 +71,8 @@ static func draw(canvas: Control, map: WorldMap) -> void:
 		var kind: int = place[5]
 		var font_size := 18 if kind == 0 else 13 if kind != 5 else 12
 		var text_size := font.get_string_size(place[0], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
-		var rect := Rect2(point - text_size * 0.5, text_size).grow(6)
+		var label_point := point + Vector2(0, 32) if kind == 4 else point
+		var rect := Rect2(label_point - text_size * 0.5, text_size).grow(6)
 		if rect.position.y < map._header_height() + 8 or rect.end.y > map.size.y - 82 or rect.position.x < 12 or rect.end.x > map.size.x - 12:
 			continue
 		var overlaps := false
@@ -89,8 +90,8 @@ static func draw(canvas: Control, map: WorldMap) -> void:
 			color = Color("a5d1a8")
 		elif kind == 3:
 			color = Color("739daf")
-		var baseline := point + Vector2(-text_size.x * 0.5, font_size * 0.35)
+		var baseline := label_point + Vector2(-text_size.x * 0.5, font_size * 0.35)
 		canvas.draw_string_outline(font, baseline, place[0], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 4, Color("192c36"))
 		canvas.draw_string(font, baseline, place[0], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 		if kind == 4:
-			canvas.draw_circle(point + Vector2(0, -14), 3, color)
+			canvas.draw_circle(point, 3, color)

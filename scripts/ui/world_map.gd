@@ -115,7 +115,7 @@ func close(by_pointer := false) -> void:
 
 func recenter() -> void:
 	_stop_zoom()
-	pixels_per_meter = 0.45
+	pixels_per_meter = 0.35
 	world_center = Vector2(radar.world_center.x, radar.world_center.z)
 
 
@@ -271,7 +271,7 @@ func draw_overlay(canvas: Control) -> void:
 	canvas.draw_rect(Rect2(0, 0, size.x, _header_height()), Color("101c26"))
 	canvas.draw_rect(Rect2(0, size.y - 42, size.x, 42), Color("101c26"))
 	canvas.draw_string(font, Vector2(20, 36), "NEW YORK", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("ffdc86"))
-	var hint := "N ↑   ·   FIVE BOROUGHS   ·   Drag to explore · Click to pin" if size.x >= 650 else "N ↑ · FIVE BOROUGHS · Drag / pinch / tap"
+	var hint := "NORTH UP   ·   FIVE BOROUGHS   ·   Drag to explore · Click to pin" if size.x >= 650 else "N UP · FIVE BOROUGHS · Drag / pinch / tap"
 	canvas.draw_string(font, Vector2(20, _header_height() - 10), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("b4c5d2"))
 	var text := "Tap to set waypoint" if size.x < 650 else "Click to set waypoint · Wheel / + − to zoom"
 	if radar.waypoint_active:
