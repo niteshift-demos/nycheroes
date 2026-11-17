@@ -135,7 +135,10 @@ func _process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
-	if event is InputEventKey:
+	if event is InputEventJoypadButton and event.is_action_pressed(&"ui_cancel"):
+		close()
+		get_viewport().set_input_as_handled()
+	elif event is InputEventKey:
 		if event.pressed and not event.echo:
 			if event.is_action_pressed(&"world_map") or event.keycode == KEY_ESCAPE:
 				close()
