@@ -84,8 +84,6 @@ func advance(delta: float, position: Vector3) -> int:
 						return 0
 					vehicle.fleeing = step.kind == "chase"
 					vehicle.ai_controlled = vehicle.fleeing
-					if vehicle.fleeing:
-						vehicle.remove_from_group("drive_cars")
 					targets.append(vehicle)
 				_spawned = true
 			if not _spawned:

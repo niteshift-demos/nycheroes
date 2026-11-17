@@ -107,6 +107,10 @@ what is downloaded from where.
 
 ## Sounds
 
+The tyre screech loop and car crash sound are original procedural synthesis
+by NYC Heroes in `tools/audio/build_sounds.py` (CC0 1.0, public domain); the driven
+car engine reuses the credited AndrewAlexander recording below.
+
 Every sound is either synthesized for the game or cut from recordings
 dedicated to the public domain under Creative Commons 0 (CC0 1.0, which
 asks for no credit; they're listed anyway). `tools/audio/build_sounds.py`

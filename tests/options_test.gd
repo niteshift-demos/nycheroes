@@ -254,7 +254,7 @@ func _check_menu() -> void:
 	await _press(KEY_O)
 	_check(not _options.visible and not get_tree().paused and _input.enabled, "O again closes it and the game goes on")
 	await _press(KEY_ESCAPE)
-	_check(_options.visible, "Esc opens it too (desktop builds)")
+	_check(_world.pause_menu.visible and get_tree().paused and not _options.visible, "Esc opens pause with Options still reachable")
 	await _press(KEY_M)
 	_check(_coop.visible and not _options.visible and not get_tree().paused and not _input.enabled,
 		"M swaps it for the co-op menu (one menu at a time, not paused)")

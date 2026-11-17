@@ -429,7 +429,22 @@ def rubble(synth: Synth, seconds, grains, rate=RATE):
     return out[:n]
 
 
+def make_car_sounds(ffmpeg: str) -> None:
+    """Original deterministic tyre friction loop and a short metal/glass impact."""
+    s = Synth(83)
+    t = np.arange(RATE * 2) / RATE
+    hiss = s.noise(2.0, lambda t, f: band(f, 2100, 0.8), loop=True)
+    squeal = np.sin(2 * np.pi * 870 * t + 3 * np.sin(2 * np.pi * 13 * t))
+    write("tyre_screech", normalize(0.6 * squeal + normalize(hiss) * 0.4, -15), RATE, 3, ffmpeg)
+    t = np.arange(int(RATE * 0.8)) / RATE
+    noise = s.noise(0.8, lambda t, f: band(f, 1700, 2.0))
+    metal = np.sin(2 * np.pi * 187 * t) + 0.5 * np.sin(2 * np.pi * 431 * t)
+    impact = (normalize(noise) + 0.3 * metal) * np.exp(-t * 9)
+    write("car_crash", fades(normalize(impact, -7), RATE, 0.002, 0.08), RATE, 4, ffmpeg)
+
+
 def make_synth(ffmpeg: str) -> None:
+    make_car_sounds(ffmpeg)
     s = Synth(7)
     sounds = {}
     for i, (seconds, peak, low, high) in enumerate([(0.22, 0.08, 700, 2100), (0.2, 0.07, 800, 2400),

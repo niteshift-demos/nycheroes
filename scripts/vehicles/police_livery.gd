@@ -57,6 +57,13 @@ func _process(delta: float) -> void:
 	if _wait > 0.0:
 		return
 	_wait = 0.16
+	var car := get_parent() as DriveVehicle
+	if car and car.health <= 0.0:
+		_red.emission_energy_multiplier = 0.0
+		_blue.emission_energy_multiplier = 0.0
+		_red.albedo_color = Color(0.05, 0.02, 0.02)
+		_blue.albedo_color = Color(0.02, 0.02, 0.05)
+		return
 	_flash = not _flash
 	_red.emission_energy_multiplier = 4.0 if _flash else 0.0
 	_blue.emission_energy_multiplier = 0.0 if _flash else 4.0

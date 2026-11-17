@@ -582,7 +582,7 @@ func receive_police_cars(fleet: Array, sender: int) -> void:
 		if car.puppet and car.run_by == sender:
 			copies[car.net_id] = car
 	for data: Array in fleet.slice(0, 6):
-		if data.size() != 9:
+		if data.size() not in [9, 13]:
 			continue
 		var id := int(data[0])
 		var car: PoliceCar = copies.get(id)

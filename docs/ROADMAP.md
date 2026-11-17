@@ -2330,6 +2330,14 @@ deployed); in a computer's browser the co-op menu links to it.
   boss descriptions, floating origin, chapter unlocks and persisted completion.
   Rewards run from $10,000 to $50,000. No tile rebuild is needed.
 
+- [Cohesive HUD, pause and onboarding](HUD.md): radar health, wanted/cash,
+  bottom-centre objectives, top-left toasts and shared result banners with a
+  cheap neutral overlay and generated stinger. Esc/P/Start and the touch gear
+  open a navigable pause menu with map, contracts, persisted stats, Options
+  and Co-op, plus read-only owned upgrade tiers in Stats. Nearby services
+  share the HUD marker limits and panel style. First-visit title and contextual lessons; `?tutorial=reset`
+  restarts just onboarding. `hud_test.tscn` checks pause ownership, menu focus,
+  stats, lesson persistence and bindings. No new assets or tiles needed.
 - [Shops, upgrades and safehouses](SHOPS.md): three Hero Supply locations,
   six saved three-tier upgrades, two Precinct Payoff garages and two apartment
   recovery points with eight-hour sleep. Radar icons and entry panels support
@@ -2352,6 +2360,14 @@ deployed); in a computer's browser the co-op menu links to it.
   and floating-origin shifts. `test_map_image.py` checks the offline bake
   decoder and layers on synthetic data. Rebuild the committed atlas with
   `tools/citygen/map_image.py`; no new gameplay tiles needed.
+- Solid traffic collisions, superpowered car shoves, damage/smoke/fire and
+  timed explosions, engine and tyre audio, seated driving animation, body
+  weight transfer, reverse camera and contextual takeover hints. Nearby car
+  collision queries use a world-space grid and swept footprints; wrecks
+  retain the existing traffic braking path. `?car=1&car_crash=1` adds the
+  repeatable crash fixture described in DRIVING.md.
+  Garage armor reduces occupied-car damage; paid resprays repair damage and
+  cancel fires, covered alongside driver armor in `shops_test`.
 - Driving and car hijacking: [DRIVING.md](DRIVING.md), including controls,
   physical cars, chase camera, co-op snapshots, crime hooks and current limits.
   Run `res://tests/drive_test.tscn`; `?car=1` places a starter sedan by the hero.
@@ -2546,7 +2562,8 @@ deployed); in a computer's browser the co-op menu links to it.
   3 s. Co-op relay: TURN key "nycheroes-coop" in the Worker secrets
   `TURN_KEY_ID` / `TURN_KEY_API_TOKEN` (for `wrangler dev`, in
   `tools/cloudflare/.dev.vars`, gitignored); $0.05/GB after 1,000 GB free.
-- Tests (headless): `godot --headless --path . res://tests/hero_moves_test.tscn`,
+- Tests (headless): `godot --headless --path . res://tests/hud_test.tscn`
+  (pause navigation, stats/tutorial persistence and menu bindings), `godot --headless --path . res://tests/hero_moves_test.tscn`,
   `res://tests/radar_test.tscn` (synthetic blips, map coordinates, waypoints,
   tile unloads and floating origin),
   `res://tests/combat_test.tscn`, `res://tests/wanted_test.tscn` (witnessed
@@ -2570,7 +2587,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and
-  `res://tests/drive_test.tscn` (synthetic car hijack, driving, exit,
+  `res://tests/drive_test.tscn` (synthetic car hijack, driving, exit, traffic crashes,
+  damage/explosion/driver injury, contextual hints, query cost,
   co-op appearance and origin shift) and `res://tests/traffic_test.tscn` (75 s of
   midtown traffic: no red light run, no overlaps, cars stop for the hero,
   and leave with their tiles) and `res://tests/trains_test.tscn` (the 7 at
@@ -2590,7 +2608,7 @@ deployed); in a computer's browser the co-op menu links to it.
   ([shops](SHOPS.md)), `?shop_check=garage` seeds three stars on garage entry
   for web QA, `?stats` the stats text
   (also on phones) and console stats, `?quality=low|medium|high`,
-  `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
+  `?tutorial=reset` resets first-run title and lessons, `?radar=0` hides the radar, `?radar_profile=1` logs radar CPU update cost,
   `?police=0` disables wanted levels and police, `?wanted=N` starts with
   0–5 stars for testing, `?police_profile=1` logs patrol decision cost, `?mute=1|0`, `?touch=1|0`, `?time=HH:MM`, `?car=1` (starter sedan), `?peds=N`, `?gangs=N`, `?traffic=N`, `?trains=N` (0: none), `?demo` / `?demo=fight` / `?demo=city` / `?demo=new` scripted tours for videos,
   `?host` / `?join=CODE` co-op (a private game), `?solo=1` play alone (no

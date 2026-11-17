@@ -119,8 +119,20 @@ func _physics_process(delta: float) -> void:
 		(get_mode(&"Drive") as DriveMode).interact()
 	input.interact_pressed = false
 
+	if mode.name != &"Drive":
+		for flow: Traffic in get_tree().get_nodes_in_group("traffic"):
+			flow.solidify_sweep(global_position, velocity * delta, Vector3(0.7, 0.7, 1.8), facing)
+	var incoming := velocity
 	var fall_speed := -velocity.y
 	var next := mode.physics_update(delta)
+	if mode.name != &"Drive" and incoming.length() > 8.0:
+		for i in get_slide_collision_count():
+			var hit := get_slide_collision(i)
+			var car := hit.get_collider() as DriveVehicle
+			if car:
+				var closing := maxf(0.0, -incoming.dot(hit.get_normal()))
+				if closing > 8.0:
+					car.take_hit(closing, incoming * 0.6 + Vector3.UP * 3.0)
 	input.fly_toggle_pressed = false
 	if next != &"" and next != mode.name:
 		set_mode(next)

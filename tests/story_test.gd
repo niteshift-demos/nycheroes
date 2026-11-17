@@ -75,6 +75,19 @@ func _run() -> void:
 		and radar.blips[&"mission/giver/story_01"].color == Color.GOLD
 		and not radar.blips.has(&"mission/giver/story_02"), "only the unlocked story has a gold S radar blip")
 	check(not director.start_mission(chapters[1]), "locked chapter cannot start")
+	var menu := PauseMenu.new()
+	menu.missions = director
+	menu.wallet = wallet
+	menu.radar = radar
+	menu.stats = PlayerStats.new()
+	menu.add_child(menu.stats)
+	add_child(menu)
+	menu.show_page("missions")
+	check(menu.mission_status(chapters[0]) == "AVAILABLE" and menu.mission_status(chapters[1]) == "LOCKED",
+		"pause menu uses saved chapter locks rather than contract replay status")
+	check((menu._content.get_child(0) as Label).text.begins_with("THE BORROWED SKYLINE")
+		and not (menu._content.get_child(2) as Button).disabled and (menu._content.get_child(4) as Button).disabled,
+		"Missions page shows story progress first and disables locked chapter waypoints")
 	var position := Vector3(0, 0, 30)
 	begin(Mission.drive_to(position, "Drive", 4))
 	director.advance(0.1, position)
@@ -110,7 +123,7 @@ func _run() -> void:
 	begin(Mission.chase(Vector3.ZERO, "Chase"))
 	director.advance(0.1, Vector3.ZERO)
 	var van := director.story_objectives.targets[0]
-	check(van.fleeing and not van.is_in_group("drive_cars"), "fleeing target uses DriveVehicle and cannot be hijacked before disabling")
+	check(van.fleeing and van.ai_controlled and van.is_in_group("drive_cars"), "fleeing target uses the shared car damage group and AI blocks hijacking")
 	van._choose_lane()
 	await get_tree().physics_frame
 	await get_tree().physics_frame
@@ -231,6 +244,19 @@ func _run() -> void:
 			check(director.phone_lines.is_empty(), "phone Skip dismisses the call")
 		director.finish(true)
 		if chapter.chapter == 1:
+			check(menu.mission_status(chapters[0]) == "PASSED" and menu.mission_status(chapters[1]) == "AVAILABLE",
+				"passing a story chapter unlocks the next Missions-page entry")
+			var display := GameHud.new()
+			display.process_mode = Node.PROCESS_MODE_DISABLED
+			display.visible = false
+			display.hero = hero
+			display.missions = director
+			add_child(display)
+			display._process(0.1)
+			check(display.banner_title == "MISSION PASSED" and display.banner_detail.contains("10,000"),
+				"story completion uses the shared HUD result banner")
+			display.free()
+			menu.free()
 			check(radar.blips.has(&"mission/giver/story_02") and not radar.blips.has(&"mission/giver/story_01"), "finishing a chapter replaces its S giver with the next one")
 		var saved := StoryCampaign.new()
 		check(saved.completed == chapter.chapter, "chapter %d saved immediately" % chapter.chapter)

@@ -43,15 +43,20 @@ Windows and Mac versions are on the site's download page.
 | Toggle flight | F | Y |
 | Web | E or right mouse | Right trigger |
 | Attack | Left mouse | X |
-| Enter / exit nearby car | G | R3 (right stick click) |
+| Enter available car within 3.5 m / exit (G hint appears in reach) | G | R3 (right stick click) |
 | Drive / steer; brake then reverse | WASD | Left stick |
-| Handbrake while driving | Space | A |
+| Handbrake / drift while driving | Space | A |
 | Co-op menu | M | |
 | Map / waypoint | Comma (`,`); drag to pan, wheel or +/− to zoom, click to pin | |
-| Hero and options | O or Esc | |
+| Pause / missions / stats | Esc or P | Start |
+| Hero and options | O (also in pause) | Via pause |
 | Time of day | T | |
+| Toggle sound | N | |
 
-Phones and tablets get touch controls. Tap the radar to open the map; drag
+New players get a title card and contextual tips. Pause → Skip tutorial skips
+the tips; `?tutorial=reset` shows them again. See [HUD and pause](docs/HUD.md).
+
+Phones and tablets get touch controls. The gear opens pause. Tap the radar to open the map; drag
 to pan, use +/− to zoom, and tap a street to set a waypoint.
 
 ## Running it locally
@@ -94,7 +99,8 @@ Add them to the URL (`?quality=low&time=21:00`) or, on desktop, after
 `?peds=N`, `?traffic=N`, `?gangs=N`, `?solo=1`, `?host`, `?join=CODE`,
 `?stats`, `?mission=<id>`, `?cash=N` ([missions](docs/MISSIONS.md)),
 `?story=1`–`12` or `?story=reset` ([campaign](docs/STORY.md)),
-`?upgrades=reset` ([shops](docs/SHOPS.md)), `?radar=0` (hide the radar). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
+`?upgrades=reset` ([shops](docs/SHOPS.md)), `?radar=0` (hide the radar),
+`?tutorial=reset` (restart onboarding). The full list is in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Tests
 

@@ -96,6 +96,8 @@ func _run() -> void:
 	hero.health = 175
 	hero.take_hit(35, Vector3.ZERO)
 	_check(hero.health == 155, "car armor reduces incoming driver damage")
+	car.take_hit(35.0, Vector3.ZERO)
+	_check(car.health == 80.0, "car armor also reduces damage to the occupied car")
 	shops.active = CityShops._location("garage", "Garage", &"garage", Vector3.ZERO)
 	wanted.set_stars(3)
 	var officer: PoliceOfficer = load("res://scenes/npc/police_officer.tscn").instantiate()
@@ -115,7 +117,11 @@ func _run() -> void:
 	_check(shops.respray().contains("see you") and wallet.balance == before, "patrol car sight also blocks respray")
 	patrol.global_position = Vector3(0, 0, 500)
 	var paint := car.paint
+	car.take_hit(200.0, Vector3.ZERO)
+	_check(car.burn_time > 0.0, "damaged car is burning before paid respray")
 	_check(shops.respray().contains("Wanted cleared") and wanted.stars == 0 and wallet.balance == before - 1500 and car.paint != paint, "unseen respray charges $500 per star, changes paint and clears wanted")
+	_check(car.health == 100.0 and car.burn_time == 0.0 and not car.exploded, "respray repairs damage and cancels the fire countdown")
+	_check(is_zero_approx(float(car._material.get_shader_parameter("damage_amount"))), "fresh paint has no old damage tint")
 	_check(wanted.pursuit.cars.is_empty(), "paid garage removes the patrol response immediately")
 	_check(shops.respray().contains("No wanted") and wallet.balance == before - 1500, "repeat respray cannot charge after stars clear")
 	wanted.set_stars(5)

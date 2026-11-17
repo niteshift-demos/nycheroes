@@ -42,6 +42,10 @@
 shader_type spatial;
 render_mode ambient_light_disabled, skip_vertex_transform;
 
+// Physical cars use their own material; ordinary traffic leaves these at zero.
+uniform float damage_amount = 0.0;
+uniform vec2 body_tilt = vec2(0.0);
+
 #include "res://shaders/patterns.gdshaderinc"
 #include "res://shaders/toon.gdshaderinc"
 
@@ -308,6 +312,11 @@ void vertex() {
 		vec3 scale = vec3(stretch, length(MODEL_MATRIX[1].xyz) / size.y, stretch);
 		v *= scale * shown;
 		n /= scale;
+		if (part != SHADOW) {
+			// Small suspension angles are applied once, with matching normals.
+			v = vec3(v.x + body_tilt.x * v.y, v.y - body_tilt.x * v.x - body_tilt.y * v.z, v.z + body_tilt.y * v.y);
+			n = vec3(n.x + body_tilt.x * n.y, n.y - body_tilt.x * n.x - body_tilt.y * n.z, n.z + body_tilt.y * n.y);
+		}
 		float yaw = INSTANCE_CUSTOM.x;
 		float c = cos(yaw);
 		float s = sin(yaw);
@@ -649,6 +658,8 @@ void fragment() {
 			color = mix(color, srgb(GLASS_SKY), 0.12 * smoothstep(0.6, 0.95, world_normal.y));
 		}
 
+		color *= 1.0 - damage_amount * 0.82;
+		glow *= 1.0 - damage_amount;
 		ALBEDO = toon_night_albedo(color);
 		EMISSION = ALBEDO * toon_ambient(world_normal, occlusion) + glow;
 		toon_glint = glint;

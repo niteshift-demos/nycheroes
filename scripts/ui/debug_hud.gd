@@ -1,8 +1,8 @@
 class_name DebugHud
 extends Label
 ## Debug overlay: frame rate, hero (or free camera) status and position, the
-## time of day, tile streaming, and controls. Shown on computers and hidden
-## on phones and tablets unless the options menu's "Show FPS and stats" says
+## time of day, tile streaming, and controls. Hidden unless
+## the options menu's "Show FPS and stats" says
 ## otherwise (Settings "show_stats"); ?stats (--stats on desktop) shows it
 ## for the session and also logs it to the console. It keeps counting while
 ## the options menu pauses the game (to see what a preset does).
@@ -12,7 +12,7 @@ const ORIGIN_LON := -73.9855
 const METERS_PER_DEGREE := 111320.0
 const REFRESH_INTERVAL := 0.25
 const LOG_INTERVAL := 2.0
-const HERO_HELP := "WASD move  ·  Left mouse punch (in the air: dive)  ·  Space jump (hold: super jump)  ·  Shift super speed  ·  F fly (Space/C up/down)  ·  E / right mouse web  ·  M co-op  ·  O options  ·  T time of day  ·  N mute  ·  F1 free camera"
+const HERO_HELP := "WASD move  ·  Left mouse punch (in the air: dive)  ·  Space jump (hold: super jump)  ·  Shift super speed  ·  F fly (Space/C up/down)  ·  E / right mouse web  ·  G car  ·  Comma map  ·  P pause  ·  M co-op  ·  O options  ·  T time of day  ·  N mute  ·  F1 free camera"
 const FREE_CAMERA_HELP := "Free camera: WASD move  ·  Space/C up/down  ·  Shift boost  ·  Wheel speed  ·  O options  ·  T time of day  ·  N mute  ·  F1 back to hero"
 
 @export var city: CityStreamer
@@ -32,9 +32,9 @@ func _ready() -> void:
 
 
 ## Whether it's shown at the start: ?stats, else the options menu's choice
-## (computers yes, phones and tablets no).
+## (off by default on every device).
 static func wanted() -> bool:
-	return LaunchOptions.has("stats") or bool(Settings.get_value("show_stats", not Device.is_mobile()))
+	return LaunchOptions.has("stats") or bool(Settings.get_value("show_stats", false))
 
 
 func _process(delta: float) -> void:

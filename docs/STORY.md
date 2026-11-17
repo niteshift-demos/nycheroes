@@ -13,7 +13,13 @@ written for this game.
 
 Walk into the **gold S** to start the next chapter. Purple contracts remain
 available. One story giver is available at a time; completing it unlocks the
-next. Completed chapters persist in Settings (`story_completed_v1`, 0–12),
+next. Pause → Missions lists all twelve chapters with ACTIVE / PASSED / AVAILABLE /
+LOCKED status, saved campaign progress, and waypoints only for the active or
+next available story chapter. Story objectives use the shared bottom-centre
+subtitle HUD and results use its MISSION PASSED / FAILED banners. Phone calls
+use the shared panel, button and font theme above the objective area.
+
+Completed chapters persist in Settings (`story_completed_v1`, 0–12),
 including the web's immediate localStorage mirror. An interrupted chapter
 restarts at its giver; intermediate steps are not saved. Ordinary completed
 chapters cannot be retried for another reward. Failure or Abandon does not
@@ -90,7 +96,8 @@ All positions are absolute world meters. Constructors live in `Mission`:
 - `chase(position, text)`: stop a fleeing relay van in 150 seconds. Its
   physical `DriveVehicle` follows loaded traffic lanes with a plain
   `HeroInput`, steering and reversing when stuck. Ram it or damage it with
-  punches, speed rams or a damaging slam. It has 160 relay health. A target
+  punches, speed rams or a damaging slam. It has 160 relay health, backed by the shared chassis damage, fire and
+  explosion path. Physical rams, punches, slams and wrecks all stop the relay. A target
   more than 350 m away for eight seconds fails; missing targets never win.
 - `escape_wanted(position, stars, text)`: raises the real Wanted pursuit to
   at least that many stars and requires that many to decay. Ordinary crimes
@@ -115,8 +122,8 @@ All positions are absolute world meters. Constructors live in `Mission`:
 Mission-owned actors, rings and standing protection waves are removed on
 finish, failure and abandon. A successfully acquired, occupied car survives
 its theft step. Moving targets use the ordinary floating-origin group.
-Only damaging hero attacks affect relay cars; NPC collisions do not report
-crimes against the local player.
+Relay damage uses the shared vehicle crash/punch/blast API; criminal-driver
+impacts do not report crimes against the local player.
 
 ## Co-op and limits
 

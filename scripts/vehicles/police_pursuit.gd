@@ -159,7 +159,7 @@ func spawn(at: Vector3, yaw: float, block := false) -> PoliceCar:
 
 func think(car: PoliceCar, delta: float) -> void:
 	var hero := wanted.hero
-	if car.driver or car.deployed:
+	if car.driver or car.deployed or car.health <= 0.0:
 		return
 	var at := WorldOrigin.to_world(car.global_position)
 	var distance := at.distance_to(hero.world_position())

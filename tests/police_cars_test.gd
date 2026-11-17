@@ -134,6 +134,7 @@ func _run() -> void:
 		pursuit.think(rammer, 1.0 / 60.0)
 		await get_tree().physics_frame
 	_check(player_car.global_position.distance_to(before_ram) > 1.0, "patrol physically rams occupied suspect car")
+	_check(not rammer._hero_damage, "AI ramming a passive driver does not blame the hero")
 	rammer.queue_free()
 	pursuit.cars.clear()
 	player_car.global_position = Vector3.ZERO
@@ -153,6 +154,7 @@ func _run() -> void:
 	pursuit.advance(0.2)
 	await _ticks(2)
 	_check(pursuit.cars.is_empty(), "cleared wanted level removes police response")
+	await _damage_checks(hero, pursuit)
 	await _network_fleet(hero, city, desc)
 	print("police_cars_test: %d failure(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -210,9 +212,10 @@ func _network_fleet(hero: Hero, city: CityStreamer, data: Array) -> void:
 	var copies := receive.get_children().filter(func(node: Node) -> bool: return node is PoliceCar)
 	_check(copies.size() == 1 and copies[0].puppet and copies[0].suspect_id == int(data[4]), "real ENet RPC creates suspect-owned patrol copy")
 	data[1] = Vector3(36, 0, 0)
+	data[9] = 35.0
 	send._police_car_states.rpc_id(peer, [data])
 	await get_tree().create_timer(0.5).timeout
-	_check(copies.size() == 1 and copies[0].global_position.distance_to(Vector3(36, 0, 0)) < 0.1, "real ENet patrol snapshots move remote car")
+	_check(copies.size() == 1 and copies[0].global_position.distance_to(Vector3(36, 0, 0)) < 0.1 and copies[0].health == 35.0, "real ENet patrol snapshots move remote car and carry damage")
 	send._police_car_states.rpc_id(peer, [])
 	await get_tree().create_timer(0.2).timeout
 	_check(receive.get_child_count() == 0, "real ENet empty fleet removes remote car")
@@ -220,3 +223,25 @@ func _network_fleet(hero: Hero, city: CityStreamer, data: Array) -> void:
 	client_peer.close()
 	server_root.queue_free()
 	client_root.queue_free()
+
+
+## AI accidents still hurt bystanders, but cannot invent crimes by the hero.
+func _damage_checks(hero: Hero, pursuit: PolicePursuit) -> void:
+	var patrol := pursuit.spawn(Vector3(30, 0.1, 0), 0.0)
+	var witness: Pedestrian = load("res://scenes/npc/pedestrian.tscn").instantiate()
+	witness.hero = hero
+	add_child(witness)
+	witness.set_process(false)
+	witness.global_position = Vector3(34, 0, 0)
+	witness.world_position = witness.global_position
+	_crime_severity = 0.0
+	patrol.take_hit(200.0, Vector3.ZERO, false)
+	_check(patrol.health == 0.0 and patrol.burn_time > 0.0, "patrol uses shared fire countdown after heavy damage")
+	await get_tree().create_timer(3.2).timeout
+	_check(patrol.exploded and not patrol.ai_controlled, "exploded patrol stops AI driving and remains a wreck")
+	_check(witness.is_knocked_down() and _crime_severity == 0.0, "AI explosion hurts bystanders without blaming hero")
+	var description := patrol.description()
+	_check(description.size() == 13 and description[9] == 0.0 and description[12], "fleet snapshot includes destroyed patrol state")
+	patrol.queue_free()
+	witness.queue_free()
+	pursuit.cars.clear()

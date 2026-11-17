@@ -9,7 +9,6 @@ var fleeing := false
 var city: CityStreamer
 var _path := PackedVector3Array()
 var _point := 1
-var _impact_wait := 0.0
 var _stuck := 0.0
 var _label: Label3D
 
@@ -17,7 +16,6 @@ var _label: Label3D
 func _ready() -> void:
 	ai_controlled = fleeing
 	super._ready()
-	Combat.area_hit.connect(_on_area_hit)
 	_label = Label3D.new()
 	_label.text = "LEDGER VAN" if fleeing else "RELAY"
 	_label.font_size = 40
@@ -25,22 +23,12 @@ func _ready() -> void:
 	_label.position.y = 3.4
 	_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	add_child(_label)
-	if fleeing:
-		remove_from_group("drive_cars")  # Disable takeover until the relay is stopped.
 
 
 func _physics_process(delta: float) -> void:
 	if relay_health <= 0.0 or driver:
 		super._physics_process(delta)
 		return
-	_impact_wait = maxf(0.0, _impact_wait - delta)
-	for car: DriveVehicle in get_tree().get_nodes_in_group("drive_cars"):
-		if car == self or car.global_position.distance_to(global_position) > 4.5:
-			continue
-		var impact := (car.velocity - velocity).length()
-		if impact > 4.0 and _impact_wait <= 0.0:
-			damage(impact * 7.0)
-			_impact_wait = 0.8
 	if fleeing and city:
 		if not city.has_collision_at(WorldOrigin.to_world(global_position)):
 			return
@@ -50,21 +38,24 @@ func _physics_process(delta: float) -> void:
 	_label.text = ("LEDGER VAN" if fleeing else "RELAY") + "  %d%%" % maxi(0, ceili(relay_health / 160.0 * 100.0))
 
 
-func damage(amount: float) -> void:
+## The shared crash/punch/blast path owns all damage. A reinforced chassis
+## converts the normal 100 health into 160 mission relay health.
+func take_hit(amount: float, push: Vector3, blame_hero := true) -> void:
+	super.take_hit(amount * 0.625, push, blame_hero)
 	relay_health = maxf(0.0, relay_health - maxf(0.0, amount))
+	if health <= 0.0 or exploded:
+		relay_health = 0.0
 	if relay_health <= 0.0:
 		fleeing = false
 		ai_controlled = false
 		velocity *= 0.15
 		_label.text = "RELAY DISABLED"
 		_label.modulate = Color.GRAY
-		if not is_in_group("drive_cars"):
-			add_to_group("drive_cars")
 
 
-func _on_area_hit(center: Vector3, radius: float, amount: float) -> void:
-	if WorldOrigin.to_world(global_position + Vector3.UP).distance_to(center) < radius + 2.0:
-		damage(amount)
+## Explicit relay damage also goes through the shared chassis path.
+func damage(amount: float) -> void:
+	take_hit(amount, Vector3.ZERO, false)
 
 
 func _follow_lane(delta: float) -> void:

@@ -64,7 +64,7 @@ func _ready() -> void:
 	hero.wanted_searching = true
 	var sync := PlayerSync.new()
 	var state := sync._encode(hero)
-	_check(state.size() == 18 and state[4] == 6 and state[15] == car.model and state[16] == car.paint, "snapshot carries driving model and paint")
+	_check(state.size() == 21 and state[4] == 6 and state[15] == car.model and state[16] == car.paint, "snapshot carries driving model and paint")
 	_check(state[13] == 3 and state[14] == true, "driving snapshot preserves wanted fields")
 	var remote: Hero = load("res://scenes/hero/hero.tscn").instantiate()
 	remote.remote_id = 2
@@ -150,6 +150,7 @@ func _ready() -> void:
 	var wall_at := WorldOrigin.to_world(car.global_position)
 	print("wall slide position: ", wall_at, " velocity: ", car.velocity)
 	_check(wall_at.x < 4.5 and wall_at.z > 5.0, "car hits wall and slides along it")
+	await _car_feel(hero, traffic, lane)
 	print("DRIVE TEST: %s" % ("PASS" if _failures == 0 else "FAIL (%d)" % _failures))
 	get_tree().quit(0 if _failures == 0 else 1)
 
@@ -163,3 +164,124 @@ func _check(ok: bool, label: String) -> void:
 	print("%s: %s" % ["PASS" if ok else "FAIL", label])
 	if not ok:
 		_failures += 1
+
+
+func _car_feel(hero: Hero, traffic: Traffic, lane: TrafficLanes.Lane) -> void:
+	hero.set_mode(&"OnFoot")
+	hero.input.stick = Vector2.ZERO
+	for old: DriveVehicle in get_tree().get_nodes_in_group("drive_cars"):
+		old.queue_free()
+	await _ticks(2)
+	hero.global_position = WorldOrigin.to_local(Vector3(30, 0.1, 0))
+	var drive := hero.get_mode(&"Drive") as DriveMode
+	_check(not drive.can_take_car(), "no take-car hint without a reachable car")
+	traffic._add_car(lane, 112.35, 0, Vector3(0, 0, 10), 0, 100, false)
+	traffic._v[0] = 0.0
+	hero.global_position = WorldOrigin.to_local(Vector3(2, 0.1, 10))
+	_check(drive.can_take_car(), "nearby traffic enables take-car hint")
+	var car := DriveVehicle.new()
+	car.traffic = traffic
+	add_child(car)
+	car.global_position = WorldOrigin.to_local(Vector3(0, 0.1, 0))
+	drive.car = car
+	hero.set_mode(&"Drive")
+	car.velocity = Vector3(0, 0, 25)
+	hero.input.stick = Vector2(0, -1)
+	await _ticks(30)
+	_check(traffic.car_count == 0 and lane.cars.is_empty(), "crash promotes traffic and frees lane reservations")
+	_check(car.health < 100.0 and car.velocity.length() < 22.0, "solid traffic impact damages and slows player car")
+	var pushed: DriveVehicle
+	for other: DriveVehicle in get_tree().get_nodes_in_group("drive_cars"):
+		if other != car:
+			pushed = other
+	_check(pushed != null and pushed.global_position.z > WorldOrigin.to_local(Vector3(0, 0, 10)).z, "traffic wreck is pushed forward")
+	# Punch a fresh row and slam the resulting body through the real Combat API.
+	traffic._add_car(lane, 162.35, 0, Vector3(0, 0, 60), 0, 100, false)
+	Combat.strike(WorldOrigin.to_local(Vector3(0, 1, 60)), 2.0, 20.0, Vector3(12, 2, 0), true)
+	_check(traffic.car_count == 0, "super punch promotes a traffic row")
+	Combat.shockwave(WorldOrigin.to_local(Vector3(0, 0, 60)), 6.0, 20.0, 14.0)
+	# A witness outside blast range still makes an exploding car a crime.
+	var witness: Pedestrian = load("res://scenes/npc/pedestrian.tscn").instantiate()
+	witness.hero = hero
+	add_child(witness)
+	witness.set_process(false)
+	witness.global_position = car.global_position + Vector3(15, 0, 0)
+	witness.world_position = WorldOrigin.to_world(witness.global_position)
+	hero.input.stick = Vector2.ZERO
+	hero.input.jump_held = true
+	var before_health := hero.health
+	car.take_hit(200.0, Vector3.ZERO)
+	_check(car.burn_time > 0.0 and not car.exploded, "zero health starts escape countdown")
+	await get_tree().create_timer(3.3).timeout
+	_check(car.exploded and car.health == 0.0 and car.collision_layer == DriveVehicle.LAYER, "fire leaves a solid burned wreck")
+	_check(hero.health < before_health and hero.mode.name != &"Drive", "explosion hurts and ejects seated driver")
+	_check(_crimes.has(&"car_explosion"), "explosion near pedestrian reports crime")
+	hero.global_position = car.global_position + Vector3(2, 0, 0)
+	if pushed:
+		pushed.queue_free()
+	await _ticks(2)
+	_check(not drive.can_take_car(), "burned wreck cannot be taken")
+	witness.queue_free()
+	# Queries stay local and exclude a car on the bridge above the sweep.
+	_check(not DriveVehicle.swept_overlap(Vector3.ZERO, Vector3(0, 0, 100), Vector3(4.7, 1.8, 1.5), 0, Vector3(0, 10, 50), Vector3(4.7, 1.8, 1.5), 0), "sweep ignores traffic on another elevation")
+	_check(DriveVehicle.swept_overlap(Vector3.ZERO, Vector3(0, 0, 100), Vector3(0.7, 0.7, 1.8), 0, Vector3(0, 0, 50), Vector3(4.7, 1.8, 1.5), PI / 4), "fast hero sweep catches angled traffic between ticks")
+	# Exercise the hero's actual move_and_slide path, beyond the pure sweep test.
+	for old: DriveVehicle in get_tree().get_nodes_in_group("drive_cars"):
+		old.queue_free()
+	await _ticks(2)
+	hero.input.clear()
+	hero.hurt_time = 0.0
+	hero.global_position = WorldOrigin.to_local(Vector3(0, 0.1, 72))
+	hero.velocity = Vector3(0, 0, 40)
+	hero.input.move = Vector3(0, 0, 1)
+	hero.input.sprint_held = true
+	traffic._add_car(lane, 182.35, 0, Vector3(0, 0, 80), 0, 100, false)
+	traffic._v[0] = 0.0
+	await _ticks(20)
+	_check(traffic.car_count == 0, "sprinting hero makes traffic solid before contact")
+	var rammed := get_tree().get_first_node_in_group("drive_cars") as DriveVehicle
+	_check(rammed != null and rammed.health < 100.0, "hero body impact shoves and damages the car")
+	hero.input.clear()
+	hero.frozen = true
+	await _ramp_check(hero)
+	traffic._setup_slots(180)
+	for i in 180:
+		traffic._add_car(lane, 90.0, 0, Vector3(6 + (i % 10) * 20, 0, 6 + (i / 10) * 20), 0, 100, false)
+	var started := Time.get_ticks_usec()
+	for i in 1000:
+		traffic.solidify_sweep(WorldOrigin.to_local(Vector3.ZERO), Vector3(0, 0, 0.5), Vector3(4.7, 1.8, 1.5), 0.0)
+	var query_ms := (Time.get_ticks_usec() - started) / 1000000.0
+	print("Traffic query average ms: ", query_ms)
+	_check(query_ms < 0.2, "nearby traffic query stays below 0.2 ms")
+
+
+func _ramp_check(hero: Hero) -> void:
+	var ramp := StaticBody3D.new()
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(8, 0.4, 20)
+	shape.shape = box
+	ramp.add_child(shape)
+	add_child(ramp)
+	ramp.global_position = WorldOrigin.to_local(Vector3(-50, 1.5, 10))
+	ramp.rotation.x = -0.18
+	var car := DriveVehicle.new()
+	add_child(car)
+	car.global_position = WorldOrigin.to_local(Vector3(-50, 0.1, -6))
+	car.driver = hero
+	car.velocity = Vector3(0, 0, 22)
+	var controls := HeroInput.new()
+	controls.stick = Vector2(0, -1)
+	var launched := false
+	var landed := false
+	for i in 160:
+		await get_tree().physics_frame
+		car.drive(controls, 1.0 / 60.0)
+		if WorldOrigin.to_world(car.global_position).z > 17.0 and not car.is_on_floor() and car.velocity.y > 0.1:
+			launched = true
+		if launched and car.is_on_floor():
+			landed = true
+	_check(launched and landed, "car leaves a ramp crest and lands without sticking")
+	car.driver = null
+	car.queue_free()
+	ramp.queue_free()

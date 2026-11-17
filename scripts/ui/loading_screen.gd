@@ -12,7 +12,7 @@ extends Control
 const AFTER_LOAD_LIMIT := 6.0
 const FADE_TIME := 0.6
 const BACKGROUND := Color(0.05, 0.06, 0.09)
-const ACCENT := Color(0.85, 0.12, 0.12)
+const ACCENT := HudStyle.GOLD
 const TIPS: Array[String] = [
 	"Shift: super speed. Run into thugs to bowl them over.",
 	"Hold Space to charge a super jump.",
@@ -27,7 +27,7 @@ const TOUCH_TIPS: Array[String] = [
 	"The right side of the screen looks around.",
 	"Hold jump to charge a super jump.",
 	"The co-op button: play with everyone online, alone, or with friends.",
-	"The gear opens the options: graphics, sound, controls.",
+	"The gear opens pause: missions, stats and options.",
 ]
 const TIP_TIME := 5.0
 
