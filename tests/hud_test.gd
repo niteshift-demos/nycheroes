@@ -53,7 +53,9 @@ func _run() -> void:
 	OptionsPanel.add_action()
 	pause.open()
 	_check(pause.visible and get_tree().paused and get_viewport().gui_get_focus_owner() is Button, "pause freezes solo play and focuses Resume")
-	pause.show_page("missions")
+	(pause._content.get_child(3) as Button).pressed.emit()
+	await get_tree().process_frame
+	_check(pause._page == "missions", "mission button safely replaces its own page while emitting")
 	_check(pause._content.find_children("*", "Button", false, false).size() >= director.catalog.size() + 2, "all contracts have waypoint actions and side job is in menu")
 	pause.show_page("stats")
 	_check(pause._content.get_child(0).text.begins_with("Cash"), "stats includes current wallet")

@@ -120,7 +120,8 @@ func _input(event: InputEvent) -> void:
 func show_page(page: String) -> void:
 	_page = page
 	for child in _content.get_children():
-		child.free()
+		_content.remove_child(child)
+		child.queue_free()  # A pressed button may be the signal sender.
 	_scroll.scroll_vertical = 0
 	_heading.text = "NYC HEROES  /  " + ("PAUSED" if page == "home" and _paused_game else page.to_upper())
 	match page:
