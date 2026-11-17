@@ -51,7 +51,12 @@ func _policeofficer_timed_physics_process(delta: float) -> void:
 		hero = suspect
 		var at := WorldOrigin.to_world(global_position)
 		var chasing := state == State.CHASE or hero.wanted_searching
-		if recovery.advance(at, delta, chasing and global_position.distance_to(hero.global_position) > 5.0, _facing):
+		var reachable := absf(hero.global_position.y - global_position.y) < REACH_HEIGHT
+		var intent := _search_at - at if hero.wanted_searching else super._surround_velocity(reachable)
+		intent.y = 0.0
+		# A nearby wall can block a three-metre approach too. Use intended
+		# motion, so officers already at their surrounding spot stay still.
+		if recovery.advance(at, delta, chasing and intent.length_squared() > 0.25, _facing):
 			var toward := WorldOrigin.to_local(_search_at) - global_position if hero.wanted_searching else hero.global_position - global_position
 			toward.y = 0.0
 			var normal := -toward.normalized()

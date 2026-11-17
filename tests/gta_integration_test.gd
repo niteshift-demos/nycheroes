@@ -114,7 +114,9 @@ func _run() -> void:
 	check(not patrol.is_in_group("police_cars") and not wanted.pursuit.cars.has(patrol),
 		"burned patrol releases its fleet slot and police blip")
 	var officer := encounters.spawn_police(Vector3(30, 0, 0), hero, 3)
+	officer.disable_mode = CollisionObject3D.DISABLE_MODE_KEEP_ACTIVE
 	officer.process_mode = Node.PROCESS_MODE_DISABLED
+	await get_tree().physics_frame
 	officer.frozen = true
 	officer._physics_process(3.0)
 	check(officer.recovery.attempts == 0, "unloaded foot officer never runs recovery or pursuit physics")
@@ -122,6 +124,17 @@ func _run() -> void:
 	officer.state = Thug.State.CHASE
 	officer._physics_process(2.1)
 	check(officer.recovery.reverse_time > 0.0, "blocked officer starts a wall detour")
+	officer.recovery = AiRecovery.new()
+	officer.global_position = hero.global_position + Vector3(3, 0, 0)
+	officer.surround_angle = 0.0
+	officer.state = Thug.State.CHASE
+	officer._physics_process(2.1)
+	check(officer.recovery.reverse_time > 0.0, "nearby blocked officer also detours instead of waiting against the corner")
+	officer.recovery = AiRecovery.new()
+	officer.global_position = hero.global_position + Vector3(0, 0, Thug.SURROUND_RADIUS)
+	officer.state = Thug.State.CHASE
+	officer._physics_process(2.1)
+	check(officer.recovery.attempts == 0, "officer already at its surrounding spot does not invent a stuck manoeuvre")
 	wanted.set_stars(5)
 	for i in Wanted.MAX_POLICE - wanted.response_count():
 		var extra := encounters.spawn_police(Vector3(60 + i * 2, 0, 0), hero, 5)

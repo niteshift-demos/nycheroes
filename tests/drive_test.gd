@@ -75,6 +75,11 @@ func _ready() -> void:
 	var remote_drive := remote.get_mode(&"Drive") as DriveMode
 	_check(remote.mode.name == &"Drive" and is_instance_valid(remote_drive.car) and remote_drive.car.model == car.model, "remote snapshot displays matching car")
 	_check(remote.wanted_stars == 3 and remote.wanted_searching, "remote car retains wanted state")
+	var copy := remote_drive.car
+	remote_drive.show_remote(car.model, PoliceLivery.PAINT, 0.5)
+	_check(remote_drive.car == copy and is_instance_valid(copy._livery), "same-model remote paint change adds police markings")
+	remote_drive.show_remote(car.model, 1.0, 0.5)
+	_check(remote_drive.car == copy and copy._livery == null, "remote respray removes police markings without replacing its car")
 	remote.queue_free()
 	sync.free()
 	hero.input.stick = Vector2.ZERO

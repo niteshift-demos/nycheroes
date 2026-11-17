@@ -138,3 +138,8 @@ keeps the shared world running with local controls released.
 For a still capture before a dangerous chase can end, `?hud_hold=2.5` changes
 the fixture's eight-second hold to 2.5 seconds. Telemetry retains the seeded
 officer and fleet counts as well as the live response.
+
+The fixture's `window.nycPolishAction="garage"` opens a seeded real garage
+with a stolen patrol, three stars and payment cash. Its actual Pay & respray
+button checks sight, charges the wallet, repairs, clears heat and removes
+markings; telemetry exposes the resulting paint, livery and service message.

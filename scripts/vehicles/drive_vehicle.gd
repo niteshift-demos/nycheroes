@@ -37,6 +37,7 @@ var _despawn_check := 0.0
 var _material: ShaderMaterial
 var _engine: LoopVoice
 var _tyres: LoopVoice
+var _livery: PoliceLivery
 
 
 func _ready() -> void:
@@ -71,8 +72,6 @@ func _ready() -> void:
 	add_child(visual)
 	_engine = _loop(&"engine", -10.0)
 	_tyres = _loop(&"tyre_screech", -15.0)
-	if paint == PoliceLivery.PAINT:
-		add_child(PoliceLivery.new())
 	_draw()
 
 
@@ -198,6 +197,15 @@ func _step(delta: float) -> void:
 
 
 func _draw() -> void:
+	# Paint changes can arrive from a garage or a same-model peer snapshot.
+	# Keep markings in step without rebuilding the physical car.
+	if paint == PoliceLivery.PAINT and not is_instance_valid(_livery):
+		_livery = PoliceLivery.new()
+		add_child(_livery)
+	elif paint != PoliceLivery.PAINT and is_instance_valid(_livery):
+		_livery.visible = false
+		_livery.queue_free()
+		_livery = null
 	if _material:
 		_material.set_shader_parameter("damage_amount", 1.0 - health / 100.0)
 		_material.set_shader_parameter("burnt", 1.0 if exploded else 0.0)

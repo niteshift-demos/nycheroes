@@ -13,6 +13,7 @@ var _drive_recovery := AiRecovery.new()
 var _chase_elapsed := -1.0
 var _chase_officers := 0
 var _chase_cars := 0
+var _camera_pose := Transform3D.IDENTITY
 
 
 func _ready() -> void:
@@ -36,6 +37,7 @@ func _run() -> void:
 	while _game.onboarding and _game.onboarding.title_pending:
 		await get_tree().process_frame
 	await get_tree().create_timer(1.0).timeout
+	_camera_pose = _game.hero_camera.camera.transform
 	_ready_for_checks = true
 	_scenario(LaunchOptions.get_string("hud_case", "foot"))
 	Engine.max_physics_steps_per_frame = 120
@@ -53,6 +55,7 @@ func _input(event: InputEvent) -> void:
 func _scenario(scenario: String) -> void:
 	get_tree().paused = false
 	Engine.time_scale = 1.0
+	_game.hero_camera.camera.transform = _camera_pose
 	_chase_elapsed = -1.0
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("window.nycDrivePilot=false")
@@ -67,13 +70,25 @@ func _scenario(scenario: String) -> void:
 		_game.hero.set_mode(&"OnFoot")
 	(_game.hud.get_node("DebugLabel") as DebugHud).visible = scenario == "chase" and LaunchOptions.has("stats")
 	match scenario:
+		"garage":
+			_scenario("car")
+			var drive := _game.hero.get_mode(&"Drive") as DriveMode
+			if is_instance_valid(drive.car):
+				drive.car.paint = PoliceLivery.PAINT
+				drive.car._draw()
+			_game.wallet.add(5000, "Garage check")
+			wanted.set_stars(3)
+			_game.shops.active = CityShops._location("garage_check", "Precinct Payoff", &"garage", _game.hero.world_position())
+			_game.shops.entered.emit(_game.shops.active)
 		"chase":
 			_scenario("car")
 			_seed_chase_car(wanted)
 			_chase_elapsed = 0.0
 			# Fill the ordinary response through its actual spawn checks. The
 			# optional pilot below supplies only steering/throttle, never travel.
-			for attempt in 10:
+			for attempt in 40:
+				if wanted.response_count() >= Wanted.MAX_POLICE:
+					break
 				wanted._spawn_response()
 			for attempt in 60:
 				if wanted.pursuit.cars.size() >= PolicePursuit.cap(5):
@@ -105,12 +120,38 @@ func _scenario(scenario: String) -> void:
 			_game.missions.banner_remaining = 0.0
 			var forward := -_game.hero_camera.camera.global_basis.z
 			forward.y = 0.0
+			var reference := _game.hero.world_position() + forward.normalized() * 14.0
+			var spot := reference
+			var yaw := 0.0
+			var best := INF
+			var camera := get_viewport().get_camera_3d()
+			for lanes: Array in wanted.pursuit.graph.tiles.values():
+				for lane: TrafficLanes.Lane in lanes:
+					for i in lane.points.size() - 1:
+						var point := Geometry3D.get_closest_point_to_segment(reference, lane.points[i], lane.points[i + 1]) + Vector3.UP * 0.12
+						var distance := point.distance_to(_game.hero.world_position())
+						var score := point.distance_squared_to(reference)
+						if score >= best or distance < 10.0 or distance > 35.0 or not _game.city.has_collision_at(point):
+							continue
+						if not camera.is_position_in_frustum(WorldOrigin.to_local(point) + Vector3.UP) \
+								or not wanted._clear_sight(WorldOrigin.to_world(camera.global_position), point) \
+								or not wanted.pursuit._free_spot(point, lane.yaws[i]):
+								continue
+						best = score
+						spot = point
+						yaw = lane.yaws[i]
 			var car := DriveVehicle.new()
 			car.traffic = _game.get_node("Traffic") as Traffic
+			car.heading = yaw
 			_game.add_child(car)
-			car.global_position = _game.hero.global_position + forward.normalized() * 14.0
+			car.global_position = WorldOrigin.to_local(spot)
 			car.take_hit(1000.0, Vector3.ZERO, false)
 			await car.detonated
+			# Let the expanding fire and CPU debris reach their visible peak.
+			await get_tree().create_timer(0.18, false, true).timeout
+			# Frame the actual blast and wreck above the driver's shoulder.
+			camera.global_position += Vector3.UP * 6.0
+			camera.look_at(car.global_position + Vector3.UP * 1.5)
 			get_tree().paused = true
 			print("[hud-check] explosion held; burnt=" + str(car.exploded))
 		"desktop":
@@ -181,7 +222,7 @@ func _process(delta: float) -> void:
 		return
 	_telemetry = 0.5
 	var action := str(JavaScriptBridge.eval("window.nycPolishAction || ''"))
-	if action in ["call", "car", "chase", "foot", "boss", "explosion"]:
+	if action in ["call", "car", "chase", "foot", "boss", "explosion", "garage"]:
 		JavaScriptBridge.eval("window.nycPolishAction=''")
 		_scenario(action)
 	var officers := 0
@@ -197,6 +238,14 @@ func _process(delta: float) -> void:
 	state.initial_officers = _chase_officers
 	state.initial_patrols = _chase_cars
 	state.speed = _game.hero.velocity.length()
+	state.cash = _game.wallet.balance
+	state.service = String(_game.shops.active.get("kind", ""))
+	var driven := (_game.hero.get_mode(&"Drive") as DriveMode).car
+	if is_instance_valid(driven):
+		state.car_paint = driven.paint
+		state.car_livery = is_instance_valid(driven._livery) and driven._livery.visible
+	if _game._shop_panel.visible:
+		state.service_note = _game._shop_panel._note.text
 	var rectangles := {}
 	for child in _game.hud.get_children():
 		if child is StoryPhone and child.visible:
@@ -268,6 +317,12 @@ func _physics_process(delta: float) -> void:
 	if _chase_elapsed >= 0.0:
 		_chase_elapsed += delta
 		if _chase_elapsed >= clampf(float(LaunchOptions.get_string("hud_hold", "8")), 1.0, 30.0):
+			# Catch-up physics may move the car several metres since the last
+			# draw. Freeze with its camera/HUD at that same position and state.
+			_game.hero_camera._process(0.0)
+			drive._process(0.0)
+			(_game.hud.get_node("MissionHud") as MissionHud)._process(0.0)
+			(_game.hud.get_node("GameHud") as GameHud)._process(0.0)
 			(_game.hud.get_node("DebugLabel") as DebugHud).visible = false
 			get_tree().paused = true
 			print("[hud-check] chase held after %.1f seconds of ordinary driving" % _chase_elapsed)

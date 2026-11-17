@@ -89,7 +89,9 @@ func _run() -> void:
 	target.queue_free()
 	hero.set_mode(&"OnFoot")
 	var car := DriveVehicle.new()
+	car.paint = PoliceLivery.PAINT
 	add_child(car)
+	var markings := car._livery
 	var drive := hero.get_mode(&"Drive") as DriveMode
 	drive.car = car
 	hero.set_mode(&"Drive")
@@ -122,6 +124,7 @@ func _run() -> void:
 	_check(shops.respray().contains("Wanted cleared") and wanted.stars == 0 and wallet.balance == before - 1500 and car.paint != paint, "unseen respray charges $500 per star, changes paint and clears wanted")
 	_check(car.health == 100.0 and car.burn_time == 0.0 and not car.exploded, "respray repairs damage and cancels the fire countdown")
 	_check(is_zero_approx(float(car._material.get_shader_parameter("damage_amount"))), "fresh paint has no old damage tint")
+	_check(car._livery == null and not markings.visible and markings.is_queued_for_deletion(), "paid respray removes stolen patrol markings immediately")
 	_check(wanted.pursuit.cars.is_empty(), "paid garage removes the patrol response immediately")
 	_check(shops.respray().contains("No wanted") and wallet.balance == before - 1500, "repeat respray cannot charge after stars clear")
 	wanted.set_stars(5)
