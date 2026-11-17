@@ -42,7 +42,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	(_title.get_child(0) as Label).add_theme_font_size_override("font_size", mini(64, int(size.x / 9.0)))
+	(_title.get_child(0) as Label).add_theme_font_size_override("font_size", clampi(int(size.x / 9.0), 24, 64))
 	if not game:
 		return
 	visible = title_pending and not is_instance_valid(game._loading)

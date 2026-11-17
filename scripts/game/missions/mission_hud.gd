@@ -40,8 +40,8 @@ func _process(delta: float) -> void:
 	var running := director.active != null
 	_title.visible = running and (_game_hud == null or _game_hud.banner_remaining <= 0.0)
 	_objective.visible = _title.visible
-	var width := minf(700.0, size.x * (0.5 if touch else 0.64))
-	var bottom := size.y - (76.0 if touch else 88.0)
+	var width := minf(700.0, size.x * (0.44 if touch else 0.64))
+	var bottom := size.y - (132.0 if touch else 144.0)
 	_title.position = Vector2((size.x - width) * 0.5, bottom - 30.0)
 	_title.size = Vector2(width, 22.0)
 	_title.text = director.active.title.to_upper() if running else ""

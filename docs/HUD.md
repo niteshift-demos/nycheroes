@@ -76,3 +76,7 @@ normal exports. A verification export that includes tests can launch this
 scene with `?hud_case=foot|car|passed|busted|knocked`. It instantiates the real
 world, drives the actual car/mission/arrest APIs and freezes transient result
 banners for capture. It does not replace the interactive pause/navigation check.
+
+In that fixture, F5 resumes play, F6 enters the starter car on a wanted
+mission, F7 completes the real contract, F8 triggers an arrest through lethal
+damage while wanted, and F9 triggers a knockout without police heat.

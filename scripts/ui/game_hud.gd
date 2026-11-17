@@ -95,7 +95,7 @@ func _process(delta: float) -> void:
 	banner_remaining = maxf(0.0, banner_remaining - delta)
 	if hero and hero.mode:
 		var knocked := hero.mode.name == &"KnockedOut"
-		if knocked and not _knocked_out and banner_title != "BUSTED":
+		if knocked and not _knocked_out and (banner_title != "BUSTED" or banner_remaining <= 0.0):
 			show_banner("KNOCKED OUT", "Back on your feet soon", HudStyle.RED)
 		_knocked_out = knocked
 	if missions:
@@ -108,7 +108,7 @@ func _process(delta: float) -> void:
 					show_banner("MISSION PASSED", missions.banner.trim_prefix("MISSION PASSED").strip_edges())
 				elif missions.banner.begins_with("BUSTED"):
 					show_banner("BUSTED", missions.banner.trim_prefix("BUSTED").strip_edges(), HudStyle.RED)
-				elif missions.banner == "MISSION FAILED":
+				elif missions.banner == "MISSION FAILED" and not _knocked_out:
 					show_banner("MISSION FAILED", "Retry from Pause → Missions", HudStyle.RED)
 				else:
 					notify(missions.banner)
@@ -117,7 +117,7 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	_marker_labels.clear()
-	if not hero:
+	if not hero or size.x < 1.0 or size.y < 1.0:
 		return
 	var bar := Rect2(24.0, size.y - 68.0, 204.0, 7.0)
 	if radar and radar.visible:
@@ -347,7 +347,7 @@ func _draw_banner() -> void:
 	var fade := minf(1.0, banner_remaining)
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.12, 0.14, 0.16, 0.42 * fade))
 	draw_rect(Rect2(0.0, size.y * 0.36, size.x, size.y * 0.27), Color(0.01, 0.015, 0.02, 0.74 * fade))
-	var font_size := mini(64, int(size.x / maxf(banner_title.length() * 0.68, 1.0)))
+	var font_size := clampi(int(size.x / maxf(banner_title.length() * 0.68, 1.0)), 12, 64)
 	var width := _font.get_string_size(banner_title, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
 	_text(Vector2((size.x - width) * 0.5, size.y * 0.49), banner_title, font_size, Color(_banner_color, fade))
 	width = _font.get_string_size(banner_detail, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 17).x

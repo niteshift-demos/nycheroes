@@ -86,6 +86,23 @@ func _run() -> void:
 	options.physical_keycode = KEY_O
 	_check(InputMap.event_is_action(escape, "pause_menu") and not InputMap.event_is_action(escape, "options_menu") \
 		and InputMap.event_is_action(options, "options_menu"), "Esc pauses and O opens options without conflicting")
+	var hero: Hero = load("res://scenes/hero/hero.tscn").instantiate()
+	hero.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(hero)
+	var display := GameHud.new()
+	display.hero = hero
+	display.missions = director
+	add_child(display)
+	display.show_banner("BUSTED", "Arrest")
+	hero.set_mode(&"KnockedOut")
+	display._process(0.1)
+	_check(display.banner_title == "BUSTED", "arrest wins over simultaneous knockout")
+	hero.set_mode(&"OnFoot")
+	display._process(0.1)
+	display.banner_remaining = 0.0
+	hero.set_mode(&"KnockedOut")
+	display._process(0.1)
+	_check(display.banner_title == "KNOCKED OUT", "later knockouts still show after an expired arrest")
 	WorldMap.add_action()
 	var bindings := {KEY_G: "interact", KEY_COMMA: "world_map", KEY_M: "coop_menu", KEY_O: "options_menu", KEY_P: "pause_menu", KEY_T: "time_of_day", KEY_N: "mute", KEY_F: "fly_toggle", KEY_E: "web", KEY_C: "descend"}
 	for code: Key in bindings:
