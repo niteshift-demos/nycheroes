@@ -273,6 +273,12 @@ static func draw_blip(canvas: CanvasItem, at: Vector2, kind: StringName, color: 
 			canvas.draw_colored_polygon(PackedVector2Array([at + Vector2(-5, -5), at + Vector2(5, -5), at + Vector2(4, 3), at + Vector2(0, 6), at + Vector2(-4, 3)]), color)
 		&"shop":
 			canvas.draw_rect(Rect2(at - Vector2(4, 4), Vector2(8, 8)), color)
+		&"safehouse":
+			canvas.draw_colored_polygon(PackedVector2Array([at + Vector2(-5, 0), at + Vector2(0, -5), at + Vector2(5, 0), at + Vector2(5, 5), at + Vector2(-5, 5)]), color)
+		&"garage":
+			canvas.draw_rect(Rect2(at - Vector2(5, 3), Vector2(10, 6)), color)
+			canvas.draw_circle(at + Vector2(-3, 4), 2, color)
+			canvas.draw_circle(at + Vector2(3, 4), 2, color)
 		&"enemy":
 			canvas.draw_colored_polygon(PackedVector2Array([at + Vector2(0, -5), at + Vector2(5, 4), at + Vector2(-5, 4)]), color)
 		_:

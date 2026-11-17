@@ -122,9 +122,11 @@ func _physics_process(delta: float) -> void:
 		if _bust_wait <= 0.0:
 			hero.global_position = WorldOrigin.to_local(_respawn) + Vector3.UP * 0.3
 			hero.velocity = Vector3.ZERO
-			hero.health = Hero.MAX_HEALTH
+			hero.health = hero.max_health
 			hero.hurt_time = 0.0
 			hero.slam_pending = false
+			if hero.safehouse_respawn.is_valid():
+				hero.safehouse_respawn.call()
 			hero.set_mode(&"OnFoot")
 		return
 	_tick += delta
