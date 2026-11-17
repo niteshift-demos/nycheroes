@@ -5,6 +5,14 @@ lines below wherever a license asks for one (the aerial photos do).
 
 ## City data
 
+- **Whole-city map:** `assets/map/` is a cartographic rendering of this
+  game's published NYCT ground, park, water and bridge meshes (NYC Open
+  Data sources credited below), plus highway centerlines from NYC's
+  Citywide Street Centerline (CSCL, inkn-q76z, `rw_type=2`). NYC Open Data
+  is provided under the NYC Open Data Terms of Use
+  (https://data.cityofnewyork.us/stories/s/Terms-of-Use/k9k7-3cje). No third-party
+  map tiles or aerial imagery are included. The meshes' hand-modeled
+  bridges also use the OpenStreetMap bridge placement data credited below.
 - **Mission landmark coordinate checks:** Wikipedia contributors, the
   Times Square, Empire State Building, One World Trade Center, Brooklyn
   Bridge and Bethesda Terrace place records linked in
