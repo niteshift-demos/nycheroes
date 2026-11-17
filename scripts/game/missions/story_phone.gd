@@ -76,6 +76,10 @@ func _storyphone_timed_process(_delta: float) -> void:
 	_line.custom_minimum_size.x = width - (16.0 if touch else 28.0)
 	position = Vector2((viewport.x - width) * 0.5 if touch else viewport.x - width - 16.0,
 		maxf(60.0 if touch else 18.0, viewport.y - size.y - (360.0 if portrait and touch else 170.0 if touch else 220.0)))
+	if touch and not portrait:
+		# Centre in the actual gap: radar ends at 152, while the full cash
+		# label starts 338 px from the right (large balances use all of it).
+		position.x = maxf(16.0, 168.0 + (viewport.x - 338.0 - 168.0 - size.x) * 0.5)
 	var line: Dictionary = director.phone_lines[0]
 	_speaker.text = "  PHONE · " + String(line.speaker)
 	_speaker.modulate = line.color

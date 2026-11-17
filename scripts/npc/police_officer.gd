@@ -22,14 +22,8 @@ func setup_described(gang_index: int, facing_angle: float, health_left: float, d
 
 func _paint() -> void:
 	NpcLook.paint_police($Model, net_id, response_stars >= 5)
-	var tag := Label3D.new()
-	tag.text = "NYPD" if response_stars < 5 else "NYPD • HEAVY"
-	tag.position.y = 2.15
-	tag.font_size = 24
-	tag.pixel_size = 0.008
-	tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	tag.modulate = Color(0.5, 0.72, 1.0)
-	add_child(tag)
+	# Uniforms and shield blips identify officers without a cloud of tiny,
+	# aliased 3-D name tags over a ten-officer pursuit on a 360p phone.
 
 
 func _nearest_hero() -> Hero:

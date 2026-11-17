@@ -28,7 +28,7 @@ func _run() -> void:
 	# must inherit the ordinary pause behavior, not this node's ALWAYS mode.
 	_game.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(_game)
-	while is_instance_valid(_game._loading) or _game.hero.frozen:
+	while is_instance_valid(_game._loading) or _game.hero.frozen or _game.city.pending_count() > 0:
 		await get_tree().process_frame
 	RenderingServer.set_render_loop_enabled(true)
 	while _game.onboarding and _game.onboarding.title_pending:
@@ -56,6 +56,7 @@ func _scenario(scenario: String) -> void:
 		JavaScriptBridge.eval("window.nycDrivePilot=false")
 	var display := _game.hud.get_node("GameHud") as GameHud
 	var wanted := _game.get_node("Wanted") as Wanted
+	_game.missions.process_mode = Node.PROCESS_MODE_INHERIT
 	if scenario in ["boss", "explosion", "call", "foot"]:
 		wanted.set_stars(0)
 		wanted._clear_response()
@@ -80,6 +81,7 @@ func _scenario(scenario: String) -> void:
 		"call":
 			_game.missions.finish(false)
 			_game.missions.start_mission(StoryCatalog.all()[0], true)
+			_game.missions.process_mode = Node.PROCESS_MODE_DISABLED
 			display.banner_remaining = 0.0
 		"boss":
 			_game.missions.finish(false)
@@ -102,9 +104,6 @@ func _scenario(scenario: String) -> void:
 			car.traffic = _game.get_node("Traffic") as Traffic
 			_game.add_child(car)
 			car.global_position = _game.hero.global_position + forward.normalized() * 14.0
-			# Slow only this visual fixture: a software-rendered frame can take
-			# longer than a fireball's whole life. Damage and countdown stay real.
-			Engine.time_scale = 0.1
 			car.take_hit(1000.0, Vector3.ZERO, false)
 			await car.detonated
 			get_tree().paused = true

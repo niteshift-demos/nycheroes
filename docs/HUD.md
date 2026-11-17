@@ -124,3 +124,8 @@ lanes with ordinary HeroInput, including reverse recovery; toggle it off for
 manual driving. Add `?stats=1` for CPU parts. `window.nycPolishAction` accepts
 `call`, `car`, `chase`, `foot`, `boss` or `explosion` to switch QA scenarios
 without reloading the city. Actor seeding is confined to this excluded fixture.
+
+Foot police use their uniforms and shield blips for identification, avoiding
+a cloud of aliased 3-D labels over a full response. The stress fixture waits
+for city streaming to settle before starting and holds its chase after eight
+seconds, so captures and measurements exclude the initial city build.
