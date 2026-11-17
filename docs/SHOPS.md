@@ -13,7 +13,7 @@ adds 25% of the original value (maximum 175%, never compounded).
 | Super speed | 105 m/s top speed on foot |
 | Flight speed | 175% cruise and boost speed, including sustained boost |
 | Slam radius | 175% radius of damaging landing slams |
-| Car armor | Incoming damage to the occupied car's driver divided by 1.75 |
+| Car armor | Incoming damage to the occupied car and its driver divided by 1.75 |
 
 Purchasing health capacity does not instantly heal; normal regeneration,
 a safehouse or recovery fills it. Armor is active while driving any car;
@@ -22,7 +22,8 @@ it belongs to the hero, not an individual stolen car.
 **Precinct Payoff** garages near Union Square and Borough Hall have amber
 car-shaped radar icons. Drive into the marker while wanted, break police
 line of sight, then choose **Pay & respray**. It costs $500 per current star,
-changes the paint index, clears wanted stars and removes the local response.
+changes the paint index, fully repairs the car (including an active fire),
+clears wanted stars and removes the local response.
 Payment checks actual police sight again, rather than trusting a stale
 SEARCHING indicator. No car, no stars, visible police, or insufficient
 funds leaves cash and pursuit unchanged. Fleet vehicles whose shader forces

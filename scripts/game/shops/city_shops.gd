@@ -151,13 +151,13 @@ func respray() -> String:
 	if not wallet.spend(cost):
 		return "Not enough cash — need %s." % Wallet.format_cash(cost)
 	drive.car.paint = fposmod(floorf(drive.car.paint) + 1.0, 12.0)
-	drive.car._draw()
+	drive.car.repair()
 	wanted.set_stars(0)
 	wanted._clear_response()
 	if wanted.pursuit:
 		wanted.pursuit.advance(0.0)
 	changed.emit()
-	return "Paid %s. New paint. Wanted cleared." % Wallet.format_cash(cost)
+	return "Paid %s. New paint and full repair. Wanted cleared." % Wallet.format_cash(cost)
 
 
 func visit_safehouse() -> void:

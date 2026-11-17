@@ -2343,6 +2343,14 @@ deployed); in a computer's browser the co-op menu links to it.
   and floating-origin shifts. `test_map_image.py` checks the offline bake
   decoder and layers on synthetic data. Rebuild the committed atlas with
   `tools/citygen/map_image.py`; no new gameplay tiles needed.
+- Solid traffic collisions, superpowered car shoves, damage/smoke/fire and
+  timed explosions, engine and tyre audio, seated driving animation, body
+  weight transfer, reverse camera and contextual takeover hints. Nearby car
+  collision queries use a world-space grid and swept footprints; wrecks
+  retain the existing traffic braking path. `?car=1&car_crash=1` adds the
+  repeatable crash fixture described in DRIVING.md.
+  Garage armor reduces occupied-car damage; paid resprays repair damage and
+  cancel fires, covered alongside driver armor in `shops_test`.
 - Driving and car hijacking: [DRIVING.md](DRIVING.md), including controls,
   physical cars, chase camera, co-op snapshots, crime hooks and current limits.
   Run `res://tests/drive_test.tscn`; `?car=1` places a starter sedan by the hero.
@@ -2560,7 +2568,8 @@ deployed); in a computer's browser the co-op menu links to it.
   `res://tests/address_test.tscn` (the Go to box: the projection against
   pyproj's, then the hero sent to the Empire State Building lands on its
   sidewalk facing it; `--online` tries the real searches too) and
-  `res://tests/drive_test.tscn` (synthetic car hijack, driving, exit,
+  `res://tests/drive_test.tscn` (synthetic car hijack, driving, exit, traffic crashes,
+  damage/explosion/driver injury, contextual hints, query cost,
   co-op appearance and origin shift) and `res://tests/traffic_test.tscn` (75 s of
   midtown traffic: no red light run, no overlaps, cars stop for the hero,
   and leave with their tiles) and `res://tests/trains_test.tscn` (the 7 at

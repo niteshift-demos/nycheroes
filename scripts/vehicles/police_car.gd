@@ -67,7 +67,7 @@ func _update_siren(delta: float) -> void:
 		add_child(player)
 		_siren = LoopVoice.new(player, -19.0, 1.0)
 	_siren.target = 1.0 if driver == null and not deployed and visible and GameAudio.can_play() \
-		and global_position.distance_squared_to(GameAudio.listener()) < 350.0 * 350.0 else 0.0
+		and health > 0.0 and global_position.distance_squared_to(GameAudio.listener()) < 350.0 * 350.0 else 0.0
 	_siren.update(delta, 5.0)
 
 
@@ -75,7 +75,7 @@ func _update_siren(delta: float) -> void:
 ## suspect. Repeated full fleets recover from packet loss and late joins.
 func description() -> Array:
 	return [net_id, WorldOrigin.to_world(global_position), heading, velocity,
-		suspect_id, roadblock, deployed, ai_controlled, driver != null]
+		suspect_id, roadblock, deployed, ai_controlled, driver != null, health, body_roll, body_pitch, exploded]
 
 
 func follow(data: Array) -> void:
@@ -86,6 +86,11 @@ func follow(data: Array) -> void:
 	roadblock = bool(data[5])
 	deployed = bool(data[6])
 	ai_controlled = bool(data[7])
+	if data.size() >= 13:
+		health = clampf(float(data[9]), 0.0, 100.0)
+		body_roll = float(data[10])
+		body_pitch = float(data[11])
+		exploded = bool(data[12])
 	# Occupied cars already draw from the driver's PlayerSync state.
 	visible = not bool(data[8])
 

@@ -21,7 +21,7 @@ func interact() -> void:
 	var distance := 3.5
 	for parked: DriveVehicle in hero.get_tree().get_nodes_in_group("drive_cars"):
 		var reach := parked.global_position.distance_to(hero.global_position)
-		if parked.driver == null and not parked.ai_controlled and reach < distance:
+		if parked.driver == null and not parked.ai_controlled and parked.health > 0.0 and reach < distance:
 			nearest = parked
 			distance = reach
 	if nearest:
@@ -91,7 +91,7 @@ func exit() -> void:
 
 
 ## Remote cars only draw: their owner's hero snapshot already interpolates motion.
-func show_remote(model: int, paint: float, seed: float) -> void:
+func show_remote(model: int, paint: float, seed: float, health := 100.0, roll := 0.0, pitch := 0.0) -> void:
 	if hero.mode != self:
 		if is_instance_valid(car):
 			car.queue_free()
@@ -109,6 +109,10 @@ func show_remote(model: int, paint: float, seed: float) -> void:
 		hero.add_child(car)
 	car.paint = paint
 	car.seed = seed
+	car.health = clampf(health, 0.0, 100.0)
+	car.body_roll = roll
+	car.body_pitch = pitch
+	car.velocity = hero.velocity
 	car.heading = hero.facing + PI
 	car.global_position = hero.global_position
 	car.rotation.y = car.heading
@@ -144,13 +148,64 @@ func _process(_delta: float) -> void:
 			starter.traffic = hero.get_tree().get_first_node_in_group("traffic") as Traffic
 			hero.get_parent().add_child(starter)
 			starter.global_position = hero.global_position + Vector3(cos(hero.facing), 0, -sin(hero.facing)) * 2.5
-	_hint.visible = not hero.frozen and hero.mode.name in [&"OnFoot", &"Drive"]
+			if LaunchOptions.has("car_crash"):
+				_seed_crash(starter)
+	_hint.visible = not hero.frozen and (hero.mode == self or (hero.mode.name == &"OnFoot" and can_take_car()))
+	var condition := "FIRE — GET OUT!" if hero.mode == self and car.health <= 0.0 else "Car %d%%" % roundi(car.health) if hero.mode == self else ""
 	if Device.wants_touch_controls():
-		_hint.text = "%d km/h   •   Stick: drive   BRAKE: slide   EXIT: get out" % roundi(hero.horizontal_speed() * 3.6) if hero.mode == self else "CAR: take a nearby car"
+		_hint.text = "%d km/h • %s • Stick: drive   BRAKE: slide   EXIT" % [roundi(hero.horizontal_speed() * 3.6), condition] if hero.mode == self else "CAR: take a nearby car"
 		return
-	_hint.text = "%d km/h   •   WASD drive   Space handbrake   G / R3 exit" % roundi(hero.horizontal_speed() * 3.6) if hero.mode == self else "G / R3: take a nearby car"
+	_hint.text = "%d km/h   •   %s   •   WASD drive   Space brake   G / R3 exit" % [roundi(hero.horizontal_speed() * 3.6), condition] if hero.mode == self else "G / R3: take a nearby car"
 
 
 func _exit_tree() -> void:
 	if is_instance_valid(car) and not car.puppet:
 		car.driver = null
+
+
+## Matches interact's reach and excludes occupied, burning and burned cars.
+func can_take_car() -> bool:
+	for parked: DriveVehicle in hero.get_tree().get_nodes_in_group("drive_cars"):
+		if parked.driver == null and not parked.ai_controlled and parked.health > 0.0 and parked.global_position.distance_to(hero.global_position) < 3.5:
+			return true
+	for flow: Traffic in hero.get_tree().get_nodes_in_group("traffic"):
+		if flow.nearest_car(hero.world_position(), 3.5) >= 0:
+			return true
+	return false
+
+
+## Opt-in reproducible street crash: a worn starter and one stopped traffic row.
+## Uses the same promotion, collision and explosion paths as ordinary traffic.
+func _seed_crash(starter: DriveVehicle) -> void:
+	# Place the row only once street collision has loaded, at the street's elevation.
+	if starter.traffic and starter.traffic.city:
+		starter.traffic.city.load_distances.assign([100.0, 200.0, 700.0])
+		if not starter.traffic.city._initial_load_done:
+			await starter.traffic.city.initial_load_finished
+	await get_tree().create_timer(2.0).timeout
+	if not is_instance_valid(starter):
+		return
+	starter.health = 10.0
+	var flow := Traffic.new()
+	flow.max_cars = 1
+	flow.city = starter.traffic.city if starter.traffic else null
+	hero.get_parent().add_child(flow)
+	flow.set_process(false)
+	var at := WorldOrigin.to_world(starter.global_position)
+	var forward := Vector3(sin(starter.heading), 0, cos(starter.heading))
+	var target := at + forward * 38.0
+	var local_target := WorldOrigin.to_local(target)
+	var ground := hero.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(local_target + Vector3.UP * 10.0, local_target + Vector3.DOWN * 30.0, Hero.WORLD_LAYER))
+	if not ground.is_empty():
+		target.y = (ground.position as Vector3).y + 0.05
+	var line_start := Vector3(at.x, target.y, at.z)
+	var lines: Array[PackedVector3Array] = [PackedVector3Array([line_start, line_start + forward * 100.0])]
+	flow.set_tile_lanes(Vector2i(99999, 99999), lines, PackedFloat32Array([1, 2, 12, 0, 1, -1, 0]))
+	var lane: TrafficLanes.Lane = flow.lanes.tiles[Vector2i(99999, 99999)][0]
+	flow._add_car(lane, 40.35, 0, target, 0, 100, false)
+	flow._v[0] = 0.0
+	flow._draw()
+	var started := Time.get_ticks_usec()
+	for i in 1000:
+		flow.solidify_sweep(starter.global_position, forward * 0.5, PropMeshes.CAR_SIZES[starter.model], starter.heading)
+	print("[car-check] nearby query average %.4f ms; stopped traffic 38 m ahead" % ((Time.get_ticks_usec() - started) / 1000000.0))

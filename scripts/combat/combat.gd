@@ -81,7 +81,9 @@ func unregister_hero(hero: Hero) -> void:
 ## Our hero hits every standing thug within `radius` of `center`. `push` is the
 ## knockback velocity; with `launch`, thugs go flying as ragdolls whatever
 ## their health. Returns how many thugs were hit.
-func strike(center: Vector3, radius: float, damage: float, push: Vector3, launch: bool) -> int:
+func strike(center: Vector3, radius: float, damage: float, push: Vector3, launch: bool, hit_cars := true) -> int:
+	if hit_cars:
+		_hit_cars(center, radius, damage, push)
 	var hits: Array = []
 	for thug: Thug in thugs:
 		if not thug.is_down() and thug.body_center().distance_to(center) <= radius:
@@ -98,7 +100,8 @@ func strike(center: Vector3, radius: float, damage: float, push: Vector3, launch
 
 ## Our hero's ground slam: launches standing thugs away from `center`, harder
 ## the closer they are.
-func shockwave(center: Vector3, radius: float, damage: float, launch_speed: float) -> void:
+func shockwave(center: Vector3, radius: float, damage: float, launch_speed: float, blame_hero := true) -> void:
+	_hit_cars(center, radius, damage, Vector3.UP * launch_speed, blame_hero)
 	var hits: Array = []
 	for thug: Thug in thugs:
 		if thug.is_down():
@@ -111,8 +114,8 @@ func shockwave(center: Vector3, radius: float, damage: float, launch_speed: floa
 		var away := offset / distance if distance > 0.1 else Vector3.FORWARD.rotated(Vector3.UP, randf() * TAU)
 		var strength := launch_speed * (1.0 - 0.5 * distance / radius)
 		hits.append([thug, damage, away * strength + Vector3.UP * strength * 0.6, damage > 0.0])
-	_hit_thugs(hits)
-	_hit_bystanders(center, radius, damage, Vector3.UP * launch_speed)
+	_hit_thugs(hits, blame_hero)
+	_hit_bystanders(center, radius, damage, Vector3.UP * launch_speed, blame_hero)
 	show_shockwave(WorldOrigin.to_world(center), radius)
 	raise_danger(WorldOrigin.to_world(center), radius * 6.0)
 	impact.emit(center, clampf(radius / 10.0, 0.3, 1.0))
@@ -184,11 +187,11 @@ func show_hero_blood(hero: Hero, direction: Vector3, amount: float) -> void:
 ## Hits made by our hero: [thug, damage, push, launch] each. Thugs we run take
 ## them for real (and everyone is told); copies show them at once, and the
 ## games running them are asked to apply them.
-func _hit_thugs(hits: Array) -> void:
+func _hit_thugs(hits: Array, blame_hero := true) -> void:
 	var reports := {}  # player number -> [net id, damage, push, launch] each
 	for hit: Array in hits:
 		var thug: Thug = hit[0]
-		if thug is PoliceOfficer and float(hit[1]) > 0.0:
+		if blame_hero and thug is PoliceOfficer and float(hit[1]) > 0.0:
 			report_crime(&"assault_police", WorldOrigin.to_world(thug.global_position), 1.0)
 		if thug.puppet:
 			reports.get_or_add(thug.run_by, []).append([thug.net_id, hit[1], hit[2], hit[3]])
@@ -283,9 +286,19 @@ func _danger(world_position: Vector3, radius: float) -> void:
 
 
 ## Only actual damaging attacks count; a harmless jump shockwave only scares.
-func _hit_bystanders(center: Vector3, radius: float, damage: float, push: Vector3) -> void:
+func _hit_bystanders(center: Vector3, radius: float, damage: float, push: Vector3, blame_hero := true) -> void:
 	if damage <= 0.0:
 		return
 	for ped: Pedestrian in get_tree().get_nodes_in_group("pedestrians"):
 		if (ped.global_position + Vector3.UP).distance_to(center) <= radius:
-			ped.take_hit(push)
+			ped.take_hit(push, &"assault_civilian", blame_hero)
+
+
+## Snapshot physical cars before promotion, so a traffic car takes each blow once.
+func _hit_cars(center: Vector3, radius: float, damage: float, push: Vector3, blame_hero := true) -> void:
+	for car: DriveVehicle in get_tree().get_nodes_in_group("drive_cars"):
+		if DriveVehicle.box_distance(center, car.global_position, PropMeshes.CAR_SIZES[car.model], car.heading) <= radius:
+			var away := (car.global_position - center).normalized() * push.length() * 0.5
+			car.take_hit(damage, push + away, blame_hero)
+	for flow: Traffic in get_tree().get_nodes_in_group("traffic"):
+		flow.strike_cars(center, radius, damage, push, blame_hero)

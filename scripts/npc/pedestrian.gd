@@ -378,10 +378,11 @@ func _play(animation: StringName, speed: float) -> void:
 
 ## Called only for our hero's damaging strike. Report before falling so this
 ## victim is a witness; further hits while down cannot farm heat.
-func take_hit(push: Vector3, kind: StringName = &"assault_civilian") -> void:
+func take_hit(push: Vector3, kind: StringName = &"assault_civilian", blame_hero := true) -> void:
 	if _down_time > 0.0:
 		return
-	Combat.report_crime(kind, world_position, 0.65)
+	if blame_hero:
+		Combat.report_crime(kind, world_position, 0.65)
 	scare(world_position - push)
 	_down_time = 4.0
 	_player.pause()

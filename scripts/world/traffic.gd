@@ -25,8 +25,8 @@ extends Node3D
 ## giving way crosses. They never drive into an intersection without room on
 ## the other side. At each intersection a car picks its next
 ## lane (TrafficLanes.pick_next), blinking before it turns. They stop for
-## heroes, thugs (standing or lying) and pedestrians in their way. Nothing
-## collides with them yet. Yellow cabs make up about a third of the cars in
+## heroes, thugs (standing or lying) and pedestrians in their way. No car
+## keeps a rigid body until a nearby impact promotes it. Yellow cabs make up about a third of the cars in
 ## Manhattan below 110th Street, a few percent elsewhere; buses keep to
 ## streets.
 ##
@@ -185,6 +185,10 @@ const LOG_INTERVAL := 2.0
 var lanes := TrafficLanes.new()
 ## Cars driving now.
 var car_count := 0
+## World-space cells track drawn rows incrementally; queries visit only nearby cars.
+const CAR_CELL := 16.0
+var _car_cells: Dictionary[Vector2i, Array] = {}
+var _slot_cells: Dictionary[int, Vector2i] = {}
 ## Script time per frame (ms, smoothed), and to add the last tile's lanes.
 var update_msec := 0.0
 var last_tile_msec := 0.0
@@ -943,6 +947,7 @@ func _draw() -> void:
 		yaw = wrapf(yaw, -PI, PI)
 		_yaw[i] = yaw
 		_at[i] = middle
+		_index_car(i)
 		var roll := fposmod(_roll[i] + v * dt / PropMeshes.CAR_WHEEL_RADII[_model[i]], TAU)
 		_roll[i] = roll
 		if _shrinking[i]:
@@ -1152,6 +1157,7 @@ func _add_car(lane: TrafficLanes.Lane, s: float, model: int, middle: Vector3, k:
 	_yaw[i] = lane.yaws[k]
 	_segment[i] = k
 	_at[i] = middle
+	_index_car(i)
 	_roll[i] = randf() * TAU
 	_grow[i] = 0.0 if grow else 1.0
 	_shrinking[i] = 0
@@ -1183,6 +1189,7 @@ func _add_car(lane: TrafficLanes.Lane, s: float, model: int, middle: Vector3, k:
 func _despawn(i: int) -> void:
 	if _path[i] == null:
 		return
+	_unindex_car(i)
 	_take(_path[i], i)
 	if _in_box[i]:
 		_leave_box(i)
@@ -1319,16 +1326,25 @@ func _car_material() -> Material:
 
 ## Takes a traffic slot out of every lane/box before handing it to a real body.
 func take_car(world_at: Vector3, reach: float) -> DriveVehicle:
+	return promote_car(nearest_car(world_at, reach))
+
+
+## Shared by the hint and takeover, so a hint never promises an unreachable car.
+func nearest_car(world_at: Vector3, reach: float) -> int:
 	var best := -1
 	var distance := reach
-	for i in _highest + 1:
-		if _path[i] == null or _shrinking[i] or _grow[i] < 0.9:
+	for i in nearby_cars(world_at, reach):
+		if _shrinking[i] or _grow[i] < 0.9:
 			continue
 		var next := _at[i].distance_to(world_at)
 		if next < distance:
 			best = i
 			distance = next
-	if best < 0:
+	return best
+
+
+func promote_car(best: int) -> DriveVehicle:
+	if best < 0 or _path[best] == null:
 		return null
 	var car := DriveVehicle.new()
 	car.model = _model[best]
@@ -1336,9 +1352,60 @@ func take_car(world_at: Vector3, reach: float) -> DriveVehicle:
 	car.seed = _buffer[best * STRIDE + 18]
 	car.heading = _yaw[best]
 	car.traffic = self
+	car.position = to_local(WorldOrigin.to_local(_at[best]))
 	add_child(car)
-	car.global_position = WorldOrigin.to_local(_at[best])
 	car.velocity = Vector3(sin(car.heading), 0, cos(car.heading)) * _v[best]
 	_despawn(best)
 	_draw()
 	return car
+
+
+func _index_car(i: int) -> void:
+	var cell := Vector2i(floori(_at[i].x / CAR_CELL), floori(_at[i].z / CAR_CELL))
+	if _slot_cells.has(i) and _slot_cells[i] == cell:
+		return
+	_unindex_car(i)
+	if not _car_cells.has(cell):
+		_car_cells[cell] = []
+	_car_cells[cell].append(i)
+	_slot_cells[i] = cell
+
+
+func _unindex_car(i: int) -> void:
+	if not _slot_cells.has(i):
+		return
+	var cell := _slot_cells[i]
+	_car_cells[cell].erase(i)
+	if _car_cells[cell].is_empty():
+		_car_cells.erase(cell)
+	_slot_cells.erase(i)
+
+
+func nearby_cars(at: Vector3, reach: float) -> Array[int]:
+	var result: Array[int] = []
+	for x in range(floori((at.x - reach) / CAR_CELL), floori((at.x + reach) / CAR_CELL) + 1):
+		for z in range(floori((at.z - reach) / CAR_CELL), floori((at.z + reach) / CAR_CELL) + 1):
+			for i: int in _car_cells.get(Vector2i(x, z), []):
+				result.append(i)
+	return result
+
+
+## Swept boxes promote before move_and_slide, which then resolves the solid contact.
+## The broad phase includes the longest traffic model (bus), including cell borders.
+func solidify_sweep(at: Vector3, motion: Vector3, size: Vector3, yaw: float) -> void:
+	var world := WorldOrigin.to_world(at)
+	var reach := motion.length() * 0.5 + size.length() * 0.5 + 8.0
+	for i in nearby_cars(world + motion * 0.5, reach):
+		if _grow[i] < 0.9 or _shrinking[i]:
+			continue
+		if DriveVehicle.swept_overlap(world, motion, size, yaw, _at[i], PropMeshes.CAR_SIZES[_model[i]], _yaw[i]):
+			promote_car(i)
+
+
+## Punches and slams use the same row lookup as driving, without scanning the city.
+func strike_cars(center: Vector3, radius: float, damage: float, push: Vector3, blame_hero := true) -> void:
+	var world := WorldOrigin.to_world(center)
+	for i in nearby_cars(world, radius + 8.0):
+		var size := PropMeshes.CAR_SIZES[_model[i]]
+		if DriveVehicle.box_distance(world, _at[i], size, _yaw[i]) <= radius:
+			promote_car(i).take_hit(damage, push, blame_hero)
