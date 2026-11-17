@@ -34,7 +34,7 @@ func _ready() -> void:
 	_title = VBoxContainer.new()
 	_title.add_theme_constant_override("separation", 16)
 	center.add_child(_title)
-	for item: Array in [["NYC HEROES", 64, Color.WHITE], ["ONE CITY. EVERY POSSIBILITY.", 17, HudStyle.GOLD], ["PRESS ANY KEY  /  TAP TO PLAY", 15, HudStyle.MUTED]]:
+	for item: Array in [["NYC HEROES", 64, Color.WHITE], ["ONE CITY. EVERY POSSIBILITY.", 17, HudStyle.GOLD], [("TAP TO PLAY" if Device.wants_touch_controls() else "PRESS ANY KEY  /  TAP TO PLAY"), 15, HudStyle.MUTED]]:
 		var label := HudStyle.label(item[0], item[1], item[2])
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_title.add_child(label)
@@ -42,6 +42,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	(_title.get_child(2) as Label).text = "TAP TO PLAY" if Device.wants_touch_controls() else "PRESS ANY KEY  /  TAP TO PLAY"
 	(_title.get_child(0) as Label).add_theme_font_size_override("font_size", clampi(int(size.x / 9.0), 24, 64))
 	if not game:
 		return
@@ -60,13 +61,13 @@ func _process(delta: float) -> void:
 	var touch := Device.wants_touch_controls()
 	if not seen.has("move"):
 		lesson = "move"
-		text = "Move with the left stick. Drag the view to look." if touch else "WASD / left stick to move. Mouse / right stick to look."
+		text = "Move with the left stick. Tap SPEED to sprint. Drag the view to look." if touch else "WASD / left stick to move. Mouse / right stick to look."
 	elif not seen.has("jump") and mode == &"OnFoot":
 		lesson = "jump"
 		text = "Hold JUMP for a super jump." if touch else "Hold Space / A to charge a super jump."
 	elif not seen.has("fly") and mode != &"Drive":
 		lesson = "fly"
-		text = "Tap FLY. JUMP rises; DOWN descends." if touch else "F / Y toggles flight. Space rises; C / B descends."
+		text = "Tap FLY. UP rises; DOWN descends." if touch else "F / Y toggles flight. Space rises; C / B descends."
 	elif not seen.has("web") and mode != &"Drive":
 		lesson = "web"
 		text = "Hold WEB near buildings to swing." if touch else "Hold E / right mouse / RT near buildings to web-swing."
@@ -75,13 +76,13 @@ func _process(delta: float) -> void:
 		text = "Tap PUNCH near a thug to fight." if touch else "Left mouse / X punches. Chain hits to build a combo."
 	elif not seen.has("car") and mode == &"OnFoot" and _car_nearby():
 		lesson = "car"
-		text = "Near traffic, tap CAR to take the wheel." if touch else "Near a car, G / R3 takes the wheel. G / R3 exits."
+		text = "Tap CAR near traffic; EXIT leaves the car." if touch else "Near a car, G / R3 takes the wheel. G / R3 exits."
 	elif not seen.has("map"):
 		lesson = "map"
-		text = "Tap the radar to open the map and set a waypoint." if touch else "Comma opens the map. Click a street to set a waypoint."
+		text = "Tap the radar for the map. Tap the map to set a waypoint." if touch else "Comma opens the map. Click a street to set a waypoint."
 	elif not seen.has("missions"):
 		lesson = "missions"
-		text = "Pause → Missions lists contracts and rewards. Visit a yellow radar marker."
+		text = ("Tap the gear → Missions for contracts and rewards." if touch else "Pause → Missions lists contracts and rewards.") + " Visit a purple contract or gold S radar marker."
 	if not lesson.is_empty():
 		teach(lesson, text)
 		_wait = 12.0

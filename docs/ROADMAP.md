@@ -1865,8 +1865,8 @@ phone, in the phone's browser, at https://nycheroes.party.
   press the same input actions as the keyboard, so the hero is unchanged.
   The UI is measured in CSS pixels, so it's the same physical size on
   every phone.
-- **Detection** (`scripts/util/device.gd`): on when the browser's main
-  pointer is a finger, or at the first real touch; `?touch=1` / `?touch=0`
+- **Detection** (`scripts/util/device.gd`): on for a mobile browser, a coarse
+  primary pointer, or at the first real touch; `?touch=1` / `?touch=0`
   force it. Off on desktop and in headless tests.
 - **Co-op on a phone:** a Close button, 44 px controls, and a real HTML
   text box over the room-code field so the phone's keyboard comes up
@@ -1906,6 +1906,13 @@ phone, in the phone's browser, at https://nycheroes.party.
   (moving while looking, super speed, jumps, swinging, flying, punching and
   diving, typing a room code) on 844x390 and 667x375 screens, with notch
   insets; desktop unchanged.
+- **Android touch follow-up:** mobile Chrome can report a fine primary
+  pointer. Detection and later prompts now share the activated touch state.
+  Tutorial, driving, call, mission and map copy name the on-screen controls;
+  toasts sit beside the radar, with portrait stacking and compact touch stats.
+  `hud_test` covers stick drag/hold/multi-touch/release and four HUD sizes
+  (844×390, 915×412, 1616×720 and 390×844). Android 15 Chrome accepts the
+  ordinary ADB swipe and held JavaScript TouchEvents through the real canvas.
 - **Still to check on real phones:** frame rate and heat on low (and
   whether tablets should get medium), whether iOS Safari keeps the tab
   alive, fullscreen and landscape lock on Android, Add to Home Screen on
@@ -2384,7 +2391,9 @@ been freed. Story regressions cover both cases and the pilot's roof/street route
 
 **Regression:** `drive_test` (including real ENet wreck replication), `coop_test`, `wanted_test`, `police_cars_test`,
 `missions_test`, `story_test`, `shops_test`, `radar_test`, `hud_test`, and
-`gta_integration_test` cover the GTA layer. The integration scene checks
+`gta_integration_test` cover the GTA layer. `hud_test` includes touch detection
+and stick multi-touch regressions plus radar/toast/cash/toolbar geometry; see
+HUD.md for Android gesture reproduction and the four viewport sizes. The integration scene checks
 recovery, disabled police sight, story arrest/fine/retry/cleanup, all snapshot
 generations, boss presentation and explosion placement/lifetime across origin
 shifts, plus initial posed bones and animation after warm-up, car exit, travel,

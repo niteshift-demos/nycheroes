@@ -36,7 +36,8 @@ static func all() -> Array[Mission]:
 		at(40.77395, -73.97055), at(40.77365, -73.97075), at(40.7734, -73.97105)]
 	park.steps = [Mission.collect(items, "Gather the eight Bethesda power cells", 12.0)]
 	var dash := make("broadway_dash", "Broadway Dash", 1500,
-		"A quick power check: follow Broadway south through two gold checkpoints. Hold Shift for super speed.",
+		"A quick power check: follow Broadway south through two gold checkpoints. "
+		+ ("Tap SPEED for super speed." if Device.wants_touch_controls() else "Hold Shift for super speed."),
 		at(40.7580, -73.9855) + Vector3(15.0, 0.0, 0.0))
 	dash.steps = [Mission.reach_in_time(at(40.75778, -73.98565), 40.0, "Sprint to the first Broadway checkpoint", 14.0),
 		Mission.reach_in_time(at(40.7575, -73.9858), 40.0, "Finish at One Times Square", 14.0)]

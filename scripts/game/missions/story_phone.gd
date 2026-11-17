@@ -7,6 +7,7 @@ var director: MissionDirector
 var _portrait: Label
 var _speaker: Label
 var _line: Label
+var _next: Button
 
 
 func _ready() -> void:
@@ -44,6 +45,8 @@ func _ready() -> void:
 		button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(director.next_call if caption.begins_with("Next") else director.skip_calls)
 		buttons.add_child(button)
+		if caption.begins_with("Next"):
+			_next = button
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -65,6 +68,7 @@ func _storyphone_timed_process(_delta: float) -> void:
 	var width := minf(440.0, get_viewport_rect().size.x - 32.0)
 	var viewport := get_viewport_rect().size
 	var touch := Device.wants_touch_controls()
+	_next.text = "Next" if touch else "Next · Enter"
 	var portrait := viewport.y > viewport.x
 	if touch and not portrait:
 		width = minf(width, viewport.x * 0.38)

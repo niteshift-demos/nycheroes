@@ -110,6 +110,7 @@ func _run() -> void:
 	var hero: Hero = load("res://scenes/hero/hero.tscn").instantiate()
 	hero.process_mode = Node.PROCESS_MODE_DISABLED
 	add_child(hero)
+	await _check_touch(hero)
 	var services := CityShops.new()
 	services.hero = hero
 	var here := hero.world_position()
@@ -144,3 +145,96 @@ func _run() -> void:
 			continue
 		_check(matched == [bindings[code]], "%s maps only to %s" % [OS.get_keycode_string(code), bindings[code]])
 	get_tree().quit(1 if _failed else 0)
+
+
+## Screen events reach the same analog actions that PlayerInput reads on foot
+## and in a car. Keep distinct finger IDs so another finger cannot release it.
+func _check_touch(hero: Hero) -> void:
+	LaunchOptions._options.erase("touch")
+	Device.set_page_touch_mode(true)
+	_check(Device.wants_touch_controls(), "first touch keeps all later prompts in touch mode even with a fine pointer")
+	LaunchOptions._options["touch"] = "0"
+	_check(not Device.wants_touch_controls(), "explicit touch=0 still wins over a previous touch")
+	LaunchOptions._options["touch"] = "1"
+	var coop := CoopPanel.new()
+	add_child(coop)
+	var touch := TouchControls.new()
+	touch.process_mode = Node.PROCESS_MODE_DISABLED
+	touch.hero = hero
+	touch.camera_rig = ThirdPersonCamera.new()
+	touch.coop_panel = coop
+	add_child(touch)
+	touch.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	touch.size = Vector2(844, 390)
+	var reader := PlayerInput.new()
+	reader.hero = hero
+	reader.camera_rig = touch.camera_rig
+	_touch_event(touch, 7, Vector2(100, 290), true)
+	_touch_drag(touch, 7, Vector2(100, 260))
+	reader._physics_process(0.016)
+	_check(hero.input.stick.y < -0.01 and hero.input.stick.y > -1.0, "stick drag produces analog forward movement")
+	_touch_drag(touch, 7, Vector2(100, 200))
+	_touch_event(touch, 2, touch._by_id[&"jump"].center, true)
+	_touch_event(touch, 11, Vector2(430, 240), true)
+	_touch_drag(touch, 11, Vector2(450, 240))
+	reader._physics_process(0.016)
+	_check(is_equal_approx(hero.input.stick.y, -1.0) and hero.input.jump_held and touch.camera_rig.yaw != 0.0,
+		"held stick survives simultaneous jump and camera fingers")
+	_touch_event(touch, 11, Vector2(450, 240), false)
+	_touch_event(touch, 2, touch._by_id[&"jump"].center, false)
+	touch._physics_process(0.016)
+	reader._physics_process(0.016)
+	_check(hero.input.stick.length() > 0.9 and not hero.input.jump_held, "releasing other fingers leaves the stick held")
+	_touch_event(touch, 7, Vector2(100, 200), false)
+	reader._physics_process(0.016)
+	_check(hero.input.stick == Vector2.ZERO, "lifting the stick finger clears both movement axes")
+	_touch_event(touch, 5, Vector2(100, 290), true)
+	_touch_drag(touch, 5, Vector2(158, 290))
+	touch._notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	reader._physics_process(0.016)
+	_check(hero.input.stick == Vector2.ZERO and touch._stick_touch == -1, "focus loss releases a held stick")
+	var display := GameHud.new()
+	display.process_mode = Node.PROCESS_MODE_DISABLED
+	display.touch_controls = touch
+	add_child(display)
+	display.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	var message := "Tap the radar for the map. Tap the map to set a waypoint."
+	for viewport: Vector2 in [Vector2(844, 390), Vector2(915, 412), Vector2(1616, 720), Vector2(390, 844)]:
+		for insets: Vector4 in [Vector4.ZERO, Vector4(54, 0, 0, 0)]:
+			touch.size = viewport
+			touch.safe_insets = insets
+			touch._can_fullscreen = true
+			touch._layout()
+			display.size = viewport
+			var notice := display.notice_rect(message)
+			var cash := Rect2(display.wanted_anchor() + Vector2(-210, 32), Vector2(224, 40))
+			var radar := Rect2(insets.x + 16, insets.y + 66, 136, 164)
+			var clear := not notice.intersects(radar) and not notice.intersects(cash) and notice.end.x <= viewport.x and notice.end.y <= viewport.y
+			for id: StringName in [&"options", &"coop", &"sound", &"fullscreen"]:
+				clear = clear and not notice.intersects(touch._by_id[id].rect)
+			_check(clear, "touch toast clears radar, health, cash and toolbar at %s / inset %d" % [viewport, insets.x])
+	_check(MissionCatalog.all().back().intro.contains("SPEED"), "mission introduction names SPEED on touch")
+	display.free()
+	touch.camera_rig.free()
+	touch.free()
+	coop.free()
+	reader.free()
+	Device.set_page_touch_mode(false)
+	LaunchOptions._options.erase("touch")
+	await get_tree().process_frame
+
+
+func _touch_event(touch: TouchControls, index: int, at: Vector2, pressed: bool) -> void:
+	var event := InputEventScreenTouch.new()
+	event.index = index
+	event.position = at
+	event.pressed = pressed
+	touch._input(event)
+
+
+func _touch_drag(touch: TouchControls, index: int, at: Vector2) -> void:
+	var event := InputEventScreenDrag.new()
+	event.index = index
+	event.position = at
+	event.relative = Vector2(20, -30)
+	touch._input(event)

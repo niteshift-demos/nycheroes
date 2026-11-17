@@ -414,6 +414,7 @@ func _open_world_map() -> void:
 ## On-screen controls for touch screens. The UI is then measured in CSS
 ## pixels, which browsers keep about the same physical size on every phone.
 func _add_touch_controls(started_by_touch: bool) -> void:
+	Device.set_page_touch_mode(true)
 	get_window().content_scale_factor = Device.touch_ui_scale()
 	_touch_controls = TouchControls.new()
 	_touch_controls.name = "TouchControls"
@@ -439,10 +440,8 @@ func _add_touch_controls(started_by_touch: bool) -> void:
 		_loading.use_touch_layout()
 	var debug_label := hud.get_node_or_null("DebugLabel") as Label
 	if debug_label:
-		# Small, under the health bar (shown with ?stats or the options menu's switch).
+		# DebugHud lays out its compact touch readout beside the radar.
 		debug_label.add_theme_font_size_override("font_size", 10)
-		debug_label.position = Vector2(_touch_controls.safe_insets.x + 20.0, _touch_controls.safe_insets.y + 56.0)
-	Device.set_page_touch_mode(true)
 
 
 ## Keep mission setup additive so other open-world systems can share Game.
