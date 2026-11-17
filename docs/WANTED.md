@@ -1,4 +1,4 @@
-# Wanted levels and foot police
+# Wanted levels and police pursuits
 
 Heroes keep flight, speed, swinging and slams. Fighting gang thugs is legal.
 Hitting civilians or officers in front of a witness brings the police.
@@ -35,7 +35,8 @@ and blue caps, with NYPD labels. At one star they chase and use melee to
 subdue the hero; at three stars their chase and attacks are faster; five-star
 heavy officers have more health and deal more melee damage. They reuse the
 thugs' collision and curb climbing, animation, attack slots and hit replication.
-There are no guns, police cars or new pathfinding/navigation meshes.
+There are no guns or new navigation meshes. Patrol cars join the response at
+two stars (below).
 
 A knockout while wanted shows BUSTED, clears the pursuit, and after two
 seconds restores the hero to full health on a nearby loaded sidewalk. If no
@@ -78,4 +79,67 @@ civilian ragdolls explicitly shift their simulated bones.
 Foot officers use the existing direct steering and can get stuck behind
 complex building corners. Search is deliberately lightweight: last known
 location plus line-of-sight checks twice per second, rather than a city-wide
-navigation graph. Police cars and precinct-specific respawns are future work.
+navigation graph. Precinct-specific respawns are future work.
+
+
+## Patrol cars and roadblocks
+
+At two through five stars the suspect's game runs at most **1 / 2 / 3 / 4**
+patrol cars, in addition to the foot response. White sedans carry blue side
+stripes, NYPD lettering and an alternating red/blue emissive roof bar visible
+in daylight and at night. They reuse `PropMeshes.car()`, the car material and
+the existing sound bank's CC0 sirens; no new assets or tile rebuilds are needed.
+Their flashing shield blips use `Radar.add_node_blip`.
+
+Cars appear on loaded **traffic** lanes 45–170 m away, outside the camera
+frustum or behind solid world geometry. Sidewalk lanes are not driving lanes.
+A bounded rotating scan checks at most 24 candidates per spawn attempt. A
+physics shape check keeps spawns clear of buildings and existing physical
+cars. At four or five stars, a moving driving suspect can also meet one pair
+of parked cars across a road ahead. The pair is separate from the moving-car
+cap; another roadblock waits at least 25 seconds and for the old one to clear.
+
+`PolicePursuit` makes steering decisions five times a second. Far away, cars
+follow the directed `TrafficLanes` graph, choosing the next street toward the
+last known position. Within 45 m they steer directly and, against a driving
+suspect, aim beside and slightly ahead of the car to ram or box it in. They
+feed plain `HeroInput` into `DriveVehicle.drive()`, with the same acceleration,
+grip, collision and floor physics as player cars. A stuck car briefly backs
+up. NPC driving never reports its bystander impacts as the player's crimes.
+
+Against a nearby foot suspect a patrol brakes, stops and deploys two existing
+`PoliceOfficer` nodes through the encounter director. Those officers use the
+same suspect ownership, hit replication and foot pursuit as reinforcements.
+The stopped car is available to steal with G / R3 / CAR. Police-car theft
+reports `steal_police_car` with severity **2.0**, using the usual witness rule.
+The livery follows the normal driver snapshot; stealing removes the car from
+the response fleet, and after leaving it follows ordinary abandoned-car rules.
+As with other abandoned cars, stealing is local to the peer that owns that
+physical car; remote patrol copies are visual state, not claimable bodies.
+
+An occupied patrol sees its suspect within 65 m through the same world
+occlusion ray as foot officers and resets the wanted escape timer. Searching
+cars slow down and cruise lanes around their last known position; they do
+not track the hidden hero's new location. Reinforcements pause while searching.
+Police cars disappear when wanted clears, or beyond 360 m while unseen.
+
+The encounter director shares a complete small fleet of plain descriptions
+and state at 20 Hz with peers within 400 m. Copies interpolate world positions
+and heading without physics or AI. Full fleets recover lost arrivals and
+removals and support late joiners. A departing suspect's cars disappear rather
+than moving ownership to an innocent player. All targets, lane points and
+snapshots use world coordinates, and bodies join `floating` independently.
+
+`res://tests/police_cars_test.tscn` checks every spawn cap, real driving pursuit,
+foot deployment, sight, search memory, severity-two theft, stolen driver state,
+roadblocks, despawn, floating origin and actual ENet fleet RPCs, using a
+synthetic street. Keep `wanted_test`, `drive_test`, `traffic_test`, `combat_test`,
+`radar_test` and `coop_test` passing. A browser check starts with
+`?wanted=3&car=1&quality=low&name=Agent&solo=1`; enter the starter sedan with G.
+`?police_profile=1` logs mean decision time per physics frame every 300 frames
+(target below 0.3 ms/frame; excludes vehicle physics, rendering and tile updates).
+
+Routing is deliberately local and greedy, not citywide shortest-path planning.
+Cars can still get stuck at complex corners, blocked streets or dead ends.
+They do not obey traffic lights during a pursuit and use direct contact for
+ramming; there are no weapon attacks, tire damage or vehicle destruction.
