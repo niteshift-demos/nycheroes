@@ -82,3 +82,7 @@ banners for capture. It does not replace the interactive pause/navigation check.
 In that fixture, F5 resumes play, F6 enters the starter car on a wanted
 mission, F7 completes the real contract, F8 triggers an arrest through lethal
 damage while wanted, and F9 triggers a knockout without police heat.
+
+The fixture suppresses rendering only while the city assembles, then restores
+normal rendering before the title or any interaction. This speeds software
+rendering checks; it does not measure normal startup time.

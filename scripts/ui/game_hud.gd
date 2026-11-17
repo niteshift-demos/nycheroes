@@ -192,6 +192,9 @@ func _draw_marker(target: Vector3, label: String, color: Color, near_enough: flo
 	var camera := get_viewport().get_camera_3d()
 	if camera == null or size.x < EDGE_MARGIN * 3.0 or size.y < EDGE_MARGIN * 3.0:
 		return
+	# A target on the camera plane has no finite screen projection.
+	if absf(camera.to_local(target).z) < 0.01:
+		return
 	var distance := target.distance_to(hero.global_position)
 	var behind := camera.is_position_behind(target)
 	var point := camera.unproject_position(target)

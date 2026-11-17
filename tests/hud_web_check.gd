@@ -14,10 +14,14 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	# Software-rendered QA needs no 3-D frames while tiles are being assembled.
+	# Restore normal rendering before the title, any input, or capture.
+	RenderingServer.set_render_loop_enabled(false)
 	_game = load("res://scenes/world.tscn").instantiate()
 	add_child(_game)
 	while is_instance_valid(_game._loading) or _game.hero.frozen:
 		await get_tree().process_frame
+	RenderingServer.set_render_loop_enabled(true)
 	while _game.onboarding and _game.onboarding.title_pending:
 		await get_tree().process_frame
 	await get_tree().create_timer(1.0).timeout
