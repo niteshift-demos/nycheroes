@@ -14,6 +14,7 @@ var lane_distance := 0.0
 var last_known := Vector3.ZERO
 var stuck_time := 0.0
 var reverse_time := 0.0
+var recovery := AiRecovery.new()
 var _snapshot_at := Vector3.ZERO
 var _snapshot_heading := 0.0
 var _siren: LoopVoice
@@ -30,6 +31,12 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_policecar_timed_physics_process(delta)
+	GtaTiming.end(&"patrols", stamp)
+
+
+func _policecar_timed_physics_process(delta: float) -> void:
 	if puppet:
 		global_position = global_position.lerp(WorldOrigin.to_local(_snapshot_at), 1.0 - exp(-delta * 16.0))
 		heading = lerp_angle(heading, _snapshot_heading, 1.0 - exp(-delta * 16.0))
@@ -104,3 +111,10 @@ func abandon_pursuit() -> void:
 	var radar := get_tree().get_first_node_in_group("radar") as Radar
 	if radar:
 		radar.remove_blip(StringName("patrol/%d/%d" % [run_by, net_id]))
+
+
+## A burned patrol is an ordinary wreck, not a witness or a fleet slot.
+func explode() -> void:
+	super.explode()
+	if exploded and not puppet:
+		abandon_pursuit()

@@ -19,7 +19,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var margin := MarginContainer.new()
 	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 14)
+		margin.add_theme_constant_override("margin_" + side, 8 if Device.wants_touch_controls() else 14)
 	add_child(margin)
 	var column := VBoxContainer.new()
 	margin.add_child(column)
@@ -53,14 +53,29 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_storyphone_timed_process(_delta)
+	GtaTiming.end(&"hud", stamp)
+
+
+func _storyphone_timed_process(_delta: float) -> void:
 	visible = not director.phone_lines.is_empty()
 	if not visible:
 		return
 	var width := minf(440.0, get_viewport_rect().size.x - 32.0)
+	var viewport := get_viewport_rect().size
+	var touch := Device.wants_touch_controls()
+	var portrait := viewport.y > viewport.x
+	if touch and not portrait:
+		width = minf(width, viewport.x * 0.38)
+	_portrait.add_theme_font_size_override("font_size", 22 if touch else 32)
+	_speaker.add_theme_font_size_override("font_size", 16 if touch else 20)
+	_line.add_theme_font_size_override("font_size", 14 if touch else 17)
 	custom_minimum_size.x = width
 	size.x = width
-	_line.custom_minimum_size.x = width - 28.0
-	position = Vector2(get_viewport_rect().size.x - width - 16, maxf(18.0, get_viewport_rect().size.y - size.y - (190 if Device.wants_touch_controls() else 220)))
+	_line.custom_minimum_size.x = width - (16.0 if touch else 28.0)
+	position = Vector2((viewport.x - width) * 0.5 if touch else viewport.x - width - 16.0,
+		maxf(60.0 if touch else 18.0, viewport.y - size.y - (360.0 if portrait and touch else 170.0 if touch else 220.0)))
 	var line: Dictionary = director.phone_lines[0]
 	_speaker.text = "  PHONE · " + String(line.speaker)
 	_speaker.modulate = line.color

@@ -280,18 +280,26 @@ func draw_overlay(canvas: Control) -> void:
 	if radar.waypoint_active:
 		text = "WAYPOINT  ·  %d m from you" % int(radar.waypoint_position.distance_to(radar.world_center))
 	canvas.draw_string(font, Vector2(20, size.y - 16), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Radar.WAYPOINT_COLOR)
-	if size.x >= 650:
-		var labels := ["Park", "Highway / bridge", "Mission", "Police", "Player", "Waypoint"]
-		var colors := [Color("426b58"), Color("e8ba79"), Color("ffdc86"), Color("57a5ff"), Color.WHITE, Radar.WAYPOINT_COLOR]
-		var kinds: Array[StringName] = [&"shop", &"shop", &"mission", &"police", &"player", &"waypoint"]
-		canvas.draw_rect(Rect2(0, size.y - 78, size.x, 36), Color(0.06, 0.11, 0.15, 0.93))
-		var legend_x := 24.0
-		for i in labels.size():
-			Radar.draw_blip(canvas, Vector2(legend_x, size.y - 60), kinds[i], colors[i])
-			canvas.draw_string(font, Vector2(legend_x + 13, size.y - 55), labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("c9d6d9"))
-			legend_x += font.get_string_size(labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 38
+	# Keep the same legend on portrait phones; wrap instead of omitting it.
+	var labels := ["Story", "Contract", "Hostile", "Police", "Player", "Waypoint", "Park", "Highway"]
+	var colors := [Radar.STORY_COLOR, Radar.CONTRACT_COLOR, GameHud.MARKER_COLOR, Color("57a5ff"), Color.WHITE, Radar.WAYPOINT_COLOR, Color("426b58"), Color("e8ba79")]
+	var kinds: Array[StringName] = [&"story", &"mission", &"enemy", &"police", &"player", &"waypoint", &"shop", &"shop"]
+	var positions: Array[Vector2] = []
+	var legend_at := Vector2(24.0, 0.0)
+	for label in labels:
+		var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x + 38.0
+		if legend_at.x + width > size.x - 16.0:
+			legend_at = Vector2(24.0, legend_at.y + 24.0)
+		positions.append(legend_at)
+		legend_at.x += width
+	var legend_top := size.y - 72.0 - legend_at.y
+	canvas.draw_rect(Rect2(0, legend_top - 16.0, size.x, legend_at.y + 32.0), Color(0.06, 0.11, 0.15, 0.93))
+	for i in labels.size():
+		var at := positions[i] + Vector2(0, legend_top)
+		Radar.draw_blip(canvas, at, kinds[i], colors[i])
+		canvas.draw_string(font, at + Vector2(13, 5), labels[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, colors[i])
 	var credit := "NYC Open Data · © OpenStreetMap contributors"
-	var credit_at := Vector2(20, size.y - (84 if size.x >= 650 else 48))
+	var credit_at := Vector2(20, legend_top - 22.0)
 	canvas.draw_string_outline(font, credit_at, credit, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, 3, Color("192c36"))
 	canvas.draw_string(font, credit_at, credit, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("a8bdc7"))
 	var bar_m := 100.0 if pixels_per_meter > 0.4 else 500.0 if pixels_per_meter > 0.08 else 5000.0

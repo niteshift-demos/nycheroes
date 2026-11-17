@@ -19,6 +19,12 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_playerstats_timed_physics_process(delta)
+	GtaTiming.end(&"stats", stamp)
+
+
+func _playerstats_timed_physics_process(delta: float) -> void:
 	if not hero or not hero.mode:
 		return
 	var mode := hero.mode.name

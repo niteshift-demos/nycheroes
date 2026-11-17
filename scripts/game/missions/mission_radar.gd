@@ -22,6 +22,12 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_missionradar_timed_process(_delta)
+	GtaTiming.end(&"markers", stamp)
+
+
+func _missionradar_timed_process(_delta: float) -> void:
 	refresh()
 
 
@@ -78,7 +84,7 @@ func _step_changed(_id: String, position: Vector3) -> void:
 func _show_givers() -> void:
 	for mission in director.available_missions():
 		var id := StringName("mission/giver/" + mission.id)
-		radar.add_blip(id, mission.giver, &"story" if mission.chapter > 0 else &"mission", Color.GOLD if mission.chapter > 0 else Color.YELLOW)
+		radar.add_blip(id, mission.giver, &"story" if mission.chapter > 0 else &"mission", Radar.STORY_COLOR if mission.chapter > 0 else Radar.CONTRACT_COLOR)
 		if not _owned.has(id):
 			_owned.append(id)
 

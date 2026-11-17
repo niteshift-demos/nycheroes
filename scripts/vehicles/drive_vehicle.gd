@@ -3,6 +3,8 @@ extends CharacterBody3D
 ## A small sliding car body, using the traffic mesh and its per-instance appearance.
 ## Only occupied cars run controls; abandoned ones coast and can be pushed.
 
+signal detonated
+
 const LAYER := 64
 const TOP_SPEED := 30.0
 var model := 0
@@ -74,6 +76,12 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_drivevehicle_timed_physics_process(delta)
+	GtaTiming.end(&"cars", stamp)
+
+
+func _drivevehicle_timed_physics_process(delta: float) -> void:
 	if puppet or driver or ai_controlled:
 		return
 	velocity.x = move_toward(velocity.x, 0.0, delta * 4.0)
@@ -86,6 +94,12 @@ func _physics_process(delta: float) -> void:
 
 ## Steering follows the car, independent of the orbit camera; S brakes then reverses.
 func drive(input: HeroInput, delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_drivevehicle_timed_drive(input, delta)
+	GtaTiming.end(&"cars", stamp)
+
+
+func _drivevehicle_timed_drive(input: HeroInput, delta: float) -> void:
 	var forward := Vector3(sin(heading), 0.0, cos(heading))
 	var horizontal := Vector3(velocity.x, 0.0, velocity.z)
 	var speed := horizontal.dot(forward)
@@ -176,6 +190,7 @@ func _step(delta: float) -> void:
 func _draw() -> void:
 	if _material:
 		_material.set_shader_parameter("damage_amount", 1.0 - health / 100.0)
+		_material.set_shader_parameter("burnt", 1.0 if exploded else 0.0)
 		_material.set_shader_parameter("body_tilt", Vector2(body_roll, body_pitch))
 	var size := PropMeshes.CAR_SIZES[model]
 	# The shader rotates vertices itself, so cancel the body's basis in the instance.
@@ -241,6 +256,12 @@ func repair() -> void:
 
 
 func _process(delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_drivevehicle_timed_process(delta)
+	GtaTiming.end(&"cars", stamp)
+
+
+func _drivevehicle_timed_process(delta: float) -> void:
 	_impact_cooldown = maxf(0.0, _impact_cooldown - delta)
 	_hood_cooldown -= delta
 	if health < 40.0 and not exploded and _hood_cooldown <= 0.0:
@@ -288,10 +309,11 @@ func explode() -> void:
 			Combat.report_crime(&"car_explosion", WorldOrigin.to_world(global_position), 1.5)
 			break
 	GameAudio.play(&"slam", global_position)
+	Combat.impact.emit(global_position, 1.0)
 	if Combat.effects:
-		Combat.effects.car_sparks(global_position + Vector3.UP, Vector3.UP, 30.0)
-		Combat.effects.car_smoke(global_position + Vector3.UP, true)
+		Combat.effects.car_explosion(global_position)
 	_draw()
+	detonated.emit()
 
 
 func _loop(sound: StringName, db: float) -> LoopVoice:

@@ -67,6 +67,12 @@ func _ready() -> void:
 		add_child(pilot)
 
 func _process(delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_missiondirector_timed_process(delta)
+	GtaTiming.end(&"missions", stamp)
+
+
+func _missiondirector_timed_process(delta: float) -> void:
 	if hero == null or hero.frozen or (can_progress.is_valid() and not can_progress.call()):
 		return  # Loading and travel never spend a race's clock.
 	if active and hero.mode.name == &"KnockedOut":
@@ -269,7 +275,7 @@ func markers() -> Array[Dictionary]:
 		if banner_remaining > 0.0:
 			return result  # Distant giver labels must not cross the result banner.
 		for mission in _giver_candidates():
-			result.append({position = mission.giver, label = mission.title.to_upper(), color = Color.GOLD if mission.chapter > 0 else Color(0.75, 0.5, 1.0)})
+			result.append({position = mission.giver, label = mission.title.to_upper(), color = Radar.STORY_COLOR if mission.chapter > 0 else Radar.CONTRACT_COLOR})
 	return result
 
 

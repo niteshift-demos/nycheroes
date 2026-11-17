@@ -9,6 +9,9 @@ signal streets_changed(key: Vector2i, segments: PackedVector2Array)
 signal waypoint_changed(world_position: Vector3, active: bool)
 
 const WAYPOINT_COLOR := Color("cf91ff")
+## Shared across HUD labels, map legend and mission blips.
+const STORY_COLOR := Color.GOLD
+const CONTRACT_COLOR := Color(0.75, 0.5, 1.0)
 const WAYPOINT_ID := &"radar/waypoint"
 ## Edge radius leaves room for icons and the north letter inside the frame.
 const EDGE_INSET := 15.0
@@ -158,6 +161,12 @@ func refresh_node_blips() -> void:
 
 
 func _process(delta: float) -> void:
+	var stamp := GtaTiming.begin()
+	_radar_timed_process(delta)
+	GtaTiming.end(&"radar", stamp)
+
+
+func _radar_timed_process(delta: float) -> void:
 	var started := Time.get_ticks_usec()
 	visible = enabled
 	var diameter := 136.0 if touch_controls else 204.0

@@ -143,3 +143,19 @@ Routing is deliberately local and greedy, not citywide shortest-path planning.
 Cars can still get stuck at complex corners, blocked streets or dead ends.
 They do not obey traffic lights during a pursuit and use direct contact for
 ramming; there are no weapon attacks, tire damage or vehicle destruction.
+
+## Stuck response recovery
+
+Police track actual world-space progress, rather than wheel speed. Two
+seconds without travel triggers a complete reversing manoeuvre for cars,
+or a wall-tangent detour for officers. Repeated attempts alternate steering;
+patrols reacquire another nearby lane, and after three failed attempts an
+unseen patrol beyond 25 m can leave the fleet for normal replacement. No
+visible car teleports. Real travel clears the failed-attempt count. Story
+chase vans use the same reverse detector and choose another loaded road.
+Disabled patrols cannot witness crimes or keep a suspect spotted; explosions
+release their fleet slot and blip while retaining a solid wreck.
+
+Officers exiting patrols and normal foot reinforcements share the same
+ten-officer maximum. A deployed fleet cannot silently double the foot
+response or its CPU cost.

@@ -43,7 +43,6 @@ var _story_windup := 0.0
 var _story_charge := 0.0
 var _story_direction := Vector3.ZERO
 var _story_hit := false
-var _story_label: Label3D
 var _story_warning: MeshInstance3D
 
 var health := 100.0
@@ -219,13 +218,8 @@ func go_down(launch: Vector3, counts := true) -> void:
 
 
 func _process(delta: float) -> void:
-	if is_instance_valid(_story_label):
-		_story_label.text = ["", "NERA FLINT", "OREN PIKE", "SABLE QUILL", "ALDEN VOSS"][story_variant] + "  %d" % maxi(0, ceili(health))
-		if _story_windup > 0.0:
-			_story_label.text += " · RISE!"
-		_story_label.visible = not is_down()
-		if is_down():
-			_story_warning.visible = false
+	if story_variant > 0 and is_down():
+		_story_warning.visible = false
 	_detail_check -= delta
 	if _detail_check > 0.0:
 		return
@@ -454,12 +448,8 @@ func set_story_variant(variant: int, reset_health := true) -> void:
 	NpcLook._dress($Model, {top_color = color.darkened(0.4), bottom_color = Color("182030"),
 		joint_color = color, shoe_color = Color("e0e0df"), cuts = Vector4(0.9, 0.17, 0.17, 0.7)}, rng)
 	_model.scale = Vector3.ONE * (1.35 if story_variant == 4 else 1.2)
-	_story_label = Label3D.new()
-	_story_label.position.y = 3.1
-	_story_label.font_size = 42
-	_story_label.modulate = color
-	_story_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	add_child(_story_label)
+	if is_instance_valid(_story_warning):
+		_story_warning.free()
 	_story_warning = MeshInstance3D.new()
 	var ring := TorusMesh.new()
 	ring.inner_radius = 7.7
@@ -474,6 +464,13 @@ func set_story_variant(variant: int, reset_health := true) -> void:
 	_story_warning.position.y = 0.15
 	_story_warning.visible = false
 	add_child(_story_warning)
+
+
+## Drawn by GameHud at the UI's native resolution, even on Low's 360p city.
+## Replicated rigs use the same name, health and warning as their owner.
+func story_tag() -> String:
+	var text: String = ["", "NERA FLINT", "OREN PIKE", "SABLE QUILL", "ALDEN VOSS"][story_variant]
+	return text + " · BOSS  %d" % maxi(0, ceili(health)) + (" · RISE!" if _story_warning and _story_warning.visible else "")
 
 
 ## A 1.2-second warning makes every heavy attack avoidable with flight/jump.

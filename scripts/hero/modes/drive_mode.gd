@@ -153,7 +153,14 @@ func _process(_delta: float) -> void:
 	_hint.visible = not hero.frozen and (hero.mode == self or (hero.mode.name == &"OnFoot" and can_take_car()))
 	var condition := "FIRE — GET OUT!" if hero.mode == self and car.health <= 0.0 else "Car %d%%" % roundi(car.health) if hero.mode == self else ""
 	if Device.wants_touch_controls():
-		_hint.text = "%d km/h • %s • Stick: drive   BRAKE: slide   EXIT" % [roundi(hero.horizontal_speed() * 3.6), condition] if hero.mode == self else "CAR: take a nearby car"
+		var viewport := hero.get_viewport().get_visible_rect().size
+		var width := minf(320.0, viewport.x * 0.38)
+		_hint.add_theme_font_size_override("font_size", 14)
+		_hint.offset_left = (viewport.x - width) * 0.5
+		_hint.offset_right = -(viewport.x - width) * 0.5
+		_hint.offset_top = -300.0 if viewport.y > viewport.x else -68.0
+		_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_hint.text = "%d km/h · %s\nStick: drive · BRAKE: drift" % [roundi(hero.horizontal_speed() * 3.6), condition] if hero.mode == self else "CAR: take a nearby car"
 		return
 	_hint.text = "%d km/h   •   %s   •   WASD drive   Space brake   G / R3 exit" % [roundi(hero.horizontal_speed() * 3.6), condition] if hero.mode == self else "G / R3: take a nearby car"
 

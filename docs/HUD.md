@@ -95,3 +95,32 @@ charcoal panels. Shop, garage and safehouse labels use the same 150 m limit,
 on-screen-only projection and overlap avoidance as mission givers. Their
 radar blips remain available for navigation beyond that distance. The health
 strip uses upgraded maximum health when computing its percentage.
+
+## Integration checks
+
+Locked campaign chapters show grey rows without waypoint buttons. Story
+givers use gold S blips, contracts purple diamonds and hostiles red triangles
+in the HUD, radar and whole-city legend; the legend wraps on portrait phones.
+Boss names/health/warnings use native-resolution HUD text, avoiding 3-D font
+aliasing when Low renders the city at 360p.
+
+The browser fixture also supports F2 / `hud_case=boss` (Voss at a measured
+distance), F3 / `hud_case=explosion` (a real damaged car, held after its blast),
+and F6 / `hud_case=car` (five stars). `window.nycPolishState` exposes only
+fixture telemetry: mode, stars, officers, fleet, node count and pause state.
+The fixture seeds actors, so these captures verify presentation rather than
+campaign progression. Export it with `python tools/web/build_hud_check.py`
+after the ordinary export, then open `/hud-check.html?quality=low&solo=1&name=Agent`.
+
+Touch phone calls use a compact centre panel between radar, wanted/cash and
+the objective; toasts yield while the call is visible. Touch driving hints
+use two short lines clear of the stick and action buttons. Portrait layouts
+reserve the lower controls, while the existing browser rotation overlay still
+asks players to turn sideways for play.
+
+`hud_case=chase` fills the normal response through its real spawn checks and
+enables an optional steering pilot (`window.nycDrivePilot`). It follows loaded
+lanes with ordinary HeroInput, including reverse recovery; toggle it off for
+manual driving. Add `?stats=1` for CPU parts. `window.nycPolishAction` accepts
+`call`, `car`, `chase`, `foot`, `boss` or `explosion` to switch QA scenarios
+without reloading the city. Actor seeding is confined to this excluded fixture.

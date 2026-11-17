@@ -86,8 +86,8 @@ func _run() -> void:
 	check(menu.mission_status(chapters[0]) == "AVAILABLE" and menu.mission_status(chapters[1]) == "LOCKED",
 		"pause menu uses saved chapter locks rather than contract replay status")
 	check((menu._content.get_child(0) as Label).text.begins_with("THE BORROWED SKYLINE")
-		and not (menu._content.get_child(2) as Button).disabled and (menu._content.get_child(4) as Button).disabled,
-		"Missions page shows story progress first and disables locked chapter waypoints")
+		and not (menu._content.get_child(2) as Button).disabled and menu._content.get_child(4) is Label,
+		"Missions page shows story progress first and hides locked chapter waypoints")
 	var position := Vector3(0, 0, 30)
 	begin(Mission.drive_to(position, "Drive", 4))
 	director.advance(0.1, position)
